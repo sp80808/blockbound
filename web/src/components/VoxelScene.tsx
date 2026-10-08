@@ -401,7 +401,7 @@ function DieBody({ value, isRolling, index }: { value: number; isRolling: boolea
 }
 
 function PhysicalDice() {
-  const isRolling = useGameStore(s => s.isRolling);
+  const isRolling = useGameStore(s => s.isDiceAnimating);
   const lastRoll = useGameStore(s => s.lastRoll);
   return (
     <group>
