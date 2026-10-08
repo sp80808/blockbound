@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
 import { allowedMultipliers } from '../game/rollRules';
+import { ENERGY_REFILL_MS } from '../game/gameSave';
 import { STREAK_REWARDS, useGameStore } from '../store/gameStore';
 import './GameFeel.css';
 
@@ -12,7 +13,7 @@ const DRAG_TOLERANCE_PX = 12;
 
 export function HUD() {
   const {
-    coins, materials, energy, maxEnergy, shields, maxShields, multiplier,
+    coins, materials, energy, maxEnergy, energyUpdatedAt, saveError, shields, maxShields, multiplier,
     isRolling, isTurbo, toast, lastRoll, momentum, autoRolling, autoBatchSize,
     autoRollsRemaining, autoEnergyBudget, autoEnergySpent, autoOkay,
     autoAdjustMultiplier, districts, currentDistrict, dailyStreak, streakClaimedToday,
@@ -23,6 +24,11 @@ export function HUD() {
 
   const [showOptions, setShowOptions] = useState(false);
   const [showRollSummary, setShowRollSummary] = useState(false);
+  const [clock, setClock] = useState(Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [isHolding, setIsHolding] = useState(false);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdOrigin = useRef<{ x: number; y: number; id: number } | null>(null);
@@ -97,6 +103,9 @@ export function HUD() {
   const canRoll = autoRolling || (!isRolling && energy >= multiplier && !activeModal);
   const maxAffordable = allowedMultipliers(energy).slice(-1)[0] ?? 0;
   const remainingBudget = Math.max(0, autoEnergyBudget - autoEnergySpent);
+  const refillInSeconds = Math.max(0, Math.ceil((energyUpdatedAt + ENERGY_REFILL_MS - clock) / 1000));
+  const refillLabel = energy >= maxEnergy ? 'FULL' : '+1 IN ' +
+    Math.floor(refillInSeconds / 60) + ':' + String(refillInSeconds % 60).padStart(2, '0');
 
   return (
     <div className="bb-hud" onPointerDownCapture={interruptAutoForOtherTouch} onClickCapture={stopAutoForOtherAction}>
@@ -141,6 +150,11 @@ export function HUD() {
           </div>
         </div>
         {toast && <div className="bb-toast" role="status" aria-live="polite" key={toast}>{toast}</div>}
+        {saveError && (
+          <div role="alert" className="bb-toast" style={{ borderColor: '#fca5a5', color: '#fecaca' }}>
+            ⚠️ Local progress isn't saving. Check browser storage before closing the game.
+          </div>
+        )}
       </header>
 
       {showRollSummary && lastRoll && (
@@ -229,6 +243,9 @@ export function HUD() {
             <div className="bb-energy-track" role="progressbar" aria-label="Dice energy"
               aria-valuemin={0} aria-valuemax={maxEnergy} aria-valuenow={energy}>
               <div className="bb-energy-fill" style={{ width: (maxEnergy ? 100 * energy / maxEnergy : 0) + '%' }} />
+            </div>
+            <div className="bb-micro" style={{ textAlign: 'right', color: '#b8d1de', marginTop: 3 }}>
+              {refillLabel}
             </div>
           </div>
           <div className="bb-momentum">

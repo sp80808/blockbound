@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run test:rules && tsc && vite build",
+    "build": "npm test && tsc && vite build",
     "preview": "vite preview",
     "cap:sync": "cap sync android",
     "test:rules": "node --test tests/rollRules.test.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/rollRules.test.mjs tests/gameSave.test.mjs",
+    "test:saves": "node --test tests/gameSave.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
