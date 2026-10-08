@@ -29,6 +29,7 @@
       height: 100%;
       z-index: 1;
     }
+
     /* Splash Screen */
     #splash-screen {
       position: absolute;
@@ -115,11 +116,12 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px) 16px;
+      padding: calc(env(safe-area-inset-top, 24px) + 16px) 16px calc(env(safe-area-inset-bottom, 16px) + 12px) 16px;
     }
     .hud-interactive {
       pointer-events: auto;
     }
+
     /* Top Bar */
     .top-bar {
       display: flex;
@@ -133,7 +135,7 @@
       gap: 6px;
     }
     .pill {
-      background: rgba(30, 41, 59, 0.9);
+      background: rgba(30, 41, 59, 0.92);
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 14px;
       padding: 6px 10px;
@@ -144,11 +146,15 @@
       font-weight: 800;
       backdrop-filter: blur(8px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      transition: transform 0.15s ease;
+    }
+    .pill.bump {
+      transform: scale(1.15);
     }
     .pill-coins { color: #fbbf24; }
     .pill-materials { color: #f472b6; }
     .shields-box {
-      background: rgba(8, 47, 73, 0.9);
+      background: rgba(8, 47, 73, 0.92);
       border: 1px solid #0284c7;
       border-radius: 14px;
       padding: 6px 10px;
@@ -157,11 +163,26 @@
     }
     .shield-icon { font-size: 14px; filter: grayscale(100%); opacity: 0.4; }
     .shield-icon.active { filter: none; opacity: 1; }
+
+    .streak-btn {
+      background: linear-gradient(135deg, #ea580c, #f97316);
+      border: 1px solid #fdba74;
+      border-radius: 14px;
+      padding: 6px 10px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+    }
     .menu-btn {
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: rgba(30, 41, 59, 0.9);
+      background: rgba(30, 41, 59, 0.92);
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: #fff;
       display: flex;
@@ -173,7 +194,7 @@
 
     /* District Card */
     .district-card {
-      background: rgba(15, 23, 42, 0.88);
+      background: rgba(15, 23, 42, 0.9);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 16px;
       padding: 8px 12px;
@@ -220,6 +241,74 @@
       cursor: pointer;
     }
 
+    /* Dice Outcome Pop-up Overlay */
+    #dice-result-popup {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: rgba(15, 23, 42, 0.94);
+      border: 2px solid #fbbf24;
+      border-radius: 24px;
+      padding: 16px 26px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65);
+      z-index: 45;
+      pointer-events: none;
+      opacity: 0;
+      transition: transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.28s ease;
+    }
+    #dice-result-popup.active {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+    .dice-icons-row {
+      display: flex;
+      gap: 12px;
+      font-size: 34px;
+    }
+    .dice-badge {
+      background: #1e1b4b;
+      border: 1.5px solid #f59e0b;
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 20px;
+      font-weight: 900;
+      color: #fde047;
+    }
+    .dice-total-text {
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .dice-sub-tag {
+      font-size: 11px;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: 0.5px;
+    }
+
+    /* Floating Loot Badge Banner */
+    .loot-flying-badge {
+      position: absolute;
+      pointer-events: none;
+      font-weight: 900;
+      font-size: 16px;
+      color: #fde047;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      z-index: 55;
+      animation: floatUpFade 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes floatUpFade {
+      0% { transform: translateY(0) scale(0.6); opacity: 0; }
+      20% { transform: translateY(-10px) scale(1.2); opacity: 1; }
+      100% { transform: translateY(-60px) scale(1); opacity: 0; }
+    }
+
     /* Toast Notification Banner */
     #banner-toast {
       background: #312e81;
@@ -240,13 +329,13 @@
       to { transform: translateY(0) scale(1); opacity: 1; }
     }
 
-    /* Bottom Roll Section */
+    /* Bottom Controls */
     .bottom-section {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
     .energy-bar-wrap {
       display: flex;
@@ -326,7 +415,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.78);
       backdrop-filter: blur(6px);
       z-index: 50;
       display: none;
@@ -365,6 +454,38 @@
       cursor: pointer;
       font-size: 16px;
     }
+
+    /* Streak Calendar Grid */
+    .streak-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .streak-card {
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      border-radius: 12px;
+      padding: 10px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      text-align: center;
+    }
+    .streak-card.today {
+      background: #1e1b4b;
+      border-color: #f59e0b;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+    }
+    .streak-card.claimed {
+      background: #064e3b;
+      border-color: #10b981;
+      opacity: 0.8;
+    }
+    .streak-day-title { font-size: 11px; font-weight: 800; color: #94a3b8; }
+    .streak-reward-icon { font-size: 22px; }
+    .streak-reward-text { font-size: 10px; font-weight: 800; color: #fde047; }
+
     /* Building items */
     .b-item {
       background: #1e293b;
@@ -421,7 +542,7 @@
       cursor: pointer;
     }
 
-    /* Raid / Heist grids */
+    /* Raid & Heist */
     .raid-grid {
       display: flex;
       gap: 8px;
@@ -486,7 +607,7 @@
     <!-- Top Bar -->
     <div class="top-bar hud-interactive">
       <div class="resource-row">
-        <div class="pill pill-coins">
+        <div class="pill pill-coins" id="hud-coins-pill">
           <span>🪙</span>
           <span id="hud-coins">35,000</span>
         </div>
@@ -499,7 +620,11 @@
           <span class="shield-icon active">🛡️</span>
           <span class="shield-icon">🛡️</span>
         </div>
-        <div style="display: flex; gap: 6px;">
+        <button class="streak-btn" onclick="openModal('streak-modal')">
+          <span>🔥</span>
+          <span id="hud-streak-day">Day 1</span>
+        </button>
+        <div style="display: flex; gap: 4px;">
           <button class="menu-btn" onclick="openModal('quests-modal')">📋</button>
           <button class="menu-btn" onclick="openModal('settings-modal')">⚙️</button>
         </div>
@@ -517,7 +642,18 @@
       </div>
 
       <!-- Action Toast Banner -->
-      <div id="banner-toast">🏁 LANDED ON GO! +30,000 COINS!</div>
+      <div id="banner-toast">🏁 LANDED ON START! +30,000 COINS!</div>
+    </div>
+
+    <!-- Dice Result Dynamic Pop-up -->
+    <div id="dice-result-popup" class="dice-popup">
+      <div class="dice-icons-row">
+        <div class="dice-badge" id="popup-die1">⚄ 5</div>
+        <div style="font-weight:900; color:#94a3b8;">+</div>
+        <div class="dice-badge" id="popup-die2">⚂ 3</div>
+      </div>
+      <div class="dice-total-text" id="popup-total-text">= 8 STEPS</div>
+      <div class="dice-sub-tag" id="popup-sub-tag">CAMERA FOLLOWING TOKEN</div>
     </div>
 
     <!-- Bottom Controls -->
@@ -539,6 +675,25 @@
           <span>⚡</span>
           <span>FAST</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Streak Calendar Modal -->
+  <div id="streak-modal" class="modal-overlay">
+    <div class="modal-box" style="border-color:#f97316;">
+      <div class="modal-header">
+        <div>
+          <h3 style="color:#fb923c;">🔥 Daily Login Streak</h3>
+          <p style="font-size:12px; color:#94a3b8;">Log in daily to unlock massive bonuses!</p>
+        </div>
+        <button class="close-btn" onclick="closeModal('streak-modal')">✕</button>
+      </div>
+      <div class="streak-grid" id="streak-grid-wrap"></div>
+      <div id="streak-claim-wrap" style="text-align:center;">
+        <button id="streak-claim-btn" class="build-btn" style="width:100%; justify-content:center; padding:12px; font-size:14px; background:linear-gradient(135deg, #ea580c, #f97316);" onclick="claimStreakReward()">
+          CLAIM DAY 1 BONUS!
+        </button>
       </div>
     </div>
   </div>
@@ -650,7 +805,7 @@
           const gain = this.ctx.createGain();
           osc.type = type;
           osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-          gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
           if (decay) {
             gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
           }
@@ -669,7 +824,7 @@
         this.playTone(520 * pitch, 0.06, "sine");
       }
       playCoin() {
-        this.vibrate(25);
+        this.vibrate(20);
         const notes = [784, 988, 1175, 1568];
         notes.forEach((n, i) => {
           setTimeout(() => this.playTone(n, 0.12, "sine"), i * 45);
@@ -684,21 +839,31 @@
         this.playTone(920, 0.25, "triangle");
       }
       playBoom() {
-        this.vibrate(60);
-        this.playTone(90, 0.35, "sawtooth");
+        this.vibrate(70);
+        this.playTone(85, 0.45, "sawtooth");
       }
       playFanfare() {
         this.vibrate(50);
-        [523, 659, 784, 1046].forEach((n, i) => {
-          setTimeout(() => this.playTone(n, 0.2, "sine"), i * 60);
+        [523, 659, 784, 1046, 1318].forEach((n, i) => {
+          setTimeout(() => this.playTone(n, 0.2, "sine"), i * 55);
         });
       }
     }
     const sound = new SoundEngine();
 
     /* =========================================================================
-       GAME STATE & PERSISTENCE
+       DAILY STREAK SYSTEM & GAME STATE
        ========================================================================= */
+    const STREAK_REWARDS = [
+      { day: 1, label: "Day 1", icon: "🪙", desc: "+10k Coins & +10⚡", coins: 10000, energy: 10, mats: 0 },
+      { day: 2, label: "Day 2", icon: "⚡", desc: "+20k Coins & +15⚡", coins: 20000, energy: 15, mats: 0 },
+      { day: 3, label: "Day 3", icon: "⭐", desc: "+35k Coins & 1.5X Bet", coins: 35000, energy: 20, mats: 4 },
+      { day: 4, label: "Day 4", icon: "🧱", desc: "+50k Coins & +10 Bricks", coins: 50000, energy: 20, mats: 10 },
+      { day: 5, label: "Day 5", icon: "🛡️", desc: "+75k Coins & +1 Shield", coins: 75000, energy: 25, mats: 5, shield: 1 },
+      { day: 6, label: "Day 6", icon: "💎", desc: "+100k Coins & +30⚡", coins: 100000, energy: 30, mats: 12 },
+      { day: 7, label: "Day 7", icon: "👑", desc: "EPIC CHEST! +250k Coins!", coins: 250000, energy: 50, mats: 25, shield: 1 }
+    ];
+
     const DISTRICTS = [
       {
         id: 0,
@@ -773,6 +938,9 @@
       isRolling: false,
       isTurbo: false,
       currentDistrict: 0,
+      dailyStreak: 1,
+      lastLoginDate: "",
+      streakClaimedToday: false,
       districts: JSON.parse(JSON.stringify(DISTRICTS)),
       quests: [
         { id: "q_rolls", title: "Roll Dice 15 times", target: 15, current: 0, rewardEnergy: 10, claimed: false },
@@ -780,6 +948,27 @@
         { id: "q_raid", title: "Complete 1 Town Raid", target: 1, current: 0, rewardEnergy: 15, claimed: false }
       ]
     };
+
+    function checkDailyStreak() {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (!gameState.lastLoginDate) {
+        gameState.lastLoginDate = todayStr;
+        gameState.dailyStreak = 1;
+        gameState.streakClaimedToday = false;
+      } else if (gameState.lastLoginDate !== todayStr) {
+        const last = new Date(gameState.lastLoginDate);
+        const curr = new Date(todayStr);
+        const diffDays = Math.round((curr - last) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) {
+          gameState.dailyStreak = (gameState.dailyStreak % 7) + 1;
+          gameState.streakClaimedToday = false;
+        } else if (diffDays > 1) {
+          gameState.dailyStreak = 1;
+          gameState.streakClaimedToday = false;
+        }
+        gameState.lastLoginDate = todayStr;
+      }
+    }
 
     function loadSave() {
       try {
@@ -789,6 +978,7 @@
           gameState = { ...gameState, ...parsed };
         }
       } catch (e) {}
+      checkDailyStreak();
     }
     function saveState() {
       try {
@@ -802,16 +992,15 @@
     loadSave();
 
     /* =========================================================================
-       THREE.JS 3D VOXEL ENGINE SETUP
+       THREE.JS 3D VOXEL SCENE & CAMERA STATE MACHINE
        ========================================================================= */
     const container = document.getElementById("canvas-container");
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0f172a);
-    scene.fog = new THREE.FogExp2(0x0f172a, 0.022);
+    scene.fog = new THREE.FogExp2(0x0f172a, 0.02);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(22, 28, 22);
-    camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -821,10 +1010,10 @@
     container.appendChild(renderer.domElement);
 
     // Lights
-    const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x1e1b4b, 0.7);
+    const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x1e1b4b, 0.75);
     scene.add(hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfffaed, 1.2);
+    const dirLight = new THREE.DirectionalLight(0xfffaed, 1.25);
     dirLight.position.set(16, 32, 16);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
@@ -838,12 +1027,24 @@
     dirLight.shadow.camera.bottom = -d;
     scene.add(dirLight);
 
-    // Board Geometry & Tiles (32 perimeter spots around 9x9 grid)
-    const TILE_POSITIONS = [];
-    const boardGroup = new THREE.Group();
-    scene.add(boardGroup);
+    // Camera State Targets
+    let cameraMode = 'OVERVIEW';
+    const currentCameraTarget = new THREE.Vector3(0, 0, 0);
+    const targetCameraPos = new THREE.Vector3(22, 28, 22);
+    const targetLookAt = new THREE.Vector3(0, 0, 0);
 
-    // Calculate 32 perimeter coordinates (centered at 0,0)
+    let cameraAngle = Math.PI / 4;
+    let cameraRadius = 34;
+    let isUserDragging = false;
+    let prevMouseX = 0;
+    let screenShakeIntensity = 0;
+
+    function triggerScreenShake(intensity = 1.0) {
+      screenShakeIntensity = intensity;
+    }
+
+    // 32 Perimeter Tile positions
+    const TILE_POSITIONS = [];
     const boardStep = 2.4;
     const halfBoard = 4 * boardStep;
 
@@ -877,25 +1078,20 @@
       tile.receiveShadow = true;
       tile.castShadow = true;
 
-      // Center decorative voxel stud
-      const studMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-      const stud = new THREE.Mesh(studGeo, studMat);
+      const stud = new THREE.Mesh(studGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
       stud.position.set(0, 0.35, 0);
       tile.add(stud);
 
-      boardGroup.add(tile);
+      scene.add(tile);
       tileMeshes.push(tile);
     });
 
-    // Courtyard Floor & Cobblestone paths
-    const groundGeo = new THREE.BoxGeometry(16.5, 0.3, 16.5);
-    const groundMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
+    // Courtyard Ground & Paths
+    const ground = new THREE.Mesh(new THREE.BoxGeometry(16.5, 0.3, 16.5), new THREE.MeshLambertMaterial({ color: 0x1e293b }));
     ground.position.set(0, -0.15, 0);
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // Cross Paths
     const pathMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
     const pathX = new THREE.Mesh(new THREE.BoxGeometry(16, 0.35, 2), pathMat);
     pathX.position.set(0, -0.1, 0);
@@ -906,20 +1102,15 @@
     pathZ.receiveShadow = true;
     scene.add(pathZ);
 
-    // Decorative Voxel Trees at 4 corners of courtyard
-    const treeTrunkGeo = new THREE.BoxGeometry(0.5, 1.2, 0.5);
-    const treeLeafGeo = new THREE.BoxGeometry(1.4, 1.2, 1.4);
-    const trunkMat = new THREE.MeshLambertMaterial({ color: 0x78350f });
-    const leafMat = new THREE.MeshLambertMaterial({ color: 0x16a34a });
-
+    // Trees
     [[-5, -5], [5, -5], [-5, 5], [5, 5]].forEach(([tx, tz]) => {
       const tree = new THREE.Group();
-      const trunk = new THREE.Mesh(treeTrunkGeo, trunkMat);
+      const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.2, 0.5), new THREE.MeshLambertMaterial({ color: 0x78350f }));
       trunk.position.set(0, 0.6, 0);
       trunk.castShadow = true;
       tree.add(trunk);
 
-      const leaf = new THREE.Mesh(treeLeafGeo, leafMat);
+      const leaf = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 1.4), new THREE.MeshLambertMaterial({ color: 0x16a34a }));
       leaf.position.set(0, 1.6, 0);
       leaf.castShadow = true;
       tree.add(leaf);
@@ -928,56 +1119,47 @@
       scene.add(tree);
     });
 
-    // 3D Voxel Town Buildings in the Courtyard (5 plots)
+    // Courtyard Town Buildings
     const PLOT_POSITIONS = [
-      { x: 0, z: 0 },       // Center: Town Hall
-      { x: -4, z: -2 },     // Bakery
-      { x: 4, z: -2 },      // Cottage
-      { x: -4, z: 2 },      // Windmill
-      { x: 4, z: 2 }        // Central Park
+      { x: 0, z: 0 },
+      { x: -4, z: -2 },
+      { x: 4, z: -2 },
+      { x: -4, z: 2 },
+      { x: 4, z: 2 }
     ];
 
-    const buildingGroups = [];
-    PLOT_POSITIONS.forEach((pos, idx) => {
+    const buildingGroups = PLOT_POSITIONS.map(pos => {
       const bGroup = new THREE.Group();
       bGroup.position.set(pos.x, 0, pos.z);
       scene.add(bGroup);
-      buildingGroups.push(bGroup);
+      return bGroup;
     });
 
     function rebuildBuildingMesh(plotIdx, building) {
       const group = buildingGroups[plotIdx];
-      while (group.children.length > 0) {
-        group.remove(group.children[0]);
-      }
+      while (group.children.length > 0) group.remove(group.children[0]);
 
-      const tier = building.tier;
       if (building.damaged) {
-        // Ruined rubble
-        const rubbleMat = new THREE.MeshLambertMaterial({ color: 0x475569 });
-        const r1 = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 1.6), rubbleMat);
-        r1.position.set(0, 0.3, 0);
-        group.add(r1);
+        const rubble = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 1.6), new THREE.MeshLambertMaterial({ color: 0x475569 }));
+        rubble.position.set(0, 0.3, 0);
+        group.add(rubble);
         const fire = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
         fire.position.set(0.2, 0.8, 0);
         group.add(fire);
         return;
       }
 
-      if (tier === 0) {
-        // Tier 0: Plot stakes & blueprint
-        const stakeGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
-        const stakeMat = new THREE.MeshLambertMaterial({ color: 0xb45309 });
+      const t = building.tier;
+      if (t === 0) {
         [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]].forEach(([sx, sz]) => {
-          const s = new THREE.Mesh(stakeGeo, stakeMat);
+          const s = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 0.2), new THREE.MeshLambertMaterial({ color: 0xb45309 }));
           s.position.set(sx, 0.3, sz);
           group.add(s);
         });
         const bp = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.8), new THREE.MeshLambertMaterial({ color: 0x38bdf8 }));
         bp.position.set(0, 0.05, 0);
         group.add(bp);
-      } else if (tier === 1) {
-        // Small cottage
+      } else if (t === 1) {
         const wall = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 1.8), new THREE.MeshLambertMaterial({ color: 0xfbbf24 }));
         wall.position.set(0, 0.6, 0);
         wall.castShadow = true;
@@ -986,16 +1168,15 @@
         roof.position.set(0, 1.5, 0);
         roof.castShadow = true;
         group.add(roof);
-      } else if (tier === 2) {
-        // 2-storey house + chimney
-        const floor1 = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 2.0), new THREE.MeshLambertMaterial({ color: 0xf59e0b }));
-        floor1.position.set(0, 0.6, 0);
-        floor1.castShadow = true;
-        group.add(floor1);
-        const floor2 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.2, 1.7), new THREE.MeshLambertMaterial({ color: 0xfef08a }));
-        floor2.position.set(0, 1.8, 0);
-        floor2.castShadow = true;
-        group.add(floor2);
+      } else if (t === 2) {
+        const f1 = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 2.0), new THREE.MeshLambertMaterial({ color: 0xf59e0b }));
+        f1.position.set(0, 0.6, 0);
+        f1.castShadow = true;
+        group.add(f1);
+        const f2 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.2, 1.7), new THREE.MeshLambertMaterial({ color: 0xfef08a }));
+        f2.position.set(0, 1.8, 0);
+        f2.castShadow = true;
+        group.add(f2);
         const roof = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.6, 1.9), new THREE.MeshLambertMaterial({ color: 0x2563eb }));
         roof.position.set(0, 2.7, 0);
         roof.castShadow = true;
@@ -1003,8 +1184,7 @@
         const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4), new THREE.MeshLambertMaterial({ color: 0x991b1b }));
         chimney.position.set(0.6, 3.1, 0.6);
         group.add(chimney);
-      } else if (tier === 3) {
-        // Mansion / boutique with awning and spire
+      } else if (t === 3) {
         const bBase = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.5, 2.2), new THREE.MeshLambertMaterial({ color: 0xe2e8f0 }));
         bBase.position.set(0, 0.75, 0);
         bBase.castShadow = true;
@@ -1017,11 +1197,7 @@
         roof.position.set(0, 3.1, 0);
         roof.castShadow = true;
         group.add(roof);
-        const spire = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.3), new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
-        spire.position.set(0, 3.8, 0);
-        group.add(spire);
-      } else if (tier >= 4) {
-        // Grand landmark clocktower / castle
+      } else if (t >= 4) {
         const tower = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.8, 2.2), new THREE.MeshLambertMaterial({ color: 0xcbd5e1 }));
         tower.position.set(0, 1.4, 0);
         tower.castShadow = true;
@@ -1030,15 +1206,11 @@
         upper.position.set(0, 3.6, 0);
         upper.castShadow = true;
         group.add(upper);
-        const crown = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.4, 2.0), new THREE.MeshLambertMaterial({ color: 0xd97706 }));
-        crown.position.set(0, 4.6, 0);
-        crown.castShadow = true;
-        group.add(crown);
         const gem = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
-        gem.position.set(0, 5.2, 0);
+        gem.position.set(0, 4.8, 0);
         group.add(gem);
         const flag = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.1), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-        flag.position.set(0.5, 5.7, 0);
+        flag.position.set(0.5, 5.3, 0);
         group.add(flag);
       }
     }
@@ -1066,13 +1238,12 @@
     tokenGroup.add(tokenCap);
 
     scene.add(tokenGroup);
-    const startPos = TILE_POSITIONS[gameState.currentTile];
-    tokenGroup.position.set(startPos.x, 0.4, startPos.z);
+    const startTilePos = TILE_POSITIONS[gameState.currentTile];
+    tokenGroup.position.set(startTilePos.x, 0.4, startTilePos.z);
 
-    // 3D Physical Animated Dice Models in the 3D scene
+    // 3D Physical Animated Dice Models in the Scene
     function create3DDie() {
       const geo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
-      // Canvas generated pip textures for 6 faces
       const materials = [1, 6, 2, 5, 3, 4].map(num => {
         const c = document.createElement("canvas");
         c.width = 128;
@@ -1101,40 +1272,166 @@
 
     const dice1 = create3DDie();
     const dice2 = create3DDie();
-    dice1.position.set(-1.4, 2.5, 0);
-    dice2.position.set(1.4, 2.5, 0);
+    dice1.position.set(-1.4, 1.5, 0);
+    dice2.position.set(1.4, 1.5, 0);
     scene.add(dice1);
     scene.add(dice2);
 
     /* =========================================================================
-       CAMERA CONTROLS (Drag to Rotate & Pan, Pinch to Zoom)
+       PROJECTILES, DUST PARTICLES & LOOT TRAVEL ANIMATIONS (Three.js)
        ========================================================================= */
-    let isDragging = false;
-    let prevMouseX = 0;
-    let cameraAngle = Math.PI / 4;
-    let cameraRadius = 34;
+    const activeProjectiles = [];
+    const activeParticles = [];
+    const activeLootCoins = [];
 
+    // Projectile Launch Function
+    function launchRaidProjectile(fromPos, toPos, onImpact) {
+      const pGroup = new THREE.Group();
+
+      // Cartoon Voxel Bomb / Boulder
+      const core = new THREE.Mesh(
+        new THREE.BoxGeometry(0.85, 0.85, 0.85),
+        new THREE.MeshLambertMaterial({ color: 0xef4444 })
+      );
+      core.castShadow = true;
+      pGroup.add(core);
+
+      const cage = new THREE.Mesh(
+        new THREE.BoxGeometry(1.05, 1.05, 1.05),
+        new THREE.MeshBasicMaterial({ color: 0xfacc15, wireframe: true })
+      );
+      pGroup.add(cage);
+
+      pGroup.position.copy(fromPos);
+      pGroup.position.y += 1.5;
+      scene.add(pGroup);
+
+      sound.playHop(0.7);
+      sound.playRattle();
+
+      activeProjectiles.push({
+        mesh: pGroup,
+        start: pGroup.position.clone(),
+        target: new THREE.Vector3(toPos.x, 1.2, toPos.z),
+        progress: 0,
+        speed: 0.024,
+        arcHeight: 8.5,
+        onImpact
+      });
+    }
+
+    // Impact Dust & Debris Explosion
+    const dustBoxGeo = new THREE.BoxGeometry(0.35, 0.35, 0.35);
+    const dustColors = [0x94a3b8, 0x64748b, 0xf59e0b, 0xef4444, 0xfde047, 0xffffff];
+
+    function spawnImpactDust(pos, count = 45) {
+      for (let i = 0; i < count; i++) {
+        const col = dustColors[Math.floor(Math.random() * dustColors.length)];
+        const mat = new THREE.MeshLambertMaterial({ color: col, transparent: true, opacity: 1.0 });
+        const pMesh = new THREE.Mesh(dustBoxGeo, mat);
+        pMesh.position.copy(pos);
+        pMesh.position.x += (Math.random() - 0.5) * 0.6;
+        pMesh.position.z += (Math.random() - 0.5) * 0.6;
+        scene.add(pMesh);
+
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 0.35 + 0.12;
+        activeParticles.push({
+          mesh: pMesh,
+          vx: Math.cos(angle) * speed,
+          vy: Math.random() * 0.45 + 0.2,
+          vz: Math.sin(angle) * speed,
+          life: 1.0,
+          decay: Math.random() * 0.028 + 0.02
+        });
+      }
+    }
+
+    // Shield Deflection Dome
+    function spawnShieldDome(pos) {
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(2.0, 16, 12),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.9 })
+      );
+      dome.position.copy(pos);
+      dome.position.y += 1.0;
+      scene.add(dome);
+
+      let scale = 0.5;
+      const sInterval = setInterval(() => {
+        scale += 0.12;
+        dome.scale.setScalar(scale);
+        dome.material.opacity -= 0.1;
+        if (dome.material.opacity <= 0) {
+          clearInterval(sInterval);
+          scene.remove(dome);
+        }
+      }, 35);
+    }
+
+    // 3D Loot Travel (Golden Coins flying from target to player token)
+    const coinGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.08, 8);
+    coinGeo.rotateX(Math.PI / 2);
+    const coinMat = new THREE.MeshLambertMaterial({ color: 0xfbbf24, emissive: 0x78350f });
+
+    function triggerLootTravel(fromPos, toPos, count = 18, onFinish) {
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+          const cMesh = new THREE.Mesh(coinGeo, coinMat);
+          cMesh.position.copy(fromPos);
+          cMesh.position.x += (Math.random() - 0.5) * 0.8;
+          cMesh.position.z += (Math.random() - 0.5) * 0.8;
+          cMesh.position.y += 1.2;
+          scene.add(cMesh);
+
+          const arcH = 4.0 + Math.random() * 3.5;
+          activeLootCoins.push({
+            mesh: cMesh,
+            start: cMesh.position.clone(),
+            target: new THREE.Vector3(toPos.x, 1.4, toPos.z),
+            progress: 0,
+            speed: 0.038 + Math.random() * 0.014,
+            arcHeight: arcH,
+            isLast: (i === count - 1),
+            onFinish
+          });
+          sound.playCoin();
+        }, i * 35);
+      }
+    }
+
+    function showFloatingLootText(text, x, y) {
+      const badge = document.createElement("div");
+      badge.className = "loot-flying-badge";
+      badge.innerText = text;
+      badge.style.left = `${x || window.innerWidth / 2}px`;
+      badge.style.top = `${y || window.innerHeight / 2}px`;
+      document.body.appendChild(badge);
+      setTimeout(() => badge.remove(), 1200);
+    }
+
+    function bumpCoinsPill() {
+      const pill = document.getElementById("hud-coins-pill");
+      pill.classList.add("bump");
+      setTimeout(() => pill.classList.remove("bump"), 180);
+    }
+
+    /* =========================================================================
+       CAMERA TOUCH CONTROLS
+       ========================================================================= */
     window.addEventListener("pointerdown", e => {
       if (e.target.closest("#hud-layer") || e.target.closest(".modal-overlay")) return;
-      isDragging = true;
+      isUserDragging = true;
       prevMouseX = e.clientX;
+      cameraMode = 'OVERVIEW';
     });
     window.addEventListener("pointermove", e => {
-      if (!isDragging) return;
+      if (!isUserDragging) return;
       const dx = e.clientX - prevMouseX;
       cameraAngle -= dx * 0.006;
       prevMouseX = e.clientX;
-      updateCameraPos();
     });
-    window.addEventListener("pointerup", () => isDragging = false);
-
-    function updateCameraPos() {
-      camera.position.x = Math.sin(cameraAngle) * cameraRadius;
-      camera.position.z = Math.cos(cameraAngle) * cameraRadius;
-      camera.position.y = 28;
-      camera.lookAt(0, 0, 0);
-    }
-    updateCameraPos();
+    window.addEventListener("pointerup", () => isUserDragging = false);
 
     window.addEventListener("resize", () => {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -1143,7 +1440,7 @@
     });
 
     /* =========================================================================
-       GAMEPLAY ACTIONS & HUD BINDINGS
+       HUD & GAME ACTION BINDINGS
        ========================================================================= */
     function showToast(msg) {
       const toast = document.getElementById("banner-toast");
@@ -1158,6 +1455,7 @@
       document.getElementById("hud-energy").innerText = `${gameState.energy}/${gameState.maxEnergy}`;
       document.getElementById("hud-multiplier").innerText = `${gameState.multiplier}X`;
       document.getElementById("hud-roll-cost").innerText = `⚡ -${gameState.multiplier}`;
+      document.getElementById("hud-streak-day").innerText = `Day ${gameState.dailyStreak}`;
 
       // Shields
       const shieldBox = document.getElementById("hud-shields");
@@ -1202,12 +1500,10 @@
     function toggleHaptics(on) { sound.hapticsEnabled = on; }
 
     /* =========================================================================
-       DICE ROLLING & STEP-BY-STEP HOPPING
+       DICE FOCUS, POP-UP BANNER & TOKEN FOLLOWING CAMERA
        ========================================================================= */
     let isDiceRollingAnim = false;
     let diceAnimStart = 0;
-    let diceTarget1 = 3;
-    let diceTarget2 = 4;
 
     function onRollClicked() {
       if (gameState.isRolling || gameState.energy < gameState.multiplier) return;
@@ -1215,25 +1511,26 @@
       gameState.energy -= gameState.multiplier;
       updateHUD();
 
+      // Camera focuses on rolling dice
+      cameraMode = 'DICE_FOCUS';
       sound.playRattle();
       isDiceRollingAnim = true;
       diceAnimStart = performance.now();
 
       const d1 = Math.floor(Math.random() * 6) + 1;
       const d2 = Math.floor(Math.random() * 6) + 1;
-      diceTarget1 = d1;
-      diceTarget2 = d2;
       const totalSteps = d1 + d2;
       const isDoubles = (d1 === d2);
 
-      const rollDuration = gameState.isTurbo ? 450 : 900;
+      const rollDuration = gameState.isTurbo ? 500 : 950;
 
       setTimeout(() => {
         isDiceRollingAnim = false;
-        // Align final faces
         alignDiceFace(dice1, d1);
         alignDiceFace(dice2, d2);
         sound.playBlockSnap();
+
+        showDiceResultPopup(d1, d2, totalSteps, isDoubles);
 
         if (isDoubles) {
           sound.playFanfare();
@@ -1241,13 +1538,30 @@
           showToast("🎉 DOUBLE LUCK! +10 FREE ROLLS!");
         }
 
-        // Animate Hop steps
-        startHopSequence(totalSteps);
+        setTimeout(() => {
+          hideDiceResultPopup();
+          cameraMode = 'TOKEN_FOLLOW';
+          startHopSequence(totalSteps);
+        }, gameState.isTurbo ? 600 : 900);
+
       }, rollDuration);
     }
 
+    function showDiceResultPopup(d1, d2, total, isDoubles) {
+      const p1 = ["", "⚀ 1", "⚁ 2", "⚂ 3", "⚃ 4", "⚄ 5", "⚅ 6"][d1];
+      const p2 = ["", "⚀ 1", "⚁ 2", "⚂ 3", "⚃ 4", "⚄ 5", "⚅ 6"][d2];
+      document.getElementById("popup-die1").innerText = p1;
+      document.getElementById("popup-die2").innerText = p2;
+      document.getElementById("popup-total-text").innerText = `= ${total} STEPS`;
+      document.getElementById("popup-sub-tag").innerText = isDoubles ? "🔥 DOUBLES BONUS! +10 ROLLS!" : "CAMERA TRACKING TOKEN";
+      document.getElementById("dice-result-popup").classList.add("active");
+    }
+
+    function hideDiceResultPopup() {
+      document.getElementById("dice-result-popup").classList.remove("active");
+    }
+
     function alignDiceFace(mesh, val) {
-      // Rotate dice cube to exact face
       mesh.position.y = 1.0;
       mesh.rotation.set(0, 0, 0);
       if (val === 1) mesh.rotation.set(0, 0, 0);
@@ -1258,6 +1572,7 @@
       else if (val === 4) mesh.rotation.set(0, 0, -Math.PI / 2);
     }
 
+    // Step-by-Step Hopping
     let hopQueue = [];
     let isHopping = false;
     let hopStepStartTime = 0;
@@ -1265,23 +1580,29 @@
     let hopTo = { x: 0, z: 0 };
 
     function startHopSequence(steps) {
-      const stepDuration = gameState.isTurbo ? 90 : 160;
+      const stepDuration = gameState.isTurbo ? 100 : 180;
       let cur = gameState.currentTile;
       hopQueue = [];
       for (let i = 1; i <= steps; i++) {
-        const next = (cur + i) % 32;
-        hopQueue.push(next);
+        hopQueue.push((cur + i) % 32);
       }
       advanceNextHop(stepDuration);
     }
 
     function advanceNextHop(duration) {
       if (hopQueue.length === 0) {
-        gameState.isRolling = false;
+        isHopping = false;
         resolveTile(gameState.currentTile);
         updateHUD();
+
+        setTimeout(() => {
+          cameraMode = 'OVERVIEW';
+          gameState.isRolling = false;
+          updateHUD();
+        }, 600);
         return;
       }
+
       const nextTile = hopQueue.shift();
       hopFrom = { x: tokenGroup.position.x, z: tokenGroup.position.z };
       hopTo = TILE_POSITIONS[nextTile];
@@ -1290,11 +1611,11 @@
       hopStepStartTime = performance.now();
       sound.playHop();
 
-      // Check passed GO
+      // Passing Start
       if (nextTile === 0 && hopQueue.length > 0) {
         const bonus = 25000 * gameState.multiplier;
         gameState.coins += bonus;
-        sound.playCoin();
+        triggerLootTravel(new THREE.Vector3(hopTo.x, 0.4, hopTo.z), tokenGroup.position, 10, bumpCoinsPill);
         showToast(`🏁 PASSED START! +${bonus.toLocaleString()} Coins!`);
       }
 
@@ -1308,17 +1629,20 @@
     function resolveTile(idx) {
       const tile = TILE_TYPES[idx];
       const m = gameState.multiplier;
+      const tilePos = new THREE.Vector3(TILE_POSITIONS[idx].x, 0.4, TILE_POSITIONS[idx].z);
 
       if (tile.type === "GO") {
         sound.playFanfare();
         const coins = 30000 * m;
         gameState.coins += coins;
         gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 10);
+        triggerLootTravel(tilePos, tokenGroup.position, 16, bumpCoinsPill);
         showToast(`🏁 LANDED ON START! +${coins.toLocaleString()} Coins & +10 Energy!`);
       } else if (tile.type === "COIN") {
-        sound.playCoin();
         const reward = (idx === 12 || idx === 23 || idx === 31 ? 20000 : idx % 3 === 0 ? 8000 : 3500) * m;
         gameState.coins += reward;
+        triggerLootTravel(tilePos, tokenGroup.position, 14, bumpCoinsPill);
+        showFloatingLootText(`+🪙 ${reward.toLocaleString()}`);
         showToast(`💰 +${reward.toLocaleString()} Coins!`);
       } else if (tile.type === "MATS") {
         sound.playHop(1.2);
@@ -1329,10 +1653,12 @@
         sound.playShield();
         if (gameState.shields < gameState.maxShields) {
           gameState.shields++;
+          spawnShieldDome(tokenGroup.position);
           showToast(`🛡️ +1 AEGIS SHIELD EQUIPPED!`);
         } else {
           const c = 8000 * m;
           gameState.coins += c;
+          triggerLootTravel(tilePos, tokenGroup.position, 10, bumpCoinsPill);
           showToast(`🛡️ Shields Maxed! +${c.toLocaleString()} Coins!`);
         }
       } else if (tile.type === "ENERGY") {
@@ -1344,12 +1670,14 @@
         sound.playFanfare();
         const j = 50000 * m;
         gameState.coins += j;
+        triggerLootTravel(tilePos, tokenGroup.position, 24, bumpCoinsPill);
+        showFloatingLootText(`🎰 JACKPOT! +${j.toLocaleString()}`);
         showToast(`🎰 MEGA JACKPOT! +${j.toLocaleString()} Coins!`);
       } else if (tile.type === "BONUS") {
-        sound.playCoin();
         const b = 15000 * m;
         gameState.coins += b;
         gameState.materials += 4 * m;
+        triggerLootTravel(tilePos, tokenGroup.position, 12, bumpCoinsPill);
         showToast(`⭐ DISTRICT STAR PACK! +${b.toLocaleString()} Coins & Bricks!`);
       } else if (tile.type === "RAID") {
         triggerRaidModal();
@@ -1361,16 +1689,18 @@
         const b = 6 * m;
         gameState.coins += c;
         gameState.materials += b;
+        triggerLootTravel(tilePos, tokenGroup.position, 14, bumpCoinsPill);
         showToast(`🎁 MYSTERY VAULT! +${c.toLocaleString()} Coins & +${b} Bricks!`);
       }
       updateHUD();
     }
 
     /* =========================================================================
-       MODALS: TOWN UPGRADES, RAIDS, HEISTS, QUESTS
+       MODALS: DAILY STREAK, UPGRADES, RAIDS, HEISTS, QUESTS
        ========================================================================= */
     function openModal(id) {
       sound.playHop(0.85);
+      if (id === "streak-modal") renderStreakModal();
       if (id === "upgrade-modal") renderUpgradeModal();
       if (id === "quests-modal") renderQuestsModal();
       document.getElementById(id).classList.add("active");
@@ -1378,6 +1708,56 @@
     function closeModal(id) {
       sound.playHop(0.85);
       document.getElementById(id).classList.remove("active");
+    }
+
+    function renderStreakModal() {
+      const wrap = document.getElementById("streak-grid-wrap");
+      wrap.innerHTML = "";
+      const currentDay = gameState.dailyStreak;
+
+      STREAK_REWARDS.forEach(r => {
+        const isPast = r.day < currentDay || (r.day === currentDay && gameState.streakClaimedToday);
+        const isCurrent = r.day === currentDay && !gameState.streakClaimedToday;
+
+        const card = document.createElement("div");
+        card.className = `streak-card ${isCurrent ? 'today' : ''} ${isPast ? 'claimed' : ''}`;
+        card.innerHTML = `
+          <div class="streak-day-title">${r.label}</div>
+          <div class="streak-reward-icon">${r.icon}</div>
+          <div class="streak-reward-text">${isPast ? 'CLAIMED' : r.desc}</div>
+        `;
+        wrap.appendChild(card);
+      });
+
+      const claimBtn = document.getElementById("streak-claim-btn");
+      if (gameState.streakClaimedToday) {
+        claimBtn.disabled = true;
+        claimBtn.innerText = `DAY ${currentDay} CLAIMED (NEXT IN 24H)`;
+        claimBtn.style.opacity = "0.5";
+      } else {
+        claimBtn.disabled = false;
+        claimBtn.innerText = `CLAIM DAY ${currentDay} REWARD!`;
+        claimBtn.style.opacity = "1";
+      }
+    }
+
+    function claimStreakReward() {
+      if (gameState.streakClaimedToday) return;
+      const currentReward = STREAK_REWARDS[gameState.dailyStreak - 1];
+      gameState.coins += currentReward.coins;
+      gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + currentReward.energy);
+      gameState.materials += currentReward.mats;
+      if (currentReward.shield && gameState.shields < gameState.maxShields) {
+        gameState.shields += currentReward.shield;
+      }
+      gameState.streakClaimedToday = true;
+
+      sound.playFanfare();
+      triggerLootTravel(new THREE.Vector3(0, 5, 0), tokenGroup.position, 20, bumpCoinsPill);
+      showFloatingLootText(`+🪙 ${currentReward.coins.toLocaleString()}`);
+      showToast(`🔥 DAY ${gameState.dailyStreak} STREAK CLAIMED! +${currentReward.coins.toLocaleString()} Coins!`);
+      closeModal("streak-modal");
+      updateHUD();
     }
 
     function renderUpgradeModal() {
@@ -1432,6 +1812,8 @@
         rebuildBuildingMesh(idx, b);
         renderUpgradeModal();
         updateHUD();
+        triggerScreenShake(0.5);
+        spawnImpactDust(new THREE.Vector3(PLOT_POSITIONS[idx].x, 1.5, PLOT_POSITIONS[idx].z), 25);
         showToast(`🔨 UPGRADED ${b.name.toUpperCase()} TO TIER ${b.tier}!`);
       }
     };
@@ -1446,11 +1828,13 @@
         rebuildBuildingMesh(idx, b);
         renderUpgradeModal();
         updateHUD();
+        triggerScreenShake(0.4);
+        spawnImpactDust(new THREE.Vector3(PLOT_POSITIONS[idx].x, 1.0, PLOT_POSITIONS[idx].z), 20);
         showToast(`✨ REPAIRED ${b.name.toUpperCase()}!`);
       }
     };
 
-    // RAID EVENT
+    // RAID EVENT WITH 3D PROJECTILE LAUNCH & SCREEN SHAKE
     function triggerRaidModal() {
       const opponents = ["Captain Voxel", "Mayor Pixel", "Sir Cubicon"];
       const op = opponents[Math.floor(Math.random() * opponents.length)];
@@ -1460,12 +1844,12 @@
       document.getElementById("raid-outcome-box").style.display = "none";
 
       const targets = [
-        { name: "Clocktower", icon: "🏰", tier: 3, shielded: Math.random() < 0.5 },
-        { name: "Bakery", icon: "🍞", tier: 2, shielded: Math.random() < 0.4 },
-        { name: "Plaza", icon: "🎡", tier: 4, shielded: Math.random() < 0.6 }
+        { name: "Clocktower", plotIdx: 0, icon: "🏰", tier: 3, shielded: Math.random() < 0.5 },
+        { name: "Bakery", plotIdx: 1, icon: "🍞", tier: 2, shielded: Math.random() < 0.4 },
+        { name: "Plaza", plotIdx: 4, icon: "🎡", tier: 4, shielded: Math.random() < 0.6 }
       ];
 
-      targets.forEach((t, i) => {
+      targets.forEach((t) => {
         const card = document.createElement("div");
         card.className = "raid-target-card";
         card.innerHTML = `
@@ -1474,34 +1858,48 @@
           <div style="font-size:10px; color:#94a3b8;">Tier ${t.tier}</div>
         `;
         card.onclick = () => {
-          sound.playRattle();
-          setTimeout(() => {
-            const outBox = document.getElementById("raid-outcome-box");
-            outBox.style.display = "block";
+          // Close modal and launch 3D Projectile animation in the scene!
+          closeModal("raid-modal");
+          const targetCoords = PLOT_POSITIONS[t.plotIdx];
+          const targetPos = new THREE.Vector3(targetCoords.x, 1.0, targetCoords.z);
+
+          // Focus camera on diorama to observe ballistic trajectory
+          cameraMode = 'OVERVIEW';
+
+          launchRaidProjectile(tokenGroup.position, targetPos, () => {
+            // ON IMPACT:
+            triggerScreenShake(1.3); // Heavy Screen Shake!
+            spawnImpactDust(targetPos, 50); // Dust & Debris explosion!
+
+            const stolen = (t.shielded ? 15000 : 45000) * gameState.multiplier;
+            gameState.coins += stolen;
+
             if (t.shielded) {
               sound.playShield();
-              const stolen = 15000 * gameState.multiplier;
-              gameState.coins += stolen;
-              outBox.style.background = "#0f2b48";
-              outBox.innerHTML = `
-                <h4 style="color:#38bdf8;">🛡️ SHIELD DEFLECTED!</h4>
-                <p style="font-size:12px; margin-top:4px;">Opponent's Aegis Shield absorbed the blast. Stole +${stolen.toLocaleString()} Coins!</p>
-                <button class="build-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeModal('raid-modal')">CLAIM</button>
-              `;
+              spawnShieldDome(targetPos);
+              showToast(`🛡️ SHIELD DEFLECTED! Looted +${stolen.toLocaleString()} Coins!`);
             } else {
               sound.playBoom();
-              sound.playCoin();
-              const stolen = 45000 * gameState.multiplier;
-              gameState.coins += stolen;
-              outBox.style.background = "#064e3b";
-              outBox.innerHTML = `
-                <h4 style="color:#4ade80;">💥 DIRECT HIT!</h4>
-                <p style="font-size:12px; margin-top:4px;">Demolished building! Looted +${stolen.toLocaleString()} Coins!</p>
-                <button class="build-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeModal('raid-modal')">CLAIM LOOT</button>
-              `;
+              showFloatingLootText(`💥 DIRECT HIT! +${stolen.toLocaleString()}`);
+              showToast(`💥 DIRECT HIT! Demolished building for +${stolen.toLocaleString()} Coins!`);
             }
-            updateHUD();
-          }, 400);
+
+            // LOOT TRAVEL: Golden coins fly from building to player token!
+            triggerLootTravel(targetPos, tokenGroup.position, 22, () => {
+              bumpCoinsPill();
+              // Re-open raid summary after coins arrive
+              const outBox = document.getElementById("raid-outcome-box");
+              outBox.style.display = "block";
+              outBox.style.background = t.shielded ? "#0f2b48" : "#064e3b";
+              outBox.innerHTML = `
+                <h4 style="color:${t.shielded ? '#38bdf8' : '#4ade80'};">${t.shielded ? '🛡️ SHIELD DEFLECTED!' : '💥 DIRECT HIT!'}</h4>
+                <p style="font-size:12px; margin-top:4px;">${t.shielded ? "Opponent's shield absorbed the blast." : "Building smashed into voxels!"} Stole +${stolen.toLocaleString()} Coins!</p>
+                <button class="build-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeModal('raid-modal')">CLAIM</button>
+              `;
+              openModal("raid-modal");
+              updateHUD();
+            });
+          });
         };
         wrap.appendChild(card);
       });
@@ -1547,6 +1945,8 @@
     window.claimHeist = function() {
       gameState.coins += heistTotalLoot;
       closeModal("heist-modal");
+      triggerLootTravel(new THREE.Vector3(0, 3, 0), tokenGroup.position, 18, bumpCoinsPill);
+      showFloatingLootText(`+🪙 ${heistTotalLoot.toLocaleString()}`);
       updateHUD();
       showToast(`🗝️ VAULT LOOTED: +${heistTotalLoot.toLocaleString()} Coins!`);
     };
@@ -1572,29 +1972,114 @@
     }
 
     /* =========================================================================
-       ANIMATION LOOP
+       ANIMATION LOOP & DYNAMIC CAMERA LERP
        ========================================================================= */
     function animate(time) {
       requestAnimationFrame(animate);
 
-      // Dice Tumbling Animation
-      if (isDiceRollingAnim) {
-        dice1.position.y = 2.5 + Math.sin(time * 0.02) * 1.0;
-        dice2.position.y = 2.5 + Math.cos(time * 0.02) * 1.0;
-        dice1.rotation.x += 0.25;
-        dice1.rotation.y += 0.35;
-        dice2.rotation.x -= 0.3;
-        dice2.rotation.z += 0.25;
+      // 1. Dynamic Camera Target & Position Updates
+      if (cameraMode === 'DICE_FOCUS') {
+        targetCameraPos.set(0, 7.5, 8.5);
+        targetLookAt.set(0, 1.2, 0);
+      } else if (cameraMode === 'TOKEN_FOLLOW') {
+        targetLookAt.set(tokenGroup.position.x, 0.8, tokenGroup.position.z);
+        targetCameraPos.set(
+          tokenGroup.position.x + 9.0,
+          13.0,
+          tokenGroup.position.z + 9.0
+        );
+      } else {
+        targetCameraPos.set(
+          Math.sin(cameraAngle) * cameraRadius,
+          28.0,
+          Math.cos(cameraAngle) * cameraRadius
+        );
+        targetLookAt.set(0, 0, 0);
       }
 
-      // Token Parabolic Hopping
+      // Smooth camera interpolation
+      const lerpSpeed = (cameraMode === 'DICE_FOCUS' || cameraMode === 'TOKEN_FOLLOW') ? 0.08 : 0.04;
+      camera.position.lerp(targetCameraPos, lerpSpeed);
+      currentCameraTarget.lerp(targetLookAt, lerpSpeed);
+
+      // Screen Shake application
+      if (screenShakeIntensity > 0.01) {
+        camera.position.x += (Math.random() - 0.5) * screenShakeIntensity;
+        camera.position.y += (Math.random() - 0.5) * screenShakeIntensity;
+        camera.position.z += (Math.random() - 0.5) * screenShakeIntensity;
+        screenShakeIntensity *= 0.88;
+      }
+
+      camera.lookAt(currentCameraTarget);
+
+      // 2. Active Projectiles Update
+      for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+        const p = activeProjectiles[i];
+        p.progress += p.speed;
+        p.mesh.position.lerpVectors(p.start, p.target, p.progress);
+        p.mesh.position.y = THREE.MathUtils.lerp(p.start.y, p.target.y, p.progress) + Math.sin(p.progress * Math.PI) * p.arcHeight;
+        p.mesh.rotation.x += 0.35;
+        p.mesh.rotation.y += 0.45;
+
+        if (p.progress >= 1.0) {
+          scene.remove(p.mesh);
+          activeProjectiles.splice(i, 1);
+          if (p.onImpact) p.onImpact();
+        }
+      }
+
+      // 3. Active Loot Coins Travel Update
+      for (let i = activeLootCoins.length - 1; i >= 0; i--) {
+        const coin = activeLootCoins[i];
+        coin.progress += coin.speed;
+        coin.mesh.position.lerpVectors(coin.start, coin.target, coin.progress);
+        coin.mesh.position.y = THREE.MathUtils.lerp(coin.start.y, coin.target.y, coin.progress) + Math.sin(coin.progress * Math.PI) * coin.arcHeight;
+        coin.mesh.rotation.y += 0.4;
+        coin.mesh.rotation.z += 0.3;
+
+        if (coin.progress >= 1.0) {
+          scene.remove(coin.mesh);
+          sound.vibrate(8);
+          if (coin.isLast && coin.onFinish) coin.onFinish();
+          activeLootCoins.splice(i, 1);
+        }
+      }
+
+      // 4. Active Dust / Debris Particles Update
+      for (let i = activeParticles.length - 1; i >= 0; i--) {
+        const part = activeParticles[i];
+        part.mesh.position.x += part.vx;
+        part.mesh.position.y += part.vy;
+        part.mesh.position.z += part.vz;
+        part.vy -= 0.024; // Gravity
+        part.life -= part.decay;
+        part.mesh.scale.setScalar(Math.max(0.01, part.life));
+        part.mesh.material.opacity = Math.max(0, part.life);
+
+        if (part.life <= 0) {
+          scene.remove(part.mesh);
+          activeParticles.splice(i, 1);
+        }
+      }
+
+      // 5. Dice Tumbling Animation
+      if (isDiceRollingAnim) {
+        dice1.position.y = 2.4 + Math.sin(time * 0.02) * 1.0;
+        dice2.position.y = 2.4 + Math.cos(time * 0.02) * 1.0;
+        dice1.rotation.x += 0.28;
+        dice1.rotation.y += 0.38;
+        dice2.rotation.x -= 0.32;
+        dice2.rotation.z += 0.28;
+      }
+
+      // 6. Token Parabolic Hopping Animation
       if (isHopping) {
         const elapsed = time - hopStepStartTime;
-        const dur = gameState.isTurbo ? 90 : 160;
+        const dur = gameState.isTurbo ? 100 : 180;
         const p = Math.min(1.0, elapsed / dur);
         tokenGroup.position.x = hopFrom.x + (hopTo.x - hopFrom.x) * p;
         tokenGroup.position.z = hopFrom.z + (hopTo.z - hopFrom.z) * p;
-        tokenGroup.position.y = 0.4 + Math.sin(p * Math.PI) * 1.5;
+        tokenGroup.position.y = 0.4 + Math.sin(p * Math.PI) * 1.6;
       }
 
       renderer.render(scene, camera);
@@ -1625,12 +2110,18 @@
         clearInterval(loadInterval);
         setTimeout(() => {
           splashScreen.classList.add("hidden");
+          if (!gameState.streakClaimedToday) {
+            setTimeout(() => openModal('streak-modal'), 600);
+          }
         }, 300);
       }
-    }, 450);
+    }, 400);
 
     splashScreen.addEventListener("click", () => {
       splashScreen.classList.add("hidden");
+      if (!gameState.streakClaimedToday) {
+        setTimeout(() => openModal('streak-modal'), 600);
+      }
     });
 
     // Auto energy regeneration (+1 every 45s)

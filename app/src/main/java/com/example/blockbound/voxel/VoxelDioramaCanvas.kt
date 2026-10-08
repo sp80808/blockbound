@@ -53,8 +53,18 @@ fun VoxelDioramaCanvas(
 
             // Calculate base isometric scale adapted to screen width
             val baseScale = (width / 24f) * zoomScale
-            val originX = width / 2f + panX
-            val originY = height * 0.44f + panY
+
+            val fromCoord = VoxelModels.getTilePosition(characterTileIndex)
+            val toCoord = VoxelModels.getTilePosition(targetTileIndex)
+            val curTileX = fromCoord.first + (toCoord.first - fromCoord.first) * hopFraction
+            val curTileY = fromCoord.second + (toCoord.second - fromCoord.second) * hopFraction
+
+            // Camera follow offset: smoothly follows the player's token around the board loop
+            val followOffsetX = if (isHopping) -(curTileX - curTileY) * baseScale * 0.15f else 0f
+            val followOffsetY = if (isHopping) -(curTileX + curTileY) * baseScale * 0.09f else 0f
+
+            val originX = width / 2f + panX + followOffsetX
+            val originY = height * 0.44f + panY + followOffsetY
 
             // 1. Gather all voxel cubes
             val allCubes = ArrayList<VoxelCube>(500)
@@ -108,6 +118,17 @@ fun VoxelDioramaCanvas(
                     color = p.color.copy(alpha = alpha),
                     radius = p.size * zoomScale,
                     center = pPos
+                )
+            }
+
+            // 5. Draw glowing target landing indicator and token beacon
+            if (isHopping) {
+                val targetCenter = IsometricProjection.project(toCoord.first, toCoord.second, 0.2f, originX, originY, baseScale)
+                drawCircle(
+                    color = Color(0xFF38BDF8).copy(alpha = 0.55f),
+                    radius = 18f * zoomScale,
+                    center = targetCenter,
+                    style = Stroke(width = 2.5f * zoomScale)
                 )
             }
         }

@@ -1,10 +1,9 @@
-import React, { useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import React, { useRef, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../store/gameStore';
 
-// Compute 32 perimeter coordinates
 const boardStep = 2.4;
 const halfBoard = 4 * boardStep;
 const TILE_POSITIONS: [number, number, number][] = [];
@@ -34,6 +33,36 @@ const TILE_COLORS = [
   0xf97316, 0xf59e0b, 0x06b6d4, 0xec4899, 0xf59e0b, 0xef4444, 0x6366f1, 0xf59e0b
 ];
 
+function CameraController({ tokenPos, shakeIntensity }: { tokenPos: [number, number, number]; shakeIntensity: number }) {
+  const cameraMode = useGameStore(s => s.cameraMode);
+  const { camera } = useThree();
+  const targetLookAt = useRef(new THREE.Vector3(0, 0, 0));
+
+  useFrame(() => {
+    if (cameraMode === 'DICE_FOCUS') {
+      camera.position.lerp(new THREE.Vector3(0, 7.5, 8.5), 0.08);
+      targetLookAt.current.lerp(new THREE.Vector3(0, 1.2, 0), 0.08);
+    } else if (cameraMode === 'TOKEN_FOLLOW') {
+      camera.position.lerp(new THREE.Vector3(tokenPos[0] + 9, 13, tokenPos[2] + 9), 0.08);
+      targetLookAt.current.lerp(new THREE.Vector3(tokenPos[0], 0.8, tokenPos[2]), 0.08);
+    } else {
+      camera.position.lerp(new THREE.Vector3(22, 28, 22), 0.04);
+      targetLookAt.current.lerp(new THREE.Vector3(0, 0, 0), 0.04);
+    }
+
+    // Screen Shake offset
+    if (shakeIntensity > 0.01) {
+      camera.position.x += (Math.random() - 0.5) * shakeIntensity;
+      camera.position.y += (Math.random() - 0.5) * shakeIntensity;
+      camera.position.z += (Math.random() - 0.5) * shakeIntensity;
+    }
+
+    camera.lookAt(targetLookAt.current);
+  });
+
+  return null;
+}
+
 function VoxelBoard() {
   return (
     <group>
@@ -53,21 +82,19 @@ function VoxelBoard() {
   );
 }
 
-function TokenCharacter() {
-  const currentTile = useGameStore(s => s.currentTile);
-  const targetPos = TILE_POSITIONS[currentTile] || [0, 0, 0];
+function TokenCharacter({ currentPos }: { currentPos: [number, number, number] }) {
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
     if (groupRef.current) {
-      groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, targetPos[0], 0.15);
-      groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, targetPos[2], 0.15);
+      groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, currentPos[0], 0.15);
+      groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, currentPos[2], 0.15);
       groupRef.current.position.y = 0.4;
     }
   });
 
   return (
-    <group ref={groupRef} position={[targetPos[0], 0.4, targetPos[2]]}>
+    <group ref={groupRef} position={[currentPos[0], 0.4, currentPos[2]]}>
       <mesh position={[0, 0.7, 0]} castShadow>
         <boxGeometry args={[0.8, 0.8, 0.8]} />
         <meshLambertMaterial color={0xf97316} />
@@ -149,12 +176,12 @@ function PhysicalDice() {
       if (die1Ref.current) {
         die1Ref.current.rotation.x += delta * 12;
         die1Ref.current.rotation.y += delta * 15;
-        die1Ref.current.position.y = 2.5 + Math.sin(Date.now() * 0.01) * 0.8;
+        die1Ref.current.position.y = 2.4 + Math.sin(Date.now() * 0.02) * 0.8;
       }
       if (die2Ref.current) {
         die2Ref.current.rotation.y += delta * 14;
         die2Ref.current.rotation.z += delta * 10;
-        die2Ref.current.position.y = 2.5 + Math.cos(Date.now() * 0.01) * 0.8;
+        die2Ref.current.position.y = 2.4 + Math.cos(Date.now() * 0.02) * 0.8;
       }
     } else {
       if (die1Ref.current) die1Ref.current.position.y = 1.0;
@@ -177,13 +204,18 @@ function PhysicalDice() {
 }
 
 export function VoxelScene() {
+  const currentTile = useGameStore(s => s.currentTile);
+  const tokenPos = TILE_POSITIONS[currentTile] || [0, 0, 0];
+  const cameraMode = useGameStore(s => s.cameraMode);
+  const [shakeIntensity] = useState(0);
+
   return (
     <Canvas
       shadows
       camera={{ position: [22, 28, 22], fov: 45 }}
       style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
     >
-      <ambientLight intensity={0.6} />
+      <ambientLight intensity={0.7} />
       <directionalLight
         position={[16, 32, 16]}
         intensity={1.2}
@@ -192,10 +224,13 @@ export function VoxelScene() {
         shadow-mapSize-height={1024}
       />
       <VoxelBoard />
-      <TokenCharacter />
+      <TokenCharacter currentPos={tokenPos} />
       <Buildings />
       <PhysicalDice />
-      <OrbitControls maxPolarAngle={Math.PI / 2.2} minDistance={14} maxDistance={50} />
+      <CameraController tokenPos={tokenPos} shakeIntensity={shakeIntensity} />
+      {cameraMode === 'OVERVIEW' && (
+        <OrbitControls maxPolarAngle={Math.PI / 2.2} minDistance={14} maxDistance={50} />
+      )}
     </Canvas>
   );
 }

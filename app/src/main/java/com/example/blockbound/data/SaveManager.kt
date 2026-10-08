@@ -33,6 +33,9 @@ class SaveManager(context: Context) {
         private const val KEY_LAST_REGEN = "last_regen"
         private const val KEY_DISTRICTS_JSON = "districts_json"
         private const val KEY_QUESTS_JSON = "quests_json"
+        private const val KEY_STREAK_DAYS = "streak_days"
+        private const val KEY_LAST_LOGIN_DAY = "last_login_day"
+        private const val KEY_LAST_CLAIMED_DAY = "last_claimed_day"
     }
 
     fun hasSave(): Boolean = prefs.contains(KEY_SAVE_VERSION)
@@ -107,6 +110,17 @@ class SaveManager(context: Context) {
     fun loadTotalRaids(): Int = prefs.getInt(KEY_TOTAL_RAIDS, 0)
     fun loadTotalUpgrades(): Int = prefs.getInt(KEY_TOTAL_UPGRADES, 0)
     fun loadLastRegen(): Long = prefs.getLong(KEY_LAST_REGEN, System.currentTimeMillis())
+    fun loadStreakDays(default: Int = 1): Int = prefs.getInt(KEY_STREAK_DAYS, default)
+    fun loadLastLoginDay(): Long = prefs.getLong(KEY_LAST_LOGIN_DAY, 0L)
+    fun loadLastClaimedDay(): Long = prefs.getLong(KEY_LAST_CLAIMED_DAY, 0L)
+
+    fun saveStreak(streakDays: Int, lastLoginDay: Long, lastClaimedDay: Long) {
+        prefs.edit()
+            .putInt(KEY_STREAK_DAYS, streakDays)
+            .putLong(KEY_LAST_LOGIN_DAY, lastLoginDay)
+            .putLong(KEY_LAST_CLAIMED_DAY, lastClaimedDay)
+            .apply()
+    }
 
     fun restoreDistricts(baseDistricts: List<District>): List<District> {
         val jsonStr = prefs.getString(KEY_DISTRICTS_JSON, null) ?: return baseDistricts

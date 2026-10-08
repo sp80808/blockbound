@@ -8,9 +8,12 @@ import com.example.blockbound.audio.SoundManager
 import com.example.blockbound.data.SaveManager
 import com.example.blockbound.model.BoardTile
 import com.example.blockbound.model.Building
+import com.example.blockbound.model.DailyStreakReward
 import com.example.blockbound.model.District
+import com.example.blockbound.model.FlyingLoot
 import com.example.blockbound.model.GameDialogState
 import com.example.blockbound.model.HeistSafe
+import com.example.blockbound.model.LootTargetType
 import com.example.blockbound.model.Quest
 import com.example.blockbound.model.RaidTarget
 import com.example.blockbound.model.RollOutcome
@@ -50,13 +53,29 @@ data class GameUiState(
     val particles: List<VoxelParticle> = emptyList(),
     val activeDialog: GameDialogState = GameDialogState.None,
     val bannerNotification: String? = null,
+    val rollPopupText: String? = null,
+    val flyingLoots: List<FlyingLoot> = emptyList(),
+    val selectedTopQuestId: String? = null,
     val totalRolls: Int = 0,
     val totalRaids: Int = 0,
     val totalUpgrades: Int = 0,
     val dailyStreak: Int = 3,
+    val isStreakClaimable: Boolean = true,
     val isSoundEnabled: Boolean = true,
     val isHapticsEnabled: Boolean = true
-)
+) {
+    val activeQuest: Quest?
+        get() = if (selectedTopQuestId != null) {
+            quests.find { it.id == selectedTopQuestId } ?: quests.firstOrNull { !it.isClaimed } ?: quests.firstOrNull()
+        } else {
+            quests.firstOrNull { it.isCompleted && !it.isClaimed }
+                ?: quests.firstOrNull { !it.isClaimed }
+                ?: quests.firstOrNull()
+        }
+
+    val claimableQuestsCount: Int
+        get() = quests.count { it.isCompleted && !it.isClaimed } + (if (isStreakClaimable) 1 else 0)
+}
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -93,6 +112,26 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val savedRaids = saveManager.loadTotalRaids()
         val savedUpgrades = saveManager.loadTotalUpgrades()
 
+        // Daily Streak calculation
+        val currentEpochDay = System.currentTimeMillis() / (1000 * 60 * 60 * 24)
+        val lastLoginDay = saveManager.loadLastLoginDay()
+        val lastClaimedDay = saveManager.loadLastClaimedDay()
+        var streakDays = saveManager.loadStreakDays(3)
+
+        if (lastLoginDay == 0L) {
+            streakDays = 3
+            saveManager.saveStreak(streakDays, currentEpochDay, 0L)
+        } else if (currentEpochDay == lastLoginDay) {
+            // Same day, streak kept
+        } else if (currentEpochDay == lastLoginDay + 1) {
+            streakDays = if (streakDays >= 7) 1 else streakDays + 1
+            saveManager.saveStreak(streakDays, currentEpochDay, lastClaimedDay)
+        } else if (currentEpochDay > lastLoginDay + 1) {
+            streakDays = 1
+            saveManager.saveStreak(streakDays, currentEpochDay, 0L)
+        }
+        val isStreakClaimable = (lastClaimedDay != currentEpochDay)
+
         _uiState.update {
             it.copy(
                 coins = savedCoins,
@@ -108,6 +147,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 totalRolls = savedRolls,
                 totalRaids = savedRaids,
                 totalUpgrades = savedUpgrades,
+                dailyStreak = streakDays,
+                isStreakClaimable = isStreakClaimable,
                 isSoundEnabled = soundManager.isSoundEnabled,
                 isHapticsEnabled = soundManager.isHapticsEnabled
             )
@@ -250,12 +291,26 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    companion object {
+        val STREAK_REWARDS = listOf(
+            DailyStreakReward(1, 15000L, 10, 4, 1, false, "15K Coins + 10 Rolls"),
+            DailyStreakReward(2, 25000L, 15, 6, 2, false, "x2 Multiplier Boost + 15 Rolls"),
+            DailyStreakReward(3, 40000L, 20, 8, 2, true, "40K Coins + Aegis Shield + 20 Rolls"),
+            DailyStreakReward(4, 60000L, 25, 12, 3, false, "60K Coins + 12 Bricks + 25 Rolls"),
+            DailyStreakReward(5, 90000L, 35, 16, 3, true, "90K Coins + Shield + 35 Rolls"),
+            DailyStreakReward(6, 140000L, 45, 20, 5, false, "x5 Multiplier Boost + 45 Rolls"),
+            DailyStreakReward(7, 300000L, 70, 30, 5, true, "MEGA VAULT CHEST: 300K Coins + 70 Rolls!")
+        )
+    }
+
     private fun generateQuests(): List<Quest> {
         return listOf(
-            Quest("quest_rolls", "Roll the Dice 15 times", 15, 0, 20000L, 10),
-            Quest("quest_upgrade", "Upgrade Town Buildings 2 times", 2, 0, 30000L, 15),
-            Quest("quest_raid", "Launch a Town Raid", 1, 0, 25000L, 12),
-            Quest("quest_shield", "Hold maximum Shields (3)", 3, 2, 15000L, 8)
+            Quest("quest_rolls", "Roll the Dice 15 times", 15, 0, 25000L, 12, icon = "🎲", category = "DAILY"),
+            Quest("quest_upgrade", "Upgrade Town Buildings 2 times", 2, 0, 35000L, 15, icon = "🔨", category = "BUILD"),
+            Quest("quest_raid", "Launch a Town Raid", 1, 0, 30000L, 10, icon = "⚔️", category = "RAID"),
+            Quest("quest_shield", "Hold maximum Shields (3)", 3, 2, 20000L, 8, icon = "🛡️", category = "DAILY"),
+            Quest("quest_heist", "Crack Bank Vault Safes", 2, 0, 35000L, 12, icon = "🗝️", category = "EVENT"),
+            Quest("quest_coins", "Collect 50,000 Total Coins", 50000, 35000, 45000L, 18, icon = "👑", category = "MILESTONE")
         )
     }
 
@@ -303,9 +358,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     die2Value = d2,
                     lastRollTotal = totalSteps,
                     isDoubles = isDoubles,
-                    diceEnergy = (it.diceEnergy + bonusEnergy).coerceAtMost(it.maxEnergy),
+                    diceEnergy = (it.diceEnergy + bonusEnergy).coerceAtMost(it.maxEnergy + 20),
+                    rollPopupText = if (isDoubles) "🎲 DOUBLE $d1's! +10 FREE ROLLS!" else "🎲 Rolled $d1 + $d2 = $totalSteps!",
                     bannerNotification = if (isDoubles) "🎉 DOUBLE LUCK! +10 FREE ROLLS!" else null
                 )
+            }
+
+            // Auto-clear roll popup after 2.2s
+            viewModelScope.launch {
+                delay(2200)
+                _uiState.update { it.copy(rollPopupText = null) }
             }
 
             // Step-by-step token hopping
@@ -381,10 +443,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update {
                     it.copy(
                         coins = it.coins + coins,
-                        diceEnergy = (it.diceEnergy + energy).coerceAtMost(it.maxEnergy),
+                        diceEnergy = (it.diceEnergy + energy).coerceAtMost(it.maxEnergy + 20),
                         bannerNotification = "🏁 LANDED ON GO! +%,d Coins & +$energy Energy!".format(coins)
                     )
                 }
+                updateQuestProgress("quest_coins", coins.toInt())
+                triggerLootAnimation("🪙", LootTargetType.COINS, coins)
+                triggerLootAnimation("⚡", LootTargetType.ENERGY, energy.toLong())
             }
             TileType.COINS_SMALL, TileType.COINS_MEDIUM, TileType.COINS_LARGE, TileType.JACKPOT -> {
                 soundManager.playCoinReward()
@@ -396,6 +461,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
                 spawnConfettiParticles(6.0f, 6.0f)
+                updateQuestProgress("quest_coins", reward.toInt())
+                triggerLootAnimation("🪙", LootTargetType.COINS, reward)
             }
             TileType.MATERIALS -> {
                 soundManager.playGemReward()
@@ -406,6 +473,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                         bannerNotification = "🧱 +$mats Voxel Bricks!"
                     )
                 }
+                triggerLootAnimation("🧱", LootTargetType.MATERIALS, mats.toLong())
             }
             TileType.SHIELD -> {
                 soundManager.playShieldBlock()
@@ -615,6 +683,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
         updateQuestProgress("quest_raid", 1)
+        updateQuestProgress("quest_coins", loot.toInt())
+        triggerLootAnimation("🪙", LootTargetType.COINS, loot)
         saveCurrentState()
     }
 
@@ -627,6 +697,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 bannerNotification = "🗝️ Bank Vault Looted: +%,d Coins & +$totalMats Bricks!".format(totalCoins)
             )
         }
+        updateQuestProgress("quest_heist", 1)
+        updateQuestProgress("quest_coins", totalCoins.toInt())
+        triggerLootAnimation("🪙", LootTargetType.COINS, totalCoins)
+        if (totalMats > 0) {
+            triggerLootAnimation("🧱", LootTargetType.MATERIALS, totalMats.toLong())
+        }
         saveCurrentState()
     }
 
@@ -635,10 +711,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             it.copy(
                 coins = it.coins + coins,
                 materials = it.materials + mats,
-                diceEnergy = (it.diceEnergy + energy).coerceAtMost(it.maxEnergy),
+                diceEnergy = (it.diceEnergy + energy).coerceAtMost(it.maxEnergy + 20),
                 activeDialog = GameDialogState.None
             )
         }
+        triggerLootAnimation("🪙", LootTargetType.COINS, coins)
         saveCurrentState()
     }
 
@@ -681,24 +758,82 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(isHapticsEnabled = enabled) }
     }
 
+    fun selectTopQuest(questId: String) {
+        soundManager.playClick()
+        _uiState.update { it.copy(selectedTopQuestId = questId) }
+    }
+
     fun claimQuest(questId: String) {
         val state = _uiState.value
         val quest = state.quests.find { it.id == questId } ?: return
         if (!quest.isCompleted || quest.isClaimed) return
 
         soundManager.playCoinReward()
+        spawnConfettiParticles(6f, 6f)
+        triggerLootAnimation("🪙", LootTargetType.COINS, quest.coinReward)
+        triggerLootAnimation("⚡", LootTargetType.ENERGY, quest.energyReward.toLong())
+
         val updated = state.quests.map { q ->
             if (q.id == questId) q.copy(isClaimed = true) else q
         }
         _uiState.update {
             it.copy(
                 coins = it.coins + quest.coinReward,
-                diceEnergy = (it.diceEnergy + quest.energyReward).coerceAtMost(it.maxEnergy),
+                diceEnergy = (it.diceEnergy + quest.energyReward).coerceAtMost(it.maxEnergy + 20),
                 quests = updated,
                 bannerNotification = "🎯 Quest Claimed: +%,d Coins & +${quest.energyReward}⚡!".format(quest.coinReward)
             )
         }
         saveCurrentState()
+    }
+
+    fun claimDailyStreak() {
+        val state = _uiState.value
+        if (!state.isStreakClaimable) return
+        val day = ((state.dailyStreak - 1) % 7) + 1
+        val reward = STREAK_REWARDS.firstOrNull { it.day == day } ?: STREAK_REWARDS[0]
+
+        soundManager.playJackpotFanfare()
+        spawnConfettiParticles(6f, 6f)
+        triggerLootAnimation("🪙", LootTargetType.COINS, reward.coins)
+        triggerLootAnimation("⚡", LootTargetType.ENERGY, reward.energy.toLong())
+        if (reward.materials > 0) {
+            triggerLootAnimation("🧱", LootTargetType.MATERIALS, reward.materials.toLong())
+        }
+
+        val currentEpochDay = System.currentTimeMillis() / (1000 * 60 * 60 * 24)
+        saveManager.saveStreak(state.dailyStreak, currentEpochDay, currentEpochDay)
+
+        val bonusShields = if (reward.bonusShield && state.shields < state.maxShields) 1 else 0
+
+        _uiState.update {
+            it.copy(
+                coins = it.coins + reward.coins,
+                diceEnergy = (it.diceEnergy + reward.energy).coerceAtMost(it.maxEnergy + 30),
+                materials = it.materials + reward.materials,
+                multiplier = if (reward.multiplierBonus > 1) reward.multiplierBonus else it.multiplier,
+                shields = (it.shields + bonusShields).coerceAtMost(it.maxShields),
+                isStreakClaimable = false,
+                bannerNotification = "🔥 DAY $day STREAK CLAIMED! +%,d Coins, +${reward.energy}⚡!".format(reward.coins)
+            )
+        }
+        saveCurrentState()
+    }
+
+    fun triggerLootAnimation(icon: String, targetType: LootTargetType, amount: Long) {
+        val loot = FlyingLoot(
+            id = System.nanoTime() + Random.nextLong(1000),
+            icon = icon,
+            startXFraction = 0.5f + (Random.nextFloat() - 0.5f) * 0.2f,
+            startYFraction = 0.52f + (Random.nextFloat() - 0.5f) * 0.08f,
+            targetType = targetType,
+            amount = amount
+        )
+        _uiState.update { it.copy(flyingLoots = it.flyingLoots + loot) }
+    }
+
+    fun removeFlyingLoot(id: Long) {
+        _uiState.update { it.copy(flyingLoots = it.flyingLoots.filter { l -> l.id != id }) }
     }
 
     private fun updateQuestProgress(questId: String, increment: Int) {

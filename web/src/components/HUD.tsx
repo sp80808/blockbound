@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGameStore } from '../store/gameStore';
+import { useGameStore, STREAK_REWARDS } from '../store/gameStore';
 
 export function HUD() {
   const {
@@ -13,10 +13,16 @@ export function HUD() {
     isRolling,
     isTurbo,
     toast,
+    dailyStreak,
+    streakClaimedToday,
+    dicePopup,
+    activeModal,
     rollDice,
     cycleMultiplier,
     toggleTurbo,
-    openModal
+    openModal,
+    closeModal,
+    claimStreakReward
   } = useGameStore();
 
   return (
@@ -30,26 +36,47 @@ export function HUD() {
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      padding: '16px',
+      padding: 'calc(env(safe-area-inset-top, 24px) + 16px) 16px calc(env(safe-area-inset-bottom, 16px) + 12px) 16px',
       boxSizing: 'border-box'
     }}>
       {/* Top Header */}
       <div style={{ pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ background: 'rgba(30,41,59,0.9)', padding: '6px 12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', color: '#fbbf24', fontWeight: 800, fontSize: '13px' }}>
+          <div style={{ background: 'rgba(30,41,59,0.92)', padding: '6px 12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', color: '#fbbf24', fontWeight: 800, fontSize: '13px' }}>
             🪙 {coins.toLocaleString()}
           </div>
-          <div style={{ background: 'rgba(30,41,59,0.9)', padding: '6px 12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', color: '#f472b6', fontWeight: 800, fontSize: '13px' }}>
+          <div style={{ background: 'rgba(30,41,59,0.92)', padding: '6px 12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', color: '#f472b6', fontWeight: 800, fontSize: '13px' }}>
             🧱 {materials}
           </div>
-          <div style={{ background: 'rgba(8,47,73,0.9)', padding: '6px 10px', borderRadius: '14px', border: '1px solid #0284c7', display: 'flex', gap: '4px' }}>
+          <div style={{ background: 'rgba(8,47,73,0.92)', padding: '6px 10px', borderRadius: '14px', border: '1px solid #0284c7', display: 'flex', gap: '4px' }}>
             {Array.from({ length: maxShields }).map((_, i) => (
               <span key={i} style={{ filter: i < shields ? 'none' : 'grayscale(100%)', opacity: i < shields ? 1 : 0.4 }}>🛡️</span>
             ))}
           </div>
+
+          {/* Daily Streak Badge */}
+          <button
+            onClick={() => openModal('streak')}
+            style={{
+              background: 'linear-gradient(135deg, #ea580c, #f97316)',
+              border: '1px solid #fdba74',
+              borderRadius: '14px',
+              padding: '6px 10px',
+              color: '#fff',
+              fontWeight: 900,
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            🔥 Day {dailyStreak}
+          </button>
+
           <button
             onClick={() => openModal('upgrade')}
-            style={{ background: '#10b981', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '12px', fontWeight: 900, cursor: 'pointer' }}
+            style={{ background: '#10b981', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '12px', fontWeight: 900, cursor: 'pointer' }}
           >
             🔨 BUILD
           </button>
@@ -61,6 +88,38 @@ export function HUD() {
           </div>
         )}
       </div>
+
+      {/* Dynamic Dice Outcome Pop-up Overlay */}
+      {dicePopup && (
+        <div style={{
+          alignSelf: 'center',
+          background: 'rgba(15, 23, 42, 0.94)',
+          border: '2px solid #fbbf24',
+          borderRadius: '24px',
+          padding: '16px 26px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '6px',
+          boxShadow: '0 16px 45px rgba(0,0,0,0.65)'
+        }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <span style={{ background: '#1e1b4b', border: '1.5px solid #f59e0b', borderRadius: '12px', padding: '4px 10px', fontSize: '20px', fontWeight: 900, color: '#fde047' }}>
+              ⚀ {dicePopup.d1}
+            </span>
+            <span style={{ fontWeight: 900, color: '#94a3b8' }}>+</span>
+            <span style={{ background: '#1e1b4b', border: '1.5px solid #f59e0b', borderRadius: '12px', padding: '4px 10px', fontSize: '20px', fontWeight: 900, color: '#fde047' }}>
+              ⚀ {dicePopup.d2}
+            </span>
+          </div>
+          <div style={{ fontSize: '22px', fontWeight: 900, color: '#fff' }}>
+            = {dicePopup.total} STEPS
+          </div>
+          <div style={{ fontSize: '11px', fontWeight: 800, color: '#38bdf8' }}>
+            {dicePopup.isDoubles ? '🔥 DOUBLES BONUS! +10 ROLLS!' : 'CAMERA TRACKING TOKEN'}
+          </div>
+        </div>
+      )}
 
       {/* Bottom Controls */}
       <div style={{ pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -96,6 +155,94 @@ export function HUD() {
           </button>
         </div>
       </div>
+
+      {/* Daily Streak Modal */}
+      {activeModal === 'streak' && (
+        <div
+          onClick={closeModal}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.78)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 65,
+            padding: '16px',
+            pointerEvents: 'auto'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '360px',
+              background: '#0f172a',
+              border: '2px solid #f97316',
+              borderRadius: '24px',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, color: '#fb923c' }}>🔥 Daily Login Streak</h3>
+                <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Claim consecutive day bonuses!</p>
+              </div>
+              <button onClick={closeModal} style={{ background: '#1e293b', border: 'none', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+              {STREAK_REWARDS.map(r => {
+                const isPast = r.day < dailyStreak || (r.day === dailyStreak && streakClaimedToday);
+                const isCurrent = r.day === dailyStreak && !streakClaimedToday;
+                return (
+                  <div
+                    key={r.day}
+                    style={{
+                      background: isCurrent ? '#1e1b4b' : isPast ? '#064e3b' : '#1e293b',
+                      border: `1.5px solid ${isCurrent ? '#f59e0b' : isPast ? '#10b981' : '#334155'}`,
+                      borderRadius: '12px',
+                      padding: '8px 4px',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8' }}>{r.label}</div>
+                    <div style={{ fontSize: '20px', margin: '2px 0' }}>{r.icon}</div>
+                    <div style={{ fontSize: '9px', fontWeight: 800, color: '#fde047' }}>
+                      {isPast ? 'CLAIMED' : r.desc}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={claimStreakReward}
+              disabled={streakClaimedToday}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '14px',
+                border: 'none',
+                background: streakClaimedToday ? '#334155' : 'linear-gradient(135deg, #ea580c, #f97316)',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: 900,
+                cursor: streakClaimedToday ? 'not-allowed' : 'pointer',
+                opacity: streakClaimedToday ? 0.6 : 1
+              }}
+            >
+              {streakClaimedToday ? `DAY ${dailyStreak} CLAIMED` : `CLAIM DAY ${dailyStreak} REWARD!`}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

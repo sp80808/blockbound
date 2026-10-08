@@ -106,4 +106,41 @@ class ExampleUnitTest {
         currentShields = (currentShields + 1).coerceAtMost(maxShields)
         assertEquals(3, currentShields)
     }
+
+    @Test
+    fun testQuestCompletionAndProgressFraction() {
+        val quest = com.example.blockbound.model.Quest(
+            id = "quest_test",
+            title = "Roll the Dice",
+            target = 10,
+            progress = 7,
+            coinReward = 20000L,
+            energyReward = 10
+        )
+
+        assertFalse(quest.isCompleted)
+        assertEquals(0.7f, quest.progressFraction, 0.001f)
+
+        val completedQuest = quest.copy(progress = 10)
+        assertTrue(completedQuest.isCompleted)
+        assertEquals(1.0f, completedQuest.progressFraction, 0.001f)
+    }
+
+    @Test
+    fun testDailyStreakLadderRewards() {
+        val rewards = com.example.blockbound.game.GameViewModel.STREAK_REWARDS
+        assertEquals(7, rewards.size)
+
+        // Day 1
+        assertEquals(1, rewards[0].day)
+        assertEquals(15000L, rewards[0].coins)
+        assertEquals(10, rewards[0].energy)
+
+        // Day 7 Mega Reward
+        val day7 = rewards[6]
+        assertEquals(7, day7.day)
+        assertEquals(300000L, day7.coins)
+        assertEquals(70, day7.energy)
+        assertTrue(day7.bonusShield)
+    }
 }

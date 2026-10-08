@@ -72,10 +72,34 @@ data class Quest(
     val progress: Int = 0,
     val coinReward: Long,
     val energyReward: Int,
-    val isClaimed: Boolean = false
+    val isClaimed: Boolean = false,
+    val icon: String = "🎯",
+    val category: String = "DAILY" // "DAILY", "RAID", "EVENT", "BUILD"
 ) {
     val isCompleted: Boolean get() = progress >= target
+    val progressFraction: Float get() = if (target > 0) (progress.toFloat() / target).coerceIn(0f, 1f) else 0f
 }
+
+data class DailyStreakReward(
+    val day: Int,
+    val coins: Long,
+    val energy: Int,
+    val materials: Int = 0,
+    val multiplierBonus: Int = 1,
+    val bonusShield: Boolean = false,
+    val description: String
+)
+
+enum class LootTargetType { COINS, MATERIALS, ENERGY }
+
+data class FlyingLoot(
+    val id: Long,
+    val icon: String,
+    val startXFraction: Float, // 0..1 screen relative
+    val startYFraction: Float,
+    val targetType: LootTargetType,
+    val amount: Long
+)
 
 sealed class GameDialogState {
     object None : GameDialogState()
