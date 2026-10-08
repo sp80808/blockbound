@@ -164,9 +164,9 @@ export function HUD() {
             onClick={toggleTurbo} aria-pressed={isTurbo}
             title="Faster dice and token movement">⚡ QUICK</button>
           <button className="bb-control bb-secondary-action"
-            aria-expanded={showOptions} aria-controls="bb-auto-options"
+            aria-expanded={showOptions} aria-controls="bb-auto-options" title="Automatic roll preferences"
             onClick={() => setShowOptions(v => !v)}>
-            ⚙ AUTO OPTIONS
+            ⚙ OPTIONS
           </button>
         </div>
         <div className="bb-auto-note" style={{ textAlign: 'center' }} aria-live="polite">
