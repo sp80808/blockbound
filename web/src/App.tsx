@@ -4,6 +4,7 @@ import { HUD } from './components/HUD';
 import { SplashScreen } from './components/SplashScreen';
 import { VaultHeist } from './minigames/heist/VaultHeist';
 import { TownRaid } from './minigames/raid/TownRaid';
+import { districtComplete, questViews } from './game/quests';
 import { useGameStore } from './store/gameStore';
 
 const CONFETTI_COLORS = ['#fde047', '#f472b6', '#67e8f9', '#a3e635', '#fb923c', '#c4b5fd'];
@@ -37,7 +38,9 @@ function Celebration() {
     ? { icon: '✨', title: 'JACKPOT!', sub: 'The golden vault bursts open. Keep rolling!' }
     : celebration.kind === 'doubles3'
       ? { icon: '🎲', title: 'DOUBLES STREAK!', sub: 'Three doubles in a row — the dice love you. Bonus shield earned!' }
-      : { icon: '🏗️', title: 'GRAND MILESTONE!', sub: 'Ten rolls strong! Bonus shield and energy incoming.' };
+      : celebration.kind === 'unlock'
+        ? { icon: '🍬', title: 'CANDY HARBOUR!', sub: 'A whole new district joins your town. Sweet building ahead!' }
+        : { icon: '🏗️', title: 'GRAND MILESTONE!', sub: 'Ten rolls strong! Bonus shield and energy incoming.' };
 
   return (
     <div className="bb-celebration" aria-live="polite">
@@ -66,8 +69,20 @@ export default function App() {
   const {
     activeModal, closeModal, districts, currentDistrict, coins, materials,
     pendingEncounter, pendingReward, resolveEncounterPicks, acknowledgeReward,
-    upgradeBuilding, repairBuilding
+    upgradeBuilding, repairBuilding,
+    totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit,
+    claimedQuests, unlockedDistricts, claimQuest, unlockDistrict, setDistrict,
+    isRolling
   } = useGameStore();
+  const quests = useMemo(
+    () => questViews(
+      { totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit },
+      claimedQuests
+    ),
+    [totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit, claimedQuests]
+  );
+  const homeComplete = districts[0] ? districtComplete(districts[0]) : false;
+  const harbourLocked = !unlockedDistricts.includes(1);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   // Restore verified local progress before the player can start a new roll.
@@ -149,10 +164,38 @@ export default function App() {
                   gap: '12px'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ margin: 0, color: '#fff' }}>{dist.name}</h3>
-                  <button onClick={closeModal} style={{ background: '#1e293b', border: 'none', color: '#fff', borderRadius: '50%', minWidth: '44px', minHeight: '44px', cursor: 'pointer' }}>✕</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    {unlockedDistricts.length > 1 && (
+                      <button onClick={() => setDistrict(currentDistrict === 0 ? 1 : 0)}
+                        aria-label="Switch district"
+                        style={{ background: '#1e293b', border: '1px solid #6366f1', color: '#fff', borderRadius: 10, minWidth: 44, minHeight: 44, cursor: 'pointer', fontSize: 16 }}>
+                        ⇄
+                      </button>
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <h3 style={{ margin: 0, color: '#fff', fontSize: 16 }}>{dist.name}</h3>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>{dist.subtitle}</div>
+                    </div>
+                  </div>
+                  <button onClick={closeModal} aria-label="Close build menu" style={{ background: '#1e293b', border: 'none', color: '#fff', borderRadius: '50%', minWidth: '44px', minHeight: '44px', cursor: 'pointer' }}>✕</button>
                 </div>
+                {harbourLocked && (
+                  <div style={{ background: homeComplete ? '#3b2f0b' : '#1e293b', border: '1px solid #f2c65a60',
+                    padding: '10px 12px', borderRadius: '12px', display: 'flex',
+                    justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: '12px', color: '#ffe38d', fontWeight: 700 }}>
+                      🍬 {homeComplete ? 'Candy Harbour is ready!' : 'Max Sunny Suburb to Tier 4 to unlock Candy Harbour'}
+                    </div>
+                    {homeComplete && (
+                      <button onClick={unlockDistrict} className="bb-control"
+                        style={{ background: '#f59e0b', color: '#422006', border: 'none', padding: '8px 12px',
+                          borderRadius: '10px', fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        UNLOCK
+                      </button>
+                    )}
+                  </div>
+                )}
                 {dist.buildings.map((b, idx) => {
                   const cost = Math.floor(b.baseCost * (1 + b.tier * 1.5));
                   const mats = b.baseMats + b.tier * 2;
@@ -176,6 +219,61 @@ export default function App() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Quest board: progress derived from lifetime counters, one claim each. */}
+          {activeModal === 'quests' && (
+            <div className="bb-streak-scrim" role="presentation" onClick={closeModal}>
+              <div className="bb-streak-dialog" role="dialog" aria-modal="true"
+                aria-label="Quests" onClick={e => e.stopPropagation()}>
+                <div className="bb-streak-heading">
+                  <div><strong>📜 Quests</strong>
+                    <div className="bb-auto-note">Finish goals, claim each reward once.</div>
+                  </div>
+                  <button className="bb-control bb-secondary-action" onClick={closeModal}
+                    aria-label="Close quests">✕</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {quests.map(q => (
+                    <div key={q.def.id}
+                      style={{ background: q.state === 'claimed' ? '#185349' : '#283a57',
+                        border: '1px solid ' + (q.state === 'claimable' ? '#f6c35c' : '#5a7293'),
+                        padding: '10px 12px', borderRadius: '12px',
+                        display: 'flex', justifyContent: 'space-between',
+                        alignItems: 'center', gap: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>
+                          {q.def.icon} {q.def.name}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{q.def.desc}</div>
+                        <div className="bb-progress-track" style={{ marginTop: 6 }}
+                          role="progressbar" aria-label={q.def.name + ' progress'}
+                          aria-valuemin={0} aria-valuemax={q.goal} aria-valuenow={q.have}>
+                          <div className="bb-progress-fill" style={{ width: (q.goal ? 100 * q.have / q.goal : 0) + '%' }} />
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#b6cce2', marginTop: 3 }}>
+                          {q.have}/{q.goal} · 🪙 {q.def.reward.coins.toLocaleString()}
+                          {q.def.reward.materials ? ' · 🧱 ' + q.def.reward.materials : ''}
+                          {q.def.reward.energy ? ' · ⚡ ' + q.def.reward.energy : ''}
+                        </div>
+                      </div>
+                      {q.state === 'claimed' ? (
+                        <span style={{ color: '#6ee7b7', fontWeight: 800, fontSize: '11px' }}>DONE ✓</span>
+                      ) : (
+                        <button className="bb-control" onClick={() => claimQuest(q.def.id)}
+                          disabled={q.state !== 'claimable' || isRolling}
+                          style={{ background: q.state === 'claimable' ? '#f59e0b' : '#475569',
+                            color: q.state === 'claimable' ? '#422006' : '#cbd5e1',
+                            border: 'none', padding: '8px 12px', borderRadius: '10px',
+                            fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                          CLAIM
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

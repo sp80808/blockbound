@@ -15,7 +15,7 @@ import {
   tileReward,
   type EncounterKind
 } from '../game/rollRules';
-import { validateClaim, type LifetimeCounters } from '../game/quests';
+import { districtComplete, validateClaim, type LifetimeCounters } from '../game/quests';
 import {
   buzz,
   playBuild,
@@ -129,7 +129,7 @@ export interface GameState {
   unlockedDistricts: number[];
   soundEnabled: boolean;
   /** Transient celebration + VFX pulses. Never persisted, never affect economy. */
-  celebration: { kind: 'jackpot' | 'doubles3' | 'milestone'; key: number } | null;
+  celebration: { kind: 'jackpot' | 'doubles3' | 'milestone' | 'unlock'; key: number } | null;
   buildPulse: { plot: number; tier: number; key: number } | null;
   landingPulse: { tile: number; key: number } | null;
   autoRolling: boolean;
@@ -245,11 +245,7 @@ const initialDistricts: District[] = [
   }
 ];
 
-/** Sunny Suburb fully maxed unlocks the harbour. Pure for tests/UI. */
-export function districtComplete(district: District): boolean {
-  return district.buildings.length > 0 && district.buildings.every(b => b.tier >= 4);
-}
-
+/** Sunny Suburb fully maxed unlocks the harbour. See quests.districtComplete. */
 export function lifetimeOf(s: GameState): LifetimeCounters {
   return {
     totalRolls: s.totalRolls, doublesTotal: s.doublesTotal,
@@ -633,7 +629,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       unlockedDistricts: [...s.unlockedDistricts, 1],
       currentDistrict: 1,
       activeModal: null,
-      celebration: { kind: 'milestone', key: Date.now() },
+      celebration: { kind: 'unlock', key: Date.now() },
       toast: '🍬 CANDY HARBOUR UNLOCKED! A new district awaits!'
     });
   },

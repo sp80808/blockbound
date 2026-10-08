@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
 import { allowedMultipliers } from '../game/rollRules';
+import { claimableQuests } from '../game/quests';
 import { ENERGY_REFILL_MS } from '../game/gameSave';
 import { STREAK_REWARDS, useGameStore } from '../store/gameStore';
 import './GameFeel.css';
@@ -14,7 +15,10 @@ const DRAG_TOLERANCE_PX = 12;
 export function HUD() {
   const {
     coins, materials, energy, maxEnergy, energyUpdatedAt, saveError, shields, maxShields, multiplier,
-    isRolling, isTurbo, toast, lastRoll, momentum, doublesStreak, autoRolling, autoBatchSize,
+    isRolling, isTurbo, toast, lastRoll, momentum, doublesStreak, doublesTotal,
+    upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit, totalRolls,
+    claimedQuests, soundEnabled, toggleSound,
+    autoRolling, autoBatchSize,
     autoRollsRemaining, autoEnergyBudget, autoEnergySpent, autoOkay,
     autoAdjustMultiplier, districts, currentDistrict, dailyStreak, streakClaimedToday,
     activeModal, claimStreakReward, closeModal, rollDice, cycleMultiplier,
@@ -100,6 +104,10 @@ export function HUD() {
   const completed = district?.buildings.reduce((sum, b) => sum + b.tier, 0) ?? 0;
   const total = (district?.buildings.length ?? 0) * 4;
   const progress = total > 0 ? (completed / total) * 100 : 0;
+  const claimableCount = claimableQuests(
+    { totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit },
+    claimedQuests
+  ).length;
   const canRoll = autoRolling || (!isRolling && energy >= multiplier && !activeModal);
   const maxAffordable = allowedMultipliers(energy).slice(-1)[0] ?? 0;
   const remainingBudget = Math.max(0, autoEnergyBudget - autoEnergySpent);
@@ -142,6 +150,11 @@ export function HUD() {
             <span className="bb-pill" aria-label={'Building progress ' + completed + ' out of ' + total}>
               ⭐ {completed}/{total}
             </span>
+            <button className="bb-control bb-quest-btn" onClick={() => openModal('quests')}
+              aria-label={'Quests' + (claimableCount > 0 ? ', ' + claimableCount + ' rewards ready to claim' : '')}>
+              📜 QUESTS
+              {claimableCount > 0 && <span className="bb-streak-dot" aria-label={claimableCount + ' quest rewards available'} />}
+            </button>
           </div>
           <div className="bb-progress-track" style={{ marginTop: 8 }}
             role="progressbar" aria-label="District building progress"
@@ -179,6 +192,11 @@ export function HUD() {
                   onClick={() => setAutoBatchSize(count)}>{count}</button>
               ))}
             </div>
+          </div>
+          <div className="bb-options-line">
+            <span>Sound &amp; buzz</span>
+            <button className="bb-control bb-secondary-action" aria-pressed={soundEnabled}
+              onClick={toggleSound}>{soundEnabled ? '🔊 ON' : '🔇 OFF'}</button>
           </div>
           <div className="bb-options-line">
             <span>Roll speed</span>

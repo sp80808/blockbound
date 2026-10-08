@@ -134,3 +134,8 @@ export function validateClaim(
   const { have, goal } = def.progressOf(counters);
   return have >= goal ? def : null;
 }
+
+/** A district is complete when every plot reached max tier. Pure for tests/UI. */
+export function districtComplete(district: { buildings: { tier: number }[] }): boolean {
+  return district.buildings.length > 0 && district.buildings.every(b => b.tier >= 4);
+}

@@ -433,6 +433,17 @@ const BUILDING_COLOURS = [
   { wall: '#cbeaf0', roof: '#76b8c3', trim: '#e5caff' }
 ];
 
+/** Candy Harbour: pastel pink/cyan confectionery layered on the same tokens. */
+const CANDY_COLOURS = [
+  { wall: '#ffe3ef', roof: '#e2548b', trim: '#7deefb' },
+  { wall: '#fff3d6', roof: '#f6a83c', trim: '#ff8fb5' },
+  { wall: '#e9e4ff', roof: '#8b5cf6', trim: '#ffd166' },
+  { wall: '#dff9f3', roof: '#2fbfae', trim: '#ff9ecf' },
+  { wall: '#e6f6ff', roof: '#38bdf8', trim: '#ffc7e3' }
+];
+
+const DISTRICT_PALETTES = [BUILDING_COLOURS, CANDY_COLOURS];
+
 /** Golden construction glint that flashes over an upgraded plot. */
 function BuildGlint({ plot }: { plot: number }) {
   const pulse = useGameStore(s => s.buildPulse);
@@ -537,9 +548,13 @@ function DamageBoards() {
   );
 }
 
-function BuildingPlot({ plot, buildingId, tier, damaged }: { plot: number; buildingId: string; tier: number; damaged: boolean }) {
+function BuildingPlot({ plot, tier, damaged, palette }: {
+  plot: number;
+  tier: number;
+  damaged: boolean;
+  palette: { wall: string; roof: string; trim: string };
+}) {
   const [x, , z] = PLOT_COORDS[plot] ?? [0, 0, 0];
-  const palette = BUILDING_COLOURS[plot % BUILDING_COLOURS.length];
   const group = useRef<THREE.Group>(null);
   const pop = useRef({ t: 1, lastTier: tier });
   const height = 0.95 + Math.max(0, tier - 1) * 0.36;
@@ -568,8 +583,8 @@ function BuildingPlot({ plot, buildingId, tier, damaged }: { plot: number; build
     }
   });
 
-  const isTownhall = buildingId === 'b_townhall';
-  const isBakery = buildingId === 'b_bakery';
+  const isTownhall = plot === 0;
+  const isBakery = plot === 1;
   const isWindmill = plot === 3;
 
   return (
@@ -694,6 +709,7 @@ function BuildingPlot({ plot, buildingId, tier, damaged }: { plot: number; build
 function Buildings() {
   const districtId = useGameStore(state => state.currentDistrict);
   const dist = useGameStore(state => state.districts[districtId]);
+  const paletteSet = DISTRICT_PALETTES[districtId % DISTRICT_PALETTES.length] ?? BUILDING_COLOURS;
 
   if (!dist) return null;
 
@@ -703,9 +719,9 @@ function Buildings() {
         <BuildingPlot
           key={building.id}
           plot={idx}
-          buildingId={building.id}
           tier={building.tier}
           damaged={building.damaged}
+          palette={paletteSet[idx % paletteSet.length] ?? paletteSet[0]}
         />
       ))}
     </group>
