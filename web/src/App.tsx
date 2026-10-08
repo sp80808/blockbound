@@ -29,12 +29,12 @@ export default function App() {
   const dist = districts[currentDistrict];
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div className="bb-shell">
       {showSplash ? (
         <SplashScreen onFinish={() => setShowSplash(false)} />
       ) : (
         <>
-          <VoxelScene />
+          <main className="bb-world" aria-label="Interactive 3D board"><VoxelScene /></main>
           <HUD />
 
           {/* Upgrade Modal */}
@@ -60,7 +60,10 @@ export default function App() {
                 onClick={e => e.stopPropagation()}
                 style={{
                   width: '100%',
-                  maxWidth: '360px',
+                  maxWidth: '410px',
+                  maxHeight: 'min(83dvh, 660px)',
+                  overflowY: 'auto',
+                  overscrollBehavior: 'contain',
                   background: '#0f172a',
                   border: '2px solid #6366f1',
                   borderRadius: '24px',
@@ -72,7 +75,7 @@ export default function App() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ margin: 0, color: '#fff' }}>{dist.name}</h3>
-                  <button onClick={closeModal} style={{ background: '#1e293b', border: 'none', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>✕</button>
+                  <button onClick={closeModal} style={{ background: '#1e293b', border: 'none', color: '#fff', borderRadius: '50%', minWidth: '44px', minHeight: '44px', cursor: 'pointer' }}>✕</button>
                 </div>
                 {dist.buildings.map((b, idx) => {
                   const cost = Math.floor(b.baseCost * (1 + b.tier * 1.5));
