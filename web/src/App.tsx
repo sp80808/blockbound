@@ -4,12 +4,11 @@ import { HUD } from './components/HUD';
 import { SplashScreen } from './components/SplashScreen';
 import { VaultHeist } from './minigames/heist/VaultHeist';
 import { TownRaid } from './minigames/raid/TownRaid';
-import { districtComplete } from './game/quests';
 import { matchHotkey } from './game/hotkeys';
-import { nextLockedDistrict, useGameStore } from './store/gameStore';
-import { buildingUpgradeCost } from './game/rollRules';
+import { useGameStore } from './store/gameStore';
 import { RewardPresentation } from './components/RewardPresentation';
 import { QuestsModal } from './components/QuestsModal';
+import { IslandView } from './components/IslandView';
 
 const CONFETTI_COLORS = ['#fde047', '#f472b6', '#67e8f9', '#a3e635', '#fb923c', '#c4b5fd'];
 
@@ -72,17 +71,10 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [updateReady, setUpdateReady] = useState(false);
   const {
-    activeModal, closeModal, districts, currentDistrict, coins, materials,
+    activeModal, closeModal, currentDistrict,
     pendingEncounter, pendingReward, resolveEncounterPicks, acknowledgeReward,
-    upgradeBuilding, repairBuilding,
-    totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit,
-    claimedQuests, unlockedDistricts, claimQuest, unlockDistrict, setDistrict,
-    isRolling, rewardPresentation
+    rewardPresentation
   } = useGameStore();
-  const nextLocked = nextLockedDistrict(districts, unlockedDistricts);
-  const nextDef = nextLocked !== null ? districts.find(d => d.id === nextLocked) : undefined;
-  const prevDef = nextLocked !== null ? districts.find(d => d.id === nextLocked - 1) : undefined;
-  const prevComplete = prevDef ? districtComplete(prevDef) : false;
   const [reducedMotion, setReducedMotion] = useState(false);
 
   // Restore verified local progress before the player can start a new roll.
@@ -196,8 +188,6 @@ export default function App() {
     return () => { document.removeEventListener('keydown', onKey); previous?.focus(); };
   }, [activeModal, rewardPresentation?.id, showSplash, closeModal]);
 
-  const dist = districts[currentDistrict];
-
   return (
     <div className="bb-shell" data-district={currentDistrict}>
       {showSplash ? (
@@ -217,102 +207,9 @@ export default function App() {
             </div>
           )}
 
-          {/* Upgrade Modal */}
+          {/* Island Progression Stage */}
           {activeModal === 'upgrade' && (
-            <div
-              onClick={closeModal}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                background: 'rgba(0,0,0,0.75)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 60,
-                padding: '16px',
-                boxSizing: 'border-box'
-              }}
-            >
-              <div role="dialog" aria-modal="true" aria-label="Build your district" className="bb-workshop"
-                onClick={e => e.stopPropagation()}
-                style={{
-                  width: '100%',
-                  maxWidth: '410px',
-                  maxHeight: 'min(83dvh, 660px)',
-                  overflowY: 'auto',
-                  overscrollBehavior: 'contain',
-                  background: '#0f172a',
-                  border: '2px solid #6366f1',
-                  borderRadius: '24px',
-                  padding: '20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    {unlockedDistricts.length > 1 && (
-                      <button onClick={() => {
-                        const order = [...unlockedDistricts].sort((a, b) => a - b);
-                        const next = order[(order.indexOf(currentDistrict) + 1) % order.length] ?? order[0];
-                        setDistrict(next);
-                      }}
-                        aria-label="Switch district"
-                        style={{ background: '#1e293b', border: '1px solid #6366f1', color: '#fff', borderRadius: 10, minWidth: 44, minHeight: 44, cursor: 'pointer', fontSize: 16 }}>
-                        ⇄
-                      </button>
-                    )}
-                    <div style={{ minWidth: 0 }}>
-                      <h3 style={{ margin: 0, color: '#fff', fontSize: 16 }}>{dist.name}</h3>
-                      <div style={{ fontSize: 11, color: '#94a3b8' }}>{dist.subtitle}</div>
-                    </div>
-                  </div>
-                  <button onClick={closeModal} aria-label="Close build menu" style={{ background: '#1e293b', border: 'none', color: '#fff', borderRadius: '50%', minWidth: '44px', minHeight: '44px', cursor: 'pointer' }}>✕</button>
-                </div>
-                {nextDef && prevDef && (
-                  <div style={{ background: prevComplete ? '#3b2f0b' : '#1e293b', border: '1px solid #f2c65a60',
-                    padding: '10px 12px', borderRadius: '12px', display: 'flex',
-                    justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: '12px', color: '#ffe38d', fontWeight: 700 }}>
-                      {prevComplete ? nextDef.name + ' is ready!' : 'Max ' + prevDef.name + ' to Tier 4 to unlock ' + nextDef.name}
-                    </div>
-                    {prevComplete && (
-                      <button onClick={unlockDistrict} className="bb-control"
-                        style={{ background: '#f59e0b', color: '#422006', border: 'none', padding: '8px 12px',
-                          borderRadius: '10px', fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                        UNLOCK
-                      </button>
-                    )}
-                  </div>
-                )}
-                {dist.buildings.map((b, idx) => {
-                  const { coins: cost, materials: mats } = buildingUpgradeCost(b);
-                  const canAfford = coins >= cost && materials >= mats && b.tier < 4 && !b.damaged;
-                  return (
-                    <div key={b.id} style={{ background: b.damaged ? '#450a0a' : '#1e293b', padding: '10px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '20px' }}>{b.icon}</span>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>{b.name}</div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>Tier {b.tier}/4 • 🪙 {cost.toLocaleString()} · 🧱 {mats}</div>
-                        </div>
-                      </div>
-                      {b.damaged ? (
-                        <button onClick={() => repairBuilding(idx)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer' }}>REPAIR</button>
-                      ) : b.tier >= 4 ? (
-                        <span style={{ color: '#34d399', fontWeight: 800, fontSize: '11px' }}>MAXED</span>
-                      ) : (
-                        <button onClick={() => upgradeBuilding(idx)} disabled={!canAfford} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', opacity: canAfford ? 1 : 0.5 }}>UPGRADE</button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <IslandView onClose={closeModal} />
           )}
 
           {/* Quest board: rotating timed challenges and permanent milestones */}
