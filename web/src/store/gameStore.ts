@@ -25,6 +25,28 @@ export interface District {
   buildings: Building[];
 }
 
+/** Preserved from newer main: daily rewards available once per day. */
+export interface StreakReward {
+  day: number;
+  label: string;
+  icon: string;
+  desc: string;
+  coins: number;
+  energy: number;
+  mats: number;
+  shield?: number;
+}
+
+export const STREAK_REWARDS: StreakReward[] = [
+  { day: 1, label: 'Day 1', icon: '🪙', desc: '+10k Coins & +10⚡', coins: 10000, energy: 10, mats: 0 },
+  { day: 2, label: 'Day 2', icon: '⚡', desc: '+20k Coins & +15⚡', coins: 20000, energy: 15, mats: 0 },
+  { day: 3, label: 'Day 3', icon: '⭐', desc: '+35k Coins & 1.5X Bet', coins: 35000, energy: 20, mats: 4 },
+  { day: 4, label: 'Day 4', icon: '🧱', desc: '+50k Coins & +10 Bricks', coins: 50000, energy: 20, mats: 10 },
+  { day: 5, label: 'Day 5', icon: '🛡️', desc: '+75k Coins & +1 Shield', coins: 75000, energy: 25, mats: 5, shield: 1 },
+  { day: 6, label: 'Day 6', icon: '💎', desc: '+100k Coins & +30⚡', coins: 100000, energy: 30, mats: 12 },
+  { day: 7, label: 'Day 7', icon: '👑', desc: 'EPIC CHEST! +250k Coins!', coins: 250000, energy: 50, mats: 25, shield: 1 }
+];
+
 export interface RollResult {
   id: number;
   die1: number;
@@ -60,7 +82,12 @@ export interface GameState {
   currentDistrict: number;
   districts: District[];
   toast: string | null;
-  activeModal: 'upgrade' | 'encounter' | 'reward' | null;
+  activeModal: 'upgrade' | 'streak' | 'encounter' | 'reward' | null;
+  dailyStreak: number;
+  lastLoginDate: string;
+  streakClaimedToday: boolean;
+  cameraMode: 'OVERVIEW' | 'DICE_FOCUS' | 'TOKEN_FOLLOW';
+  dicePopup: { d1: number; d2: number; total: number; isDoubles: boolean } | null;
   pendingEncounter: Encounter | null;
   pendingReward: RewardNotice | null;
   lastRoll: RollResult | null;
@@ -87,7 +114,8 @@ export interface GameState {
   resolveEncounter: (choiceIndex: number) => void;
   upgradeBuilding: (plotIdx: number) => void;
   repairBuilding: (plotIdx: number) => void;
-  openModal: (modal: 'upgrade') => void;
+  openModal: (modal: 'upgrade' | 'streak') => void;
+  claimStreakReward: () => void;
   closeModal: () => void;
   showToast: (msg: string) => void;
 }
@@ -148,6 +176,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   districts: initialDistricts,
   toast: null,
   activeModal: null,
+  dailyStreak: 1,
+  lastLoginDate: new Date().toISOString().slice(0, 10),
+  streakClaimedToday: false,
+  cameraMode: 'OVERVIEW',
+  dicePopup: null,
   pendingEncounter: null,
   pendingReward: null,
   lastRoll: null,
@@ -202,6 +235,23 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   stopAutoRoll: () => endAutoRoll(get, set),
 
+  claimStreakReward: () => {
+    const s = get();
+    if (s.streakClaimedToday || s.isRolling || s.autoRolling) return;
+    const reward = STREAK_REWARDS[s.dailyStreak - 1];
+    if (!reward) return;
+    set({
+      coins: s.coins + reward.coins,
+      materials: s.materials + reward.mats,
+      energy: Math.min(s.maxEnergy, s.energy + reward.energy),
+      shields: Math.min(s.maxShields, s.shields + (reward.shield ?? 0)),
+      streakClaimedToday: true,
+      activeModal: null,
+      toast: '🔥 DAY ' + s.dailyStreak + ' CLAIMED! +' + reward.coins.toLocaleString() + ' 🪙'
+    });
+  },
+
+
   openModal: modal => {
     get().stopAutoRoll();
     set({ activeModal: modal });
@@ -252,6 +302,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       isRolling: true,
       energy: state.energy - cost,
       lastRoll: roll,
+      cameraMode: 'DICE_FOCUS',
+      dicePopup: null,
       toast: null,
       ...(fromAuto ? {
         autoRollsRemaining: state.autoRollsRemaining - 1,
@@ -265,6 +317,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // Move visually one board tile per step, then resolve the landing once.
     setTimeout(() => {
+      set({ cameraMode: 'TOKEN_FOLLOW', dicePopup: { d1: die1, d2: die2, total: roll.total, isDoubles: roll.doubles } });
       function animateStep(stepIndex: number): void {
         if (stepIndex < path.length) {
           set({ currentTile: path[stepIndex] });
@@ -310,6 +363,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         const keepAutoBatch = autoContinues || awaitingAcknowledgement;
         set({
           isRolling: false,
+          cameraMode: 'OVERVIEW',
+          dicePopup: null,
           coins: newCoins,
           materials: latest.materials + materialsGain,
           energy: Math.min(latest.maxEnergy, latest.energy + landing.energy + bonusEnergy),
