@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run test:rules && tsc && vite build",
+    "build": "npm run test:rules && npm run test:save && tsc && vite build",
     "preview": "vite preview",
     "cap:sync": "cap sync android",
     "test:rules": "node --test tests/rollRules.test.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:save": "node --test tests/saveState.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
