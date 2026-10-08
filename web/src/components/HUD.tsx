@@ -1,174 +1,180 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { allowedMultipliers } from '../game/rollRules';
 import { useGameStore } from '../store/gameStore';
 import './GameFeel.css';
 
-const chip: React.CSSProperties = {
-  borderRadius: 13, background: 'rgba(15,23,42,.91)', padding: '8px 10px',
-  border: '1px solid rgba(255,255,255,.18)', fontWeight: 900,
-  fontSize: 12, whiteSpace: 'nowrap'
-};
-
-const smallButton: React.CSSProperties = {
-  background: '#1e293b', color: '#e2e8f0',
-  padding: '7px 10px', fontSize: 12
-};
-
 export function HUD() {
   const {
-    coins, materials, energy, maxEnergy, shields, maxShields, multiplier, isRolling,
-    isTurbo, toast, lastRoll, totalRolls, momentum, autoRolling, autoBatchSize,
+    coins, materials, energy, maxEnergy, shields, maxShields, multiplier,
+    isRolling, isTurbo, toast, lastRoll, momentum, autoRolling, autoBatchSize,
     autoRollsRemaining, autoEnergyBudget, autoEnergySpent, autoOkay,
-    autoAdjustMultiplier, rollDice, cycleMultiplier, toggleTurbo, openModal,
-    cycleAutoBatch, startAutoRoll, stopAutoRoll, toggleAutoOkay, toggleAutoAdjust
+    autoAdjustMultiplier, districts, currentDistrict, rollDice, cycleMultiplier,
+    toggleTurbo, openModal, startAutoRoll, stopAutoRoll, setAutoBatchSize,
+    toggleAutoOkay, toggleAutoAdjust
   } = useGameStore();
 
-  const highestAffordable = allowedMultipliers(energy).slice(-1)[0] ?? 0;
+  const [showOptions, setShowOptions] = useState(false);
+  const [showRollSummary, setShowRollSummary] = useState(false);
+  useEffect(() => {
+    if (!lastRoll) return;
+    setShowRollSummary(true);
+    const timer = window.setTimeout(() => setShowRollSummary(false), 2400);
+    return () => window.clearTimeout(timer);
+  }, [lastRoll?.id]);
+
+  const district = districts[currentDistrict];
+  const completed = district?.buildings.reduce((sum, b) => sum + b.tier, 0) ?? 0;
+  const total = (district?.buildings.length ?? 0) * 4;
+  const progress = total > 0 ? (completed / total) * 100 : 0;
   const canRoll = !isRolling && !autoRolling && energy >= multiplier;
-  const automaticSpendLeft = Math.max(0, autoEnergyBudget - autoEnergySpent);
+  const possibleMultiplier = allowedMultipliers(energy).slice(-1)[0] ?? 0;
+  const remainingBudget = Math.max(0, autoEnergyBudget - autoEnergySpent);
 
   return (
     <div className="bb-hud">
-      <div style={{ pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: 5, flexWrap: 'wrap'
-        }}>
-          <div key={'coins-' + coins} className="bb-resource" data-flash="true" style={{ ...chip, color: '#fbbf24' }}>
-            🪙 {coins.toLocaleString()}
+      <header className="bb-top" aria-label="Player resources and district progress">
+        <div className="bb-resource-row">
+          <div key={'coins-' + coins} data-flash="true" className="bb-resource"
+            style={{ color: '#ffe07f' }} aria-label={coins.toLocaleString() + ' coins'}>
+            <span aria-hidden="true">🪙</span> {coins.toLocaleString()}
           </div>
-          <div key={'blocks-' + materials} className="bb-resource" data-flash="true" style={{ ...chip, color: '#f472b6' }}>
-            🧱 {materials}
+          <div key={'materials-' + materials} data-flash="true" className="bb-resource"
+            style={{ color: '#ffc0d9' }} aria-label={materials + ' building blocks'}>
+            <span aria-hidden="true">🧱</span> {materials.toLocaleString()}
           </div>
-          <div className="bb-resource" style={{ ...chip, color: '#67e8f9' }} aria-label={shields + ' out of ' + maxShields + ' shields'}>
-            {Array.from({ length: maxShields }, (_, i) =>
-              <span key={i} style={{ opacity: i < shields ? 1 : 0.3 }}>🛡️</span>
-            )}
+          <div className="bb-resource" style={{ color: '#c8efff' }}
+            aria-label={shields + ' of ' + maxShields + ' shields'}>
+            {Array.from({ length: maxShields }, (_, i) => (
+              <span key={i} aria-hidden="true" style={{ opacity: i < shields ? 1 : 0.28 }}>
+                🛡️
+              </span>
+            ))}
           </div>
-          <button className="bb-control" onClick={() => openModal('upgrade')}
-            style={{ padding: '8px 12px', background: '#059669', color: '#fff', borderColor: '#34d399' }}>
-            🔨 BUILD
-          </button>
+          <button className="bb-control bb-build" onClick={() => openModal('upgrade')}
+            title="Upgrade or repair buildings in your district">🔨 BUILD</button>
         </div>
 
-        {toast && (
-          <div key={toast + totalRolls} role="status" aria-live="polite" className="bb-toast"
-            style={{ alignSelf: 'center', maxWidth: '94%', background: 'rgba(49,46,129,.96)',
-              border: '1.5px solid #fbbf24', borderRadius: 13, padding: '9px 13px',
-              textAlign: 'center', color: '#fde68a', fontWeight: 850, fontSize: 12,
-              boxShadow: '0 8px 24px rgba(0,0,0,.28)' }}>
-            {toast}
+        <div className="bb-district">
+          <div className="bb-district-row">
+            <div style={{ minWidth: 0 }}>
+              <div className="bb-district-caption">BLOCKBOUND · DISTRICT {currentDistrict + 1}</div>
+              <div className="bb-district-title">🏡 {district?.name ?? 'My District'}</div>
+            </div>
+            <span className="bb-pill" aria-label={'Building progress ' + completed + ' out of ' + total}>
+              ⭐ {completed}/{total}
+            </span>
           </div>
-        )}
-      </div>
+          <div className="bb-progress-track" style={{ marginTop: 8 }}
+            role="progressbar" aria-label="District building progress" aria-valuenow={completed}
+            aria-valuemin={0} aria-valuemax={total}>
+            <div className="bb-progress-fill" style={{ width: progress + '%' }} />
+          </div>
+        </div>
+        {toast && <div className="bb-toast" key={toast} role="status" aria-live="polite">{toast}</div>}
+      </header>
 
-      <div style={{ pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {lastRoll && (
-          <div key={'roll-' + lastRoll.id} className="bb-toast" aria-live="polite"
-            style={{ alignSelf: 'center', padding: '6px 14px', borderRadius: 20,
-              background: 'rgba(30,41,59,.92)', border: '1px solid #fbbf24',
-              fontWeight: 900, color: '#fff', fontSize: 13 }}>
-            🎲 {lastRoll.die1} + {lastRoll.die2} = {lastRoll.total}
-            {lastRoll.doubles ? ' · ✨ DOUBLES!' : ''} <span style={{ color: '#fbbf24' }}>×{lastRoll.multiplier}</span>
-          </div>
-        )}
+      {showRollSummary && lastRoll && (
+        <div className="bb-roll-chip" aria-live="polite" role="status">
+          <span aria-hidden="true">🎲</span>
+          {lastRoll.die1} + {lastRoll.die2} = {lastRoll.total}
+          <span style={{ color: '#fce787' }}>×{lastRoll.multiplier}</span>
+          {lastRoll.doubles && <span style={{ color: '#86efac' }}>✦ DOUBLES!</span>}
+        </div>
+      )}
 
-        <div style={{
-          display: 'flex', gap: 9, alignItems: 'center', padding: '6px 11px',
-          background: 'rgba(15,23,42,.88)', borderRadius: 14,
-          border: '1px solid rgba(255,255,255,.10)'
-        }}>
-          <span className="bb-mini" style={{ whiteSpace: 'nowrap' }}>🏗️ BUILD MOMENTUM</span>
-          <div role="progressbar" aria-label="Rolls until 3 bonus construction blocks"
-            aria-valuenow={momentum} aria-valuemin={0} aria-valuemax={5}
-            style={{ height: 7, flex: 1, background: '#334155', borderRadius: 8, overflow: 'hidden' }}>
-            <div style={{ width: (momentum / 5 * 100) + '%', height: '100%',
-              background: 'linear-gradient(90deg, #10b981, #fbbf24)',
-              transition: 'width .25s ease' }} />
+      {showOptions && (
+        <div className="bb-options" role="group" aria-label="Automatic rolling preferences"
+          style={{
+            position: 'absolute',
+            bottom: 'calc(max(12px, env(safe-area-inset-bottom)) + 202px)',
+            left: 'max(12px, env(safe-area-inset-left))',
+            right: 'max(12px, env(safe-area-inset-right))',
+            background: 'rgba(23, 35, 67, .98)', border: '1px solid #94a3b8a3',
+            borderRadius: 15, padding: 12, boxShadow: '0 12px 34px #0008',
+            pointerEvents: 'auto', zIndex: 7
+          }}>
+          <span className="bb-prompt" style={{ width: '100%' }}>AUTOMATIC ROLL SETTINGS</span>
+          <button className="bb-control bb-secondary-action" onClick={toggleAutoOkay}
+            aria-pressed={autoOkay}>
+            {autoOkay ? '✓' : '○'} Auto-acknowledge rewards
+          </button>
+          <button className="bb-control bb-secondary-action" onClick={toggleAutoAdjust}
+            aria-pressed={autoAdjustMultiplier} disabled={autoRolling || isRolling}>
+            {autoAdjustMultiplier ? '✓' : '○'} Lower multiplier if needed
+          </button>
+          <span className="bb-auto-note">Auto-play never chooses raid/heist targets.</span>
+        </div>
+      )}
+
+      <footer className="bb-controls" aria-label="Dice rolling controls">
+        <div className="bb-activity">
+          <div className="bb-energy-summary">
+            <div className="bb-energy-title">⚡ {energy}<span style={{ color: '#a4c5d7' }}>/{maxEnergy}</span> DICE</div>
+            <div className="bb-energy-track" role="progressbar" aria-label="Dice energy"
+              aria-valuenow={energy} aria-valuemin={0} aria-valuemax={maxEnergy}>
+              <div className="bb-energy-fill" style={{ width: (maxEnergy ? energy / maxEnergy * 100 : 0) + '%' }} />
+            </div>
           </div>
-          <span className="bb-mini">{momentum}/5 · +3 🧱</span>
+          <div className="bb-momentum">
+            <div className="bb-momentum-label">
+              <span>🏗️ BUILD STREAK</span><span>{momentum}/5 · +3 🧱</span>
+            </div>
+            <div className="bb-progress-track" role="progressbar"
+              aria-label="Rolls until three bonus building blocks"
+              aria-valuemin={0} aria-valuemax={5} aria-valuenow={momentum}>
+              <div className="bb-progress-fill" style={{ width: (momentum / 5 * 100) + '%' }} />
+            </div>
+          </div>
         </div>
 
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '0 3px', color: '#fde68a', fontSize: 12, fontWeight: 850
-        }}>
-          <span>⚡ ENERGY {energy}/{maxEnergy}</span>
-          <span style={{ color: autoRolling ? '#86efac' : '#cbd5e1', fontSize: 11 }}>
-            {autoRolling
-              ? 'AUTO: ' + autoRollsRemaining + ' LEFT · ⚡ ' + automaticSpendLeft + ' MAX'
-              : 'MAX AFFORDABLE ×' + highestAffordable}
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
-          <button className="bb-control" onClick={cycleMultiplier} disabled={autoRolling || isRolling}
-            aria-label={'Dice cost multiplier, currently ' + multiplier + '. Tap to cycle affordable multipliers'}
-            style={{ width: 64, minHeight: 62, background: '#1e1b4b', color: '#facc15',
-              border: '2px solid #fbbf24', display: 'flex', flexDirection: 'column',
-              justifyContent: 'center', alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: '#cbd5e1' }}>DICE</span>
-            <span style={{ fontSize: 20 }}>×{multiplier}</span>
+        <div className="bb-roll-row">
+          <button className="bb-control bb-multiplier"
+            disabled={isRolling || autoRolling}
+            onClick={cycleMultiplier}
+            aria-label={'Dice multiplier ' + multiplier + ', tap to change; maximum affordable ' + possibleMultiplier}
+            title="Cycle affordable dice multipliers">
+            <span style={{ display: 'block', fontSize: 9, color: '#d1c3ff', letterSpacing: '.07em' }}>DICE</span>
+            <span style={{ fontSize: 21, fontWeight: 950 }}>×{multiplier}</span>
           </button>
-
-          <button className={'bb-control' + (canRoll ? ' bb-roll-ready' : '')}
-            onClick={() => rollDice()} disabled={!canRoll}
-            style={{ flex: 1, minHeight: 64,
-              background: 'linear-gradient(135deg, #fb7185, #e11d48)',
-              color: '#fff', border: '1px solid #fda4af', fontSize: 22, fontWeight: 950 }}>
-            {isRolling ? '🎲 ROLLING…' : '🎲 ROLL'}
-            <span style={{ display: 'block', fontSize: 11, color: '#fef08a' }}>⚡ {multiplier} ENERGY</span>
+          <button className="bb-control bb-roll-button" onClick={() => rollDice()}
+            disabled={!canRoll} aria-label={'Roll two dice for ' + multiplier + ' energy'}>
+            <span>{isRolling ? 'ROLLING…' : '🎲 ROLL'}</span>
+            <span className="bb-micro" style={{ color: '#fff1c4', marginTop: 5 }}>⚡ {multiplier} ENERGY</span>
           </button>
-
-          <button className="bb-control" onClick={toggleTurbo} aria-pressed={isTurbo}
-            aria-label={isTurbo ? 'Turn quick rolls off' : 'Turn quick rolls on'}
-            style={{ width: 62, minHeight: 62, background: isTurbo ? '#064e3b' : '#1e1b4b',
-              color: isTurbo ? '#86efac' : '#cbd5e1', borderColor: isTurbo ? '#34d399' : '#64748b',
-              display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-            <span style={{ fontSize: 21 }}>⚡</span><span style={{ fontSize: 11 }}>FAST</span>
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', gap: 7 }}>
-          <button className="bb-control" onClick={cycleAutoBatch} disabled={autoRolling || isRolling}
-            aria-label={'Set auto-roll batch count, currently ' + autoBatchSize}
-            style={{ ...smallButton, flex: '0 0 72px' }}>
-            {autoBatchSize} ROLLS
-          </button>
-          <button className="bb-control"
+          <button className="bb-control bb-auto-main" data-running={autoRolling ? 'true' : 'false'}
             onClick={autoRolling ? stopAutoRoll : startAutoRoll}
             disabled={!autoRolling && (isRolling || energy < 1)}
             aria-pressed={autoRolling}
-            style={{ flex: 1, color: '#fff', background: autoRolling ? '#b91c1c' : '#4338ca',
-              borderColor: autoRolling ? '#fca5a5' : '#a5b4fc', fontSize: 14,
-              boxShadow: autoRolling ? '0 4px 15px rgba(239,68,68,.20)' : '0 4px 15px rgba(99,102,241,.25)' }}>
-            {autoRolling ? '■ STOP AUTO' : '▶ AUTO ROLL'}
-          </button>
-          <button className="bb-control" onClick={toggleAutoOkay} aria-pressed={autoOkay}
-            title="Automatically acknowledge ordinary rewards. Choices still pause."
-            style={{ ...smallButton, flex: '0 0 75px',
-              color: autoOkay ? '#86efac' : '#cbd5e1',
-              borderColor: autoOkay ? '#34d399' : '#64748b' }}>
-            {autoOkay ? '✓ AUTO OK' : 'AUTO OK'}
+            title={autoRolling ? 'Stop after the current roll' : 'Start a limited batch of automatic dice rolls'}>
+            <div style={{ fontSize: 18 }}>{autoRolling ? '■' : '▶'}</div>
+            <div style={{ fontSize: 11 }}>{autoRolling ? 'STOP' : 'AUTO'}</div>
           </button>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', gap: 8, fontSize: 10, color: '#cbd5e1', padding: '0 4px' }}>
-          <span>
-            {autoRolling
-              ? 'Up to ' + autoBatchSize + ' rolls; spending capped at ⚡ ' + autoEnergyBudget
-              : 'Auto stops at choices, budget or low energy'}
-          </span>
-          <button className="bb-control" onClick={toggleAutoAdjust}
-            disabled={autoRolling || isRolling} aria-pressed={autoAdjustMultiplier}
-            style={{ padding: '4px 9px', minHeight: 34,
-              background: 'rgba(30,41,59,.9)', color: autoAdjustMultiplier ? '#86efac' : '#cbd5e1',
-              whiteSpace: 'nowrap', fontSize: 10 }}>
-            {autoAdjustMultiplier ? '↘ ADAPT × ON' : 'ADAPT × OFF'}
+        <div className="bb-secondary-row">
+          <div className="bb-segmented" aria-label="Auto-roll batch size" role="group">
+            {([5, 10, 25] as const).map(count => (
+              <button key={count} className="bb-control bb-segment"
+                onClick={() => setAutoBatchSize(count)}
+                disabled={autoRolling || isRolling} aria-pressed={autoBatchSize === count}
+                title={'Auto roll up to ' + count + ' times'}>{count}×</button>
+            ))}
+          </div>
+          <button className="bb-control bb-secondary-action"
+            onClick={toggleTurbo} aria-pressed={isTurbo}
+            title="Faster dice and token movement">⚡ QUICK</button>
+          <button className="bb-control bb-secondary-action"
+            aria-expanded={showOptions} aria-controls="bb-auto-options"
+            onClick={() => setShowOptions(v => !v)}>
+            ⚙ AUTO OPTIONS
           </button>
         </div>
-      </div>
+        <div className="bb-auto-note" style={{ textAlign: 'center' }} aria-live="polite">
+          {autoRolling
+            ? 'AUTO: ' + autoRollsRemaining + ' remaining · ⚡ ' + remainingBudget + ' maximum to spend · pause at choices'
+            : 'Auto uses a limited batch and pauses at choices. No endless spending.'}
+        </div>
+      </footer>
     </div>
   );
 }
