@@ -1,0 +1,6 @@
+{
+  "name": "Blockbound",
+  "description": "Blockbound: Dice Districts - A 3D voxel board-building game. Roll animated dice, upgrade your voxel town, trigger raids, collect shields, and unlock new districts!",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Isometric 3D Voxel Dice & Tower emblem within 66dp zone (21 to 87) -->
+    
+    <!-- Top Face of Voxel Dice (Bright Gold) -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M54,26 L78,38 L54,50 L30,38 Z" />
+    
+    <!-- Top Face Pip Dots (Orange/Crimson) -->
+    <path
+        android:fillColor="#D97706"
+        android:pathData="M54,36 L57,37.5 L54,39 L51,37.5 Z M42,32 L45,33.5 L42,35 L39,33.5 Z M66,40 L69,41.5 L66,43 L63,41.5 Z" />
+
+    <!-- Left Face of Voxel Dice (Medium Amber / Castle Wall Bricks) -->
+    <path
+        android:fillColor="#D97706"
+        android:pathData="M30,38 L54,50 L54,76 L30,64 Z" />
+
+    <!-- Left Face Voxel Inset Detail / Pips -->
+    <path
+        android:fillColor="#B45309"
+        android:pathData="M36,46 L42,49 L42,55 L36,52 Z M44,60 L50,63 L50,69 L44,66 Z" />
+
+    <!-- Right Face of Voxel Dice (Deep Warm Amber) -->
+    <path
+        android:fillColor="#B45309"
+        android:pathData="M54,50 L78,38 L78,64 L54,76 Z" />
+
+    <!-- Right Face Voxel Detail / Pips -->
+    <path
+        android:fillColor="#92400E"
+        android:pathData="M60,49 L66,46 L66,52 L60,55 Z M68,63 L74,60 L74,66 L68,69 Z" />
+
+    <!-- Voxel Castle Turret Crown / Flag on top right -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M68,22 L76,26 L68,30 Z" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M68,22 L68,38" />
+
+    <!-- Sparkle / Star burst on bottom left (Voxel Gem) -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M24,68 L28,68 L29,64 L30,68 L34,68 L31,71 L32,75 L29,72 L26,75 L27,71 Z" />
+        
+    <!-- Golden Coin Accent on bottom right -->
+    <path
+        android:fillColor="#FDE047"
+        android:pathData="M78,70 L86,74 L86,80 L78,76 Z" />
+    <path
+        android:fillColor="#EAB308"
+        android:pathData="M74,72 L78,70 L78,76 L74,78 Z" />
+</vector>
