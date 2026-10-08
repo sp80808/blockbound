@@ -152,12 +152,12 @@ export function HUD() {
         </div>
 
         <div className="bb-secondary-row">
-          <div className="bb-segmented" aria-label="Auto-roll batch size" role="group">
+          <div className="bb-segmented" aria-label="Auto-roll batch size, number of rolls" title="Select how many rolls Auto will perform" role="group">
             {([5, 10, 25] as const).map(count => (
               <button key={count} className="bb-control bb-segment"
                 onClick={() => setAutoBatchSize(count)}
                 disabled={autoRolling || isRolling} aria-pressed={autoBatchSize === count}
-                title={'Auto roll up to ' + count + ' times'}>{count}×</button>
+                title={'Auto roll up to ' + count + ' times'}>{count}</button>
             ))}
           </div>
           <button className="bb-control bb-secondary-action"
