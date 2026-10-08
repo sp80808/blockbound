@@ -24,7 +24,7 @@ If the page is interrupted during step 5, reload restores the **finished turn** 
 - No 3D mesh objects, React UI components, timeouts, transient camera state, \`visualTile\`, or auto-roll sessions are persisted.
 - Buildings are merged by **known district/building IDs** from the current code so stray or renamed assets do not overwrite trusted game content.
 - Values are validated: numeric bounds, board tile 0–31, tier 0–4, known multiplier values, shield and dice-energy caps, known save version, size limit, last roll dice totals, and valid encounter choices.
-- Corrupt/unknown-version storage is ignored and game uses safe defaults; it is **not deleted** silently.
+- Corrupt/unknown-version storage is ignored for gameplay; before defaults are saved, the original string is copied to `blockbound:web:save:invalid-backup` (never automatically overwritten). If that backup cannot be written, the storage adapter refuses to overwrite the original. Recovery/export tooling is a follow-up.
 
 The schema and parsing live in \`web/src/game/gameSave.ts\`; state integration is in \`web/src/store/gameStore.ts\`.
 
