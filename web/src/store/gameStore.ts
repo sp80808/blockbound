@@ -80,6 +80,7 @@ export interface GameState {
   startAutoRoll: () => void;
   stopAutoRoll: () => void;
   cycleAutoBatch: () => void;
+  setAutoBatchSize: (count: 5 | 10 | 25) => void;
   toggleAutoOkay: () => void;
   toggleAutoAdjust: () => void;
   acknowledgeReward: () => void;
@@ -170,6 +171,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   cycleAutoBatch: () => {
     if (get().autoRolling) return;
     set(state => ({ autoBatchSize: state.autoBatchSize === 5 ? 10 : state.autoBatchSize === 10 ? 25 : 5 }));
+  },
+  setAutoBatchSize: count => {
+    if (get().autoRolling || get().isRolling) return;
+    set({ autoBatchSize: count });
   },
   toggleAutoOkay: () => set(state => ({ autoOkay: !state.autoOkay })),
   toggleAutoAdjust: () => {
