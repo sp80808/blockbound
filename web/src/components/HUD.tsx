@@ -73,6 +73,11 @@ export function HUD() {
     if (autoRolling) stopAutoRoll();
     else if (!isRolling && energy >= multiplier) rollDice();
   };
+  const interruptAutoForOtherTouch = (event: PointerEvent<HTMLDivElement>) => {
+    if (!useGameStore.getState().autoRolling) return;
+    const target = event.target;
+    if (target instanceof Element && !target.closest('[data-roll-trigger]')) stopAutoRoll();
+  };
   const stopAutoForOtherAction = (event: MouseEvent<HTMLDivElement>) => {
     if (!useGameStore.getState().autoRolling) return;
     const target = event.target;
@@ -90,7 +95,7 @@ export function HUD() {
   const remainingBudget = Math.max(0, autoEnergyBudget - autoEnergySpent);
 
   return (
-    <div className="bb-hud" onClickCapture={stopAutoForOtherAction}>
+    <div className="bb-hud" onPointerDownCapture={interruptAutoForOtherTouch} onClickCapture={stopAutoForOtherAction}>
       <header className="bb-top" aria-label="Player resources and district progress">
         <div className="bb-resource-row">
           <div className="bb-resource" key={'coins-' + coins} data-flash="true"
