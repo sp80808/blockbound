@@ -7,6 +7,7 @@ import {
   tileReward,
   type EncounterKind
 } from '../game/rollRules';
+import { readProgress, writeProgress, type ProgressData } from '../game/saveState';
 
 export interface Building {
   id: string;
@@ -161,35 +162,47 @@ const initialDistricts: District[] = [
   }
 ];
 
+/** Browser access may be blocked in private modes and is unavailable in non-DOM previews. */
+function browserStorage(): Storage | undefined {
+  try { return typeof window === 'undefined' ? undefined : window.localStorage; }
+  catch { return undefined; }
+}
+
+// Recover only a complete settled checkpoint. An in-flight dice animation has
+// no durable payout, so refreshing that animation returns to the last safe state.
+const initialSave = readProgress(browserStorage());
+const restored = initialSave?.data;
+let energyClock = initialSave?.lastEnergyAt ?? Date.now();
+
 export const useGameStore = create<GameState>((set, get) => ({
-  coins: 35000,
-  materials: 16,
-  energy: 35,
-  maxEnergy: 50,
-  shields: 2,
-  maxShields: 3,
-  currentTile: 0,
-  multiplier: 1,
+  coins: restored?.coins ?? 35000,
+  materials: restored?.materials ?? 16,
+  energy: restored?.energy ?? 35,
+  maxEnergy: restored?.maxEnergy ?? 50,
+  shields: restored?.shields ?? 2,
+  maxShields: restored?.maxShields ?? 3,
+  currentTile: restored?.currentTile ?? 0,
+  multiplier: restored?.multiplier ?? 1,
   isRolling: false,
-  isTurbo: false,
-  currentDistrict: 0,
-  districts: initialDistricts,
+  isTurbo: restored?.isTurbo ?? false,
+  currentDistrict: restored?.currentDistrict ?? 0,
+  districts: restored?.districts ?? initialDistricts,
   toast: null,
-  activeModal: null,
-  dailyStreak: 1,
-  lastLoginDate: new Date().toISOString().slice(0, 10),
-  streakClaimedToday: false,
+  activeModal: restored?.pendingEncounter ? 'encounter' : restored?.pendingReward ? 'reward' : null,
+  dailyStreak: restored?.dailyStreak ?? 1,
+  lastLoginDate: restored?.lastLoginDate ?? new Date().toISOString().slice(0, 10),
+  streakClaimedToday: restored?.streakClaimedToday ?? false,
   cameraMode: 'OVERVIEW',
   dicePopup: null,
-  pendingEncounter: null,
-  pendingReward: null,
+  pendingEncounter: restored?.pendingEncounter ?? null,
+  pendingReward: restored?.pendingReward ?? null,
   lastRoll: null,
-  totalRolls: 0,
-  momentum: 0,
+  totalRolls: restored?.totalRolls ?? 0,
+  momentum: restored?.momentum ?? 0,
   autoRolling: false,
-  autoOkay: true,
-  autoAdjustMultiplier: true,
-  autoBatchSize: 5,
+  autoOkay: restored?.autoOkay ?? true,
+  autoAdjustMultiplier: restored?.autoAdjustMultiplier ?? true,
+  autoBatchSize: restored?.autoBatchSize ?? 5,
   autoRollsRemaining: 0,
   autoEnergyBudget: 0,
   autoEnergySpent: 0,
@@ -246,6 +259,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       energy: Math.min(s.maxEnergy, s.energy + reward.energy),
       shields: Math.min(s.maxShields, s.shields + (reward.shield ?? 0)),
       streakClaimedToday: true,
+      lastLoginDate: new Date().toISOString().slice(0, 10),
       activeModal: null,
       toast: '🔥 DAY ' + s.dailyStreak + ' CLAIMED! +' + reward.coins.toLocaleString() + ' 🪙'
     });
@@ -445,3 +459,36 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   }
 }));
+
+
+// Only stable, completed game states are saved. We deliberately never write
+// isRolling, autoRolling, animation timers, transient camera state or toasts.
+// Reload during a roll restores the previous settled checkpoint rather than
+// replaying a half-finished animation or granting its prize twice.
+function progressSnapshot(state: GameState): ProgressData {
+  return {
+    coins: state.coins, materials: state.materials,
+    energy: state.energy, maxEnergy: state.maxEnergy,
+    shields: state.shields, maxShields: state.maxShields,
+    currentTile: state.currentTile, multiplier: state.multiplier,
+    currentDistrict: state.currentDistrict, districts: state.districts,
+    dailyStreak: state.dailyStreak, lastLoginDate: state.lastLoginDate,
+    streakClaimedToday: state.streakClaimedToday,
+    totalRolls: state.totalRolls, momentum: state.momentum,
+    pendingEncounter: state.pendingEncounter, pendingReward: state.pendingReward,
+    autoOkay: state.autoOkay, autoAdjustMultiplier: state.autoAdjustMultiplier,
+    autoBatchSize: state.autoBatchSize, isTurbo: state.isTurbo
+  };
+}
+
+let previousEnergy = useGameStore.getState().energy;
+useGameStore.subscribe(state => {
+  // Track the actual moment energy changed rather than resetting the
+  // regeneration clock on harmless UI changes such as opening a dialog.
+  if (previousEnergy !== state.energy) {
+    energyClock = Date.now();
+    previousEnergy = state.energy;
+  }
+  if (state.isRolling) return;
+  writeProgress(browserStorage(), progressSnapshot(state), energyClock);
+});
