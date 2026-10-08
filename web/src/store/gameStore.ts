@@ -108,6 +108,7 @@ export interface GameState {
   autoEnergySpent: number;
   energyUpdatedAt: number;
   hydrated: boolean;
+  saveError: boolean;
   hydrateGame: () => void;
   tickRecovery: (now?: number) => void;
 
@@ -224,6 +225,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   autoEnergySpent: 0,
   energyUpdatedAt: Date.now(),
   hydrated: false,
+  saveError: false,
 
   hydrateGame: () => {
     if (get().hydrated) return;
@@ -521,7 +523,11 @@ useGameStore.subscribe(state => {
   const progress = progressOf(state);
   const encoded = JSON.stringify(progress);
   if (encoded !== lastSave) {
-    lastSave = encoded;
-    saveToStorage(progress);
+    if (saveToStorage(progress)) {
+      lastSave = encoded;
+      if (state.saveError) useGameStore.setState({ saveError: false });
+    } else if (!state.saveError) {
+      useGameStore.setState({ saveError: true });
+    }
   }
 });
