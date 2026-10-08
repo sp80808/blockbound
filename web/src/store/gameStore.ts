@@ -222,8 +222,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (fromAuto && (!state.autoRolling || state.autoRollsRemaining <= 0)) return;
     if (!fromAuto && state.autoRolling) return;
 
+    const availableBudget = fromAuto ? Math.min(state.energy, state.autoEnergyBudget - state.autoEnergySpent) : state.energy;
     const cost = fromAuto
-      ? affordableAutoMultiplier(state.multiplier, state.energy, state.autoAdjustMultiplier)
+      ? affordableAutoMultiplier(state.multiplier, availableBudget, state.autoAdjustMultiplier)
       : (state.energy >= state.multiplier ? state.multiplier : null);
     if (cost === null || (fromAuto && state.autoEnergySpent + cost > state.autoEnergyBudget)) {
       if (fromAuto) get().stopAutoRoll();
@@ -299,7 +300,9 @@ export const useGameStore = create<GameState>((set, get) => ({
           ? { title: landing.label, detail: message }
           : null;
         const remaining = latest.autoRollsRemaining;
+        const awaitingAcknowledgement = latest.autoRolling && remaining > 0 && !!rewardNotice;
         const autoContinues = latest.autoRolling && remaining > 0 && !encounter && !rewardNotice;
+        const keepAutoBatch = autoContinues || awaitingAcknowledgement;
         set({
           isRolling: false,
           coins: newCoins,
@@ -308,13 +311,14 @@ export const useGameStore = create<GameState>((set, get) => ({
           shields: Math.min(latest.maxShields, latest.shields + landing.shields),
           totalRolls: newTotal,
           momentum: newTotal % 5,
-          toast: message,
+          toast: null,
           pendingEncounter: encounter,
           pendingReward: rewardNotice,
           activeModal: encounter ? 'encounter' : rewardNotice ? 'reward' : null,
-          autoRolling: autoContinues,
-          ...(autoContinues ? {} : { autoRollsRemaining: 0 })
+          autoRolling: keepAutoBatch,
+          ...(keepAutoBatch ? {} : { autoRollsRemaining: 0 })
         });
+        get().showToast(message);
         if (autoContinues) queueAutoRoll(get, latest.isTurbo ? 230 : 600);
       }
       animateStep(0);
@@ -324,8 +328,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   acknowledgeReward: () => {
     if (!get().pendingReward) return;
     set({ pendingReward: null, activeModal: null });
-    // Auto-OK is off: the player opted to acknowledge each step.
-    // The next auto batch is intentionally not resumed without a fresh tap.
+    // Auto-OK is off: wait for explicit acknowledgement before each new roll.
+    if (get().autoRolling && get().autoRollsRemaining > 0) queueAutoRoll(get, 330);
   },
 
   resolveEncounter: choiceIndex => {
@@ -337,9 +341,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       pendingEncounter: null,
       activeModal: null,
       coins: current.coins + option.coins,
-      toast: (event.kind === 'raid' ? '⚔️ Raid success' : '🗝️ Vault opened') +
-        ' · +' + option.coins.toLocaleString() + ' 🪙'
+      toast: null
     });
+    get().showToast((event.kind === 'raid' ? '⚔️ Raid success' : '🗝️ Vault opened') +
+      ' · +' + option.coins.toLocaleString() + ' 🪙');
   },
 
   upgradeBuilding: plotIdx => {
