@@ -12,10 +12,19 @@ export default function App() {
     upgradeBuilding, repairBuilding
   } = useGameStore();
 
+  // Restore verified local progress before the player can start a new roll.
+  useEffect(() => {
+    useGameStore.getState().hydrateGame();
+    useGameStore.getState().tickRecovery();
+    const regenTimer = window.setInterval(() => useGameStore.getState().tickRecovery(), 1000);
+    return () => window.clearInterval(regenTimer);
+  }, []);
+
   // No unattended dice spending in background tabs or after switching apps.
   useEffect(() => {
     const stopWhenHidden = () => {
       if (document.hidden) useGameStore.getState().stopAutoRoll();
+      else useGameStore.getState().tickRecovery();
     };
     const stopOnPageExit = () => useGameStore.getState().stopAutoRoll();
     document.addEventListener('visibilitychange', stopWhenHidden);
