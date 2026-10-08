@@ -83,7 +83,7 @@ export function HUD() {
       )}
 
       {showOptions && (
-        <div className="bb-options" role="group" aria-label="Automatic rolling preferences"
+        <div id="bb-auto-options" className="bb-options" role="group" aria-label="Automatic rolling preferences"
           style={{
             position: 'absolute',
             bottom: 'calc(max(12px, env(safe-area-inset-bottom)) + 202px)',
