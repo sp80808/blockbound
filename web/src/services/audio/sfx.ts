@@ -139,3 +139,15 @@ export function playFanfare(): void {
   });
   buzz(35);
 }
+
+/** Tactile per-tile hop sound with gentle rising pitch progression across consecutive steps. */
+export function playHop(stepRatio = 0): void {
+  const baseFreq = 260 + Math.min(180, stepRatio * 180);
+  blip('hop', baseFreq, 0.065, 'triangle', 0.09, 0, baseFreq * 1.35);
+}
+
+/** Subtle tactile thud when landing firmly on a diorama tile. */
+export function playTileLand(): void {
+  blip('tile-land', 130, 0.05, 'sine', 0.07, 0, 70);
+}
+

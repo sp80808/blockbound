@@ -154,6 +154,8 @@ export interface GameState {
   celebration: { kind: 'jackpot' | 'doubles3' | 'milestone' | 'unlock'; key: number } | null;
   buildPulse: { plot: number; tier: number; key: number } | null;
   landingPulse: { tile: number; key: number } | null;
+  /** Active step-by-step hop event driving tactile 4-phase locomotion. */
+  hopStep: { step: number; total: number; from: number; to: number; key: number } | null;
   autoRolling: boolean;
   autoOkay: boolean;
   autoAdjustMultiplier: boolean;
@@ -345,6 +347,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   celebration: null,
   buildPulse: null,
   landingPulse: null,
+  hopStep: null,
   autoRolling: false,
   autoOkay: true,
   autoAdjustMultiplier: true,
@@ -617,7 +620,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       isRolling: true, isDiceAnimating: true, lastRoll: roll,
       cameraMode: 'DICE_FOCUS', dicePopup: null, toast: null,
-      celebration, landingPulse: null, buildPulse: null,
+      celebration, landingPulse: null, buildPulse: null, hopStep: null,
       currentTile: destination, visualTile: s.currentTile,
       coins: s.coins + coinGain,
       materials: s.materials + materialGain,
@@ -646,7 +649,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       function animateStep(index: number): void {
         if (get().lastRoll?.id !== id) return;
         if (index < path.length) {
-          set({ visualTile: path[index] });
+          const originTile = index === 0 ? s.currentTile : path[index - 1];
+          const targetTile = path[index];
+          set({
+            visualTile: targetTile,
+            hopStep: {
+              step: index + 1,
+              total: path.length,
+              from: originTile,
+              to: targetTile,
+              key: id * 100 + index
+            }
+          });
           setTimeout(() => animateStep(index + 1), stepDelay);
           return;
         }
@@ -655,6 +669,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         set({
           isRolling: false, isDiceAnimating: false, visualTile: destination,
           cameraMode: 'OVERVIEW', dicePopup: null,
+          hopStep: null,
           landingPulse: { tile: destination, key: id },
           activeModal: null,
           celebration: null,

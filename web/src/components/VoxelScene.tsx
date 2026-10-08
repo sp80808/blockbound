@@ -4,6 +4,7 @@ import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../store/gameStore';
 import { BOARD_TILES, type TileKind } from '../game/rollRules';
+import { playHop, playTileLand, buzz } from '../services/audio/sfx';
 
 // Compute 32 perimeter coordinates
 const boardStep = 2.4;
@@ -333,6 +334,120 @@ function LampPost({ x, z }: { x: number; z: number }) {
   );
 }
 
+export type TileImpactEvent = {
+  tileIndex: number;
+  kind: TileKind;
+  pos: [number, number, number];
+  stepRatio: number;
+};
+
+type TileImpactListener = (e: TileImpactEvent) => void;
+const tileImpactListeners = new Set<TileImpactListener>();
+
+export function emitTileImpact(e: TileImpactEvent): void {
+  tileImpactListeners.forEach(listener => listener(e));
+}
+
+export function subscribeTileImpact(listener: TileImpactListener): () => void {
+  tileImpactListeners.add(listener);
+  return () => {
+    tileImpactListeners.delete(listener);
+  };
+}
+
+/** Individual diorama board tile with tactile 5% impact depression & spring reaction. */
+function BoardTile({
+  index,
+  pos,
+  kind,
+  isCurrent,
+  isCorner,
+  isRolling
+}: {
+  index: number;
+  pos: [number, number, number];
+  kind: TileKind;
+  isCurrent: boolean;
+  isCorner: boolean;
+  isRolling: boolean;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const impactRef = useRef<{ active: boolean; time: number }>({ active: false, time: 0 });
+
+  useEffect(() => {
+    return subscribeTileImpact(e => {
+      if (e.tileIndex === index) {
+        impactRef.current = { active: true, time: 0 };
+      }
+    });
+  }, [index]);
+
+  useFrame((_, delta) => {
+    const group = groupRef.current;
+    if (!group) return;
+    if (impactRef.current.active && !reducedMotion()) {
+      impactRef.current.time += delta;
+      const duration = 0.14; // springs back in tandem with character settle phase
+      const t = Math.min(1, impactRef.current.time / duration);
+      // Depress vertically by 5% on exact impact frame, springs back smoothly
+      const compress = 0.05 * Math.sin((1 - t) * Math.PI);
+      const squashY = 1 - compress;
+      const widenXZ = 1 + compress * 0.4;
+      group.scale.set(widenXZ, squashY, widenXZ);
+      group.position.y = pos[1] - compress * 0.45;
+      if (t >= 1) {
+        impactRef.current.active = false;
+        group.scale.set(1, 1, 1);
+        group.position.y = pos[1];
+      }
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={pos}>
+      <mesh position={[0, -0.13, 0]} receiveShadow>
+        <boxGeometry args={[2.21, 0.42, 2.21]} />
+        <meshStandardMaterial color="#263956" roughness={0.65} />
+      </mesh>
+      <mesh position={[0, 0.02, 0]} receiveShadow castShadow>
+        <boxGeometry args={[2.08, 0.37, 2.08]} />
+        <meshStandardMaterial color={TILE_COLORS[kind]} roughness={0.68} />
+      </mesh>
+      {IMPORTANT_TILES.has(kind) && (
+        <mesh position={[0, 0.235, 0]}>
+          <boxGeometry args={[1.83, 0.05, 1.83]} />
+          <meshStandardMaterial
+            color={EVENT_HIGHLIGHTS[kind] ?? '#e6eeff'}
+            emissive={TILE_COLORS[kind]}
+            emissiveIntensity={0.12}
+            transparent
+            opacity={0.58}
+          />
+        </mesh>
+      )}
+      <TileGlyph kind={kind} />
+      {isCorner && (
+        <group position={[0.78, 0.75, -0.78]}>
+          <mesh castShadow>
+            <cylinderGeometry args={[0.13, 0.18, 0.9, 8]} />
+            <meshStandardMaterial color="#263956" roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.55, 0]} castShadow>
+            <octahedronGeometry args={[0.25]} />
+            <meshStandardMaterial
+              color={EVENT_HIGHLIGHTS[kind] ?? '#f8fafc'}
+              emissive={TILE_COLORS[kind]}
+              emissiveIntensity={0.45}
+              roughness={0.35}
+            />
+          </mesh>
+        </group>
+      )}
+      {isCurrent && !isRolling && <ActiveTileBeacon />}
+    </group>
+  );
+}
+
 function VoxelBoard() {
   const currentTile = useGameStore(state => state.visualTile);
   const isRolling = useGameStore(state => state.isRolling);
@@ -357,44 +472,17 @@ function VoxelBoard() {
         <meshStandardMaterial color="#d4c8b3" roughness={0.95} />
       </mesh>
 
-      {TILE_POSITIONS.map((pos, idx) => {
-        const kind = BOARD_TILES[idx];
-        const isCurrent = idx === currentTile;
-        const isCorner = CORNERS.has(idx);
-        return (
-          <group key={idx} position={pos}>
-            {/* Chunky, but not monolithic: dark border / coloured face / token marker. */}
-            <mesh position={[0, -0.13, 0]} receiveShadow>
-              <boxGeometry args={[2.21, 0.42, 2.21]} />
-              <meshStandardMaterial color="#263956" roughness={0.65} />
-            </mesh>
-            <mesh position={[0, 0.02, 0]} receiveShadow castShadow>
-              <boxGeometry args={[2.08, 0.37, 2.08]} />
-              <meshStandardMaterial color={TILE_COLORS[kind]} roughness={0.68} />
-            </mesh>
-            {IMPORTANT_TILES.has(kind) && (
-              <mesh position={[0, 0.235, 0]}>
-                <boxGeometry args={[1.83, 0.05, 1.83]} />
-                <meshStandardMaterial color={EVENT_HIGHLIGHTS[kind] ?? '#e6eeff'} emissive={TILE_COLORS[kind]} emissiveIntensity={0.12} transparent opacity={0.58} />
-              </mesh>
-            )}
-            <TileGlyph kind={kind} />
-            {isCorner && (
-              <group position={[0.78, 0.75, -0.78]}>
-                <mesh castShadow>
-                  <cylinderGeometry args={[0.13, 0.18, 0.9, 8]} />
-                  <meshStandardMaterial color="#263956" roughness={0.5} />
-                </mesh>
-                <mesh position={[0, 0.55, 0]} castShadow>
-                  <octahedronGeometry args={[0.25]} />
-                  <meshStandardMaterial color={EVENT_HIGHLIGHTS[kind] ?? '#f8fafc'} emissive={TILE_COLORS[kind]} emissiveIntensity={0.45} roughness={0.35} />
-                </mesh>
-              </group>
-            )}
-            {isCurrent && !isRolling && <ActiveTileBeacon />}
-          </group>
-        );
-      })}
+      {TILE_POSITIONS.map((pos, idx) => (
+        <BoardTile
+          key={idx}
+          index={idx}
+          pos={pos}
+          kind={BOARD_TILES[idx]}
+          isCurrent={idx === currentTile}
+          isCorner={CORNERS.has(idx)}
+          isRolling={isRolling}
+        />
+      ))}
       {TREE_SPOTS.map(([x, z, scale], i) => <MiniTree key={i} x={x} z={z} scale={scale} />)}
       <LampPost x={-1.6} z={-1.6} />
       <LampPost x={1.6} z={1.6} />
@@ -405,84 +493,570 @@ function VoxelBoard() {
   );
 }
 
-/** Toy builder token: boots, overalls, head, helmet + backpack. Hops tile to tile. */
-function TokenCharacter() {
-  const currentTile = useGameStore(s => s.visualTile);
-  const targetPos = TILE_POSITIONS[currentTile] || [0, 0, 0];
-  const groupRef = useRef<THREE.Group>(null);
-  const bodyRef = useRef<THREE.Group>(null);
+interface ParticleItem {
+  active: boolean;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  life: number;
+  maxLife: number;
+  baseScale: number;
+  color: string;
+  isPuff: boolean;
+}
 
-  useFrame(({ clock }, delta) => {
-    const token = groupRef.current;
-    if (!token) return;
-    const dx = targetPos[0] - token.position.x;
-    const dz = targetPos[2] - token.position.z;
-    const distance = Math.hypot(dx, dz);
-    const calm = reducedMotion();
-    const easing = calm ? 1 : 1 - Math.exp(-14 * delta);
-    token.position.x = THREE.MathUtils.lerp(token.position.x, targetPos[0], easing);
-    token.position.z = THREE.MathUtils.lerp(token.position.z, targetPos[2], easing);
-    if (distance > 0.05) {
-      const targetRot = Math.atan2(dx, dz);
-      let diff = (targetRot - token.rotation.y) % (Math.PI * 2);
-      if (diff < -Math.PI) diff += Math.PI * 2;
-      if (diff > Math.PI) diff -= Math.PI * 2;
-      token.rotation.y += diff * (calm ? 1 : 1 - Math.exp(-15 * delta));
-    }
-    const isMoving = distance > 0.08;
-    const targetHop = calm || !isMoving ? 0 : Math.abs(Math.sin(clock.elapsedTime * 14)) * 0.42;
-    token.position.y = THREE.MathUtils.damp(token.position.y, 0.4 + targetHop, 18, delta);
-    if (bodyRef.current && !calm) {
-      const targetSquash = isMoving ? 1 + Math.sin(clock.elapsedTime * 14) * 0.05 : 1;
-      bodyRef.current.scale.y = THREE.MathUtils.damp(bodyRef.current.scale.y, targetSquash, 18, delta);
-    }
-    liveTokenPosition.copy(token.position);
+/** Tactical VFX explosion at character feet on tile landing (dust cloud + tile-specific starburst sparks). */
+export function HopLandingParticles() {
+  const count = 28;
+  const particlesRef = useRef<ParticleItem[]>(
+    Array.from({ length: count }, () => ({
+      active: false,
+      x: 0,
+      y: 0,
+      z: 0,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      life: 0,
+      maxLife: 0.3,
+      baseScale: 0.2,
+      color: '#ffffff',
+      isPuff: true
+    }))
+  );
+  const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
+  const matRefs = useRef<(THREE.MeshBasicMaterial | null)[]>([]);
+
+  useEffect(() => {
+    return subscribeTileImpact(event => {
+      if (reducedMotion()) return;
+      const list = particlesRef.current;
+      const { pos, kind } = event;
+      let puffAllocated = 0;
+      let sparkAllocated = 0;
+
+      for (let i = 0; i < count; i++) {
+        const p = list[i];
+        if (!p.active) {
+          if (puffAllocated < 4) {
+            // Radial dust puff cloud expanding outward at base
+            const angle = (puffAllocated / 4) * Math.PI * 2 + Math.random() * 0.5;
+            const speed = 1.3 + Math.random() * 0.7;
+            p.active = true;
+            p.isPuff = true;
+            p.x = pos[0];
+            p.y = 0.22;
+            p.z = pos[2];
+            p.vx = Math.cos(angle) * speed;
+            p.vy = 0.4 + Math.random() * 0.3;
+            p.vz = Math.sin(angle) * speed;
+            p.life = 0;
+            p.maxLife = 0.26 + Math.random() * 0.08;
+            p.baseScale = 0.24;
+            p.color = kind.startsWith('coin') ? '#fef08a' : '#f8fafc';
+            puffAllocated++;
+          } else if (sparkAllocated < 6) {
+            // Tile-themed sparkle/star burst popping up and out
+            p.active = true;
+            p.isPuff = false;
+            p.x = pos[0];
+            p.y = 0.28;
+            p.z = pos[2];
+            p.vx = (Math.random() - 0.5) * 3.4;
+            p.vy = 2.4 + Math.random() * 1.6;
+            p.vz = (Math.random() - 0.5) * 3.4;
+            p.life = 0;
+            p.maxLife = 0.32 + Math.random() * 0.08;
+            p.baseScale = 0.16;
+            if (kind.startsWith('coin')) {
+              p.color = ['#fbbf24', '#f59e0b', '#fef08a'][sparkAllocated % 3];
+            } else if (kind === 'materials') {
+              p.color = ['#f97316', '#ea580c', '#cbd5e1'][sparkAllocated % 3];
+            } else if (kind === 'shield') {
+              p.color = ['#38bdf8', '#06b6d4', '#e0f2fe'][sparkAllocated % 3];
+            } else if (kind === 'jackpot' || kind === 'district' || kind === 'go') {
+              p.color = ['#ec4899', '#8b5cf6', '#facc15'][sparkAllocated % 3];
+            } else {
+              p.color = ['#ffffff', '#cbd5e1', '#fef08a'][sparkAllocated % 3];
+            }
+            sparkAllocated++;
+          }
+          if (puffAllocated >= 4 && sparkAllocated >= 6) break;
+        }
+      }
+    });
+  }, []);
+
+  useFrame((_, delta) => {
+    const list = particlesRef.current;
+    list.forEach((p, i) => {
+      const mesh = meshRefs.current[i];
+      const mat = matRefs.current[i];
+      if (!mesh || !mat) return;
+      if (!p.active) {
+        mesh.visible = false;
+        return;
+      }
+      p.life += delta;
+      if (p.life >= p.maxLife) {
+        p.active = false;
+        mesh.visible = false;
+        return;
+      }
+      p.x += p.vx * delta;
+      p.y += p.vy * delta;
+      p.z += p.vz * delta;
+      if (!p.isPuff) {
+        p.vy -= 14 * delta; // gravity pulls sparks downward
+      }
+      p.vx *= Math.pow(0.8, delta * 60);
+      p.vz *= Math.pow(0.8, delta * 60);
+
+      const progress = p.life / p.maxLife;
+      mesh.visible = true;
+      mesh.position.set(p.x, p.y, p.z);
+      if (p.isPuff) {
+        const s = p.baseScale * (0.8 + progress * 2.2);
+        mesh.scale.set(s, s, s);
+        mat.opacity = 0.65 * (1 - progress);
+      } else {
+        const s = p.baseScale * (1 - progress * 0.9);
+        mesh.scale.set(s, s, s);
+        mesh.rotation.x += 4 * delta;
+        mesh.rotation.y += 6 * delta;
+        mat.opacity = 0.95 * (1 - progress);
+      }
+      mat.color.set(p.color);
+    });
   });
 
   return (
-    <group ref={groupRef} position={[targetPos[0], 0.4, targetPos[2]]}>
-      {/* Soft blob shadow */}
-      <mesh position={[0, -0.32, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+    <group>
+      {particlesRef.current.map((_, i) => (
+        <mesh
+          key={i}
+          ref={el => { meshRefs.current[i] = el; }}
+          visible={false}
+        >
+          <sphereGeometry args={[1, 6, 5]} />
+          <meshBasicMaterial
+            ref={el => { matRefs.current[i] = el; }}
+            transparent
+            opacity={0}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * Tactile Casual Progression Loop Token Character.
+ * Implements the 4 distinct locomotion phases per tile advanced:
+ * - Phase 1: Anticipation / Take-off (10-15% squash, anchored feet tension, forward lean)
+ * - Phase 2: Flight / Apex (parabolic arc, 18% vertical stretch, lagging dangling elements)
+ * - Phase 3: Impact / Landing (violent 28% downward squash, inertia overshoot, tile reaction & particles)
+ * - Phase 4: Overshoot and Settle (rapid 3-5 frame bounce back past normal scale)
+ */
+function TokenCharacter() {
+  const currentTile = useGameStore(s => s.visualTile);
+  const hopStep = useGameStore(s => s.hopStep);
+  const isRolling = useGameStore(s => s.isRolling);
+  const isTurbo = useGameStore(s => s.isTurbo);
+
+  const rootRef = useRef<THREE.Group>(null);
+  const animRootRef = useRef<THREE.Group>(null);
+  const squashStretchRef = useRef<THREE.Group>(null);
+  const torsoRef = useRef<THREE.Group>(null);
+  const feetRef = useRef<THREE.Group>(null);
+  const backpackRef = useRef<THREE.Group>(null);
+  const headRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
+  const eyesRef = useRef<THREE.Group>(null);
+  const shadowRef = useRef<THREE.Mesh>(null);
+
+  const lastProcessedKey = useRef<number>(-1);
+  const prevTileRef = useRef<number>(currentTile);
+
+  const activeHopRef = useRef<{
+    fromPos: [number, number, number];
+    toPos: [number, number, number];
+    fromTile: number;
+    toTile: number;
+    startTime: number;
+    duration: number;
+    stepNumber: number;
+    totalSteps: number;
+    impactFired: boolean;
+  } | null>(null);
+
+  // Synchronize incoming hop step events from gameStore
+  useEffect(() => {
+    if (hopStep && hopStep.key !== lastProcessedKey.current) {
+      lastProcessedKey.current = hopStep.key;
+      const fromPos = TILE_POSITIONS[hopStep.from] ?? [0, 0, 0];
+      const toPos = TILE_POSITIONS[hopStep.to] ?? [0, 0, 0];
+      activeHopRef.current = {
+        fromPos,
+        toPos,
+        fromTile: hopStep.from,
+        toTile: hopStep.to,
+        startTime: performance.now(),
+        duration: isTurbo ? 95 : 185,
+        stepNumber: hopStep.step,
+        totalSteps: hopStep.total,
+        impactFired: false
+      };
+      prevTileRef.current = hopStep.to;
+      return;
+    }
+
+    if (!hopStep && isRolling && currentTile !== prevTileRef.current) {
+      const fromPos = TILE_POSITIONS[prevTileRef.current] ?? [0, 0, 0];
+      const toPos = TILE_POSITIONS[currentTile] ?? [0, 0, 0];
+      activeHopRef.current = {
+        fromPos,
+        toPos,
+        fromTile: prevTileRef.current,
+        toTile: currentTile,
+        startTime: performance.now(),
+        duration: isTurbo ? 95 : 185,
+        stepNumber: 1,
+        totalSteps: 1,
+        impactFired: false
+      };
+      prevTileRef.current = currentTile;
+      return;
+    }
+
+    if (!isRolling) {
+      prevTileRef.current = currentTile;
+      activeHopRef.current = null;
+    }
+  }, [hopStep, currentTile, isRolling, isTurbo]);
+
+  useFrame(({ clock }, delta) => {
+    const root = rootRef.current;
+    const animRoot = animRootRef.current;
+    const squash = squashStretchRef.current;
+    const torso = torsoRef.current;
+    const feet = feetRef.current;
+    const backpack = backpackRef.current;
+    const head = headRef.current;
+    const leftArm = leftArmRef.current;
+    const rightArm = rightArmRef.current;
+    const shadow = shadowRef.current;
+
+    if (!root || !animRoot || !squash || !torso || !feet || !backpack || !head || !leftArm || !rightArm) {
+      return;
+    }
+
+    const calm = reducedMotion();
+    const hop = activeHopRef.current;
+
+    if (hop && !calm) {
+      const elapsed = performance.now() - hop.startTime;
+      const tau = Math.min(1.0, Math.max(0, elapsed / hop.duration));
+
+      let rootPosX = hop.fromPos[0];
+      let rootPosZ = hop.fromPos[2];
+      let height = 0;
+      let scaleY = 1.0;
+      let scaleXZ = 1.0;
+      let torsoPitch = 0;
+      let torsoDrop = 0;
+      let backpackLag = 0;
+      let armSwing = 0;
+      let headLag = 0;
+      let feetLift = 0;
+
+      if (tau < 0.16) {
+        // =========================================================================
+        // Phase 1: Anticipation / Take-off
+        // Squash down 10-15%, horizontal widening, anchored feet tension, forward lean
+        // =========================================================================
+        const p1 = tau / 0.16;
+        const comp = 0.13 * Math.sin(p1 * Math.PI);
+        scaleY = 1.0 - comp;
+        scaleXZ = 1.0 + comp * 0.55;
+        rootPosX = hop.fromPos[0];
+        rootPosZ = hop.fromPos[2];
+        height = 0;
+        torsoPitch = 0.14 * Math.sin(p1 * Math.PI);
+        backpackLag = -0.06 * Math.sin(p1 * Math.PI);
+        armSwing = 0.18 * Math.sin(p1 * Math.PI);
+        headLag = 0.05 * Math.sin(p1 * Math.PI);
+        feetLift = 0; // anchored feet remain firmly grounded
+      } else if (tau < 0.74) {
+        // =========================================================================
+        // Phase 2: Flight / Apex (The Leap)
+        // Parabolic arc, 18% vertical stretch, explosive launch & high-velocity impact curve,
+        // overlapping action: dangling backpack and arms dragging against gravity
+        // =========================================================================
+        const p2 = (tau - 0.16) / (0.74 - 0.16);
+        // Explosive ease-out on launch, high-velocity ease-in to landing impact:
+        const pTraj = p2 + 0.14 * Math.sin(2 * Math.PI * p2);
+        rootPosX = THREE.MathUtils.lerp(hop.fromPos[0], hop.toPos[0], pTraj);
+        rootPosZ = THREE.MathUtils.lerp(hop.fromPos[2], hop.toPos[2], pTraj);
+
+        const arc = Math.sin(p2 * Math.PI);
+        height = arc * 1.25;
+
+        // Stretch vertically by 18% at mid-point apex, compress horizontally:
+        scaleY = 1.0 + 0.18 * arc;
+        scaleXZ = 1.0 - 0.08 * arc;
+
+        // Overlapping action: lagging secondary elements:
+        backpackLag = -0.38 * arc; // drags downward/backward against gravity
+        armSwing = -0.45 * arc; // arms flare back in flight
+        headLag = -0.16 * arc; // head tilts backward
+        feetLift = 0.12 * arc; // feet tuck up slightly
+      } else if (tau < 0.86) {
+        // =========================================================================
+        // Phase 3: Impact / Landing (The Squash)
+        // Violent 28% downward compression, secondary elements slam forward overshooting
+        // due to inertia, trigger tile reaction (5% compress) and particle VFX explosion
+        // =========================================================================
+        if (!hop.impactFired) {
+          hop.impactFired = true;
+          const kind = BOARD_TILES[hop.toTile] ?? 'standard';
+          emitTileImpact({
+            tileIndex: hop.toTile,
+            kind,
+            pos: hop.toPos,
+            stepRatio: hop.stepNumber / hop.totalSteps
+          });
+          playHop(hop.stepNumber / hop.totalSteps);
+          playTileLand();
+          buzz(10);
+        }
+
+        const p3 = (tau - 0.74) / (0.86 - 0.74);
+        const squ = Math.sin(p3 * Math.PI);
+        rootPosX = hop.toPos[0];
+        rootPosZ = hop.toPos[2];
+        height = 0;
+
+        // Violent 28% vertical compression & 15% horizontal widening:
+        scaleY = 1.0 - 0.28 * squ;
+        scaleXZ = 1.0 + 0.15 * squ;
+        torsoDrop = -0.16 * squ;
+
+        // Secondary elements slam forward overshooting due to inertia:
+        backpackLag = 0.44 * squ;
+        armSwing = 0.38 * squ;
+        headLag = 0.24 * squ;
+        torsoPitch = 0;
+        feetLift = 0;
+      } else {
+        // =========================================================================
+        // Phase 4: Overshoot and Settle (The Bounce)
+        // Bounces up past normal scale (1.08), settling rapidly in 3-5 frames (~50ms)
+        // =========================================================================
+        const p4 = (tau - 0.86) / (1.0 - 0.86);
+        const bounce = Math.sin(p4 * Math.PI) * (1.0 - p4 * 0.75);
+        rootPosX = hop.toPos[0];
+        rootPosZ = hop.toPos[2];
+        height = 0;
+
+        scaleY = 1.0 + 0.08 * bounce;
+        scaleXZ = 1.0 - 0.04 * bounce;
+        backpackLag = 0.12 * bounce;
+        armSwing = 0.10 * bounce;
+        headLag = 0.08 * bounce;
+
+        if (tau >= 1.0) {
+          activeHopRef.current = null;
+        }
+      }
+
+      root.position.x = rootPosX;
+      root.position.z = rootPosZ;
+      animRoot.position.y = 0.4 + height;
+
+      squash.scale.set(scaleXZ, scaleY, scaleXZ);
+      torso.position.y = torsoDrop;
+      torso.rotation.x = torsoPitch;
+
+      backpack.rotation.x = backpackLag;
+      backpack.position.y = 0.75 + (backpackLag < 0 ? backpackLag * 0.2 : 0);
+      backpack.position.z = -0.4 + (backpackLag > 0 ? backpackLag * 0.15 : 0);
+
+      leftArm.rotation.x = armSwing;
+      rightArm.rotation.x = armSwing;
+      head.rotation.x = headLag;
+      head.rotation.y = 0;
+      feet.position.y = feetLift;
+
+      // Facing travel direction
+      const dx = hop.toPos[0] - hop.fromPos[0];
+      const dz = hop.toPos[2] - hop.fromPos[2];
+      if (Math.hypot(dx, dz) > 0.08) {
+        const targetRot = Math.atan2(dx, dz);
+        let diff = (targetRot - root.rotation.y) % (Math.PI * 2);
+        if (diff < -Math.PI) diff += Math.PI * 2;
+        if (diff > Math.PI) diff -= Math.PI * 2;
+        root.rotation.y += diff * (1 - Math.exp(-24 * delta));
+      }
+
+      // Blob shadow dynamics: scales & fades with flight height, expands on impact
+      if (shadow) {
+        const shadowScale = Math.max(0.48, Math.min(1.35, 1.0 - height * 0.42 + (scaleXZ - 1) * 1.5));
+        const shadowOpacity = Math.max(0.12, Math.min(0.55, 0.35 - height * 0.18 + (scaleXZ - 1) * 0.8));
+        shadow.scale.set(shadowScale, shadowScale, shadowScale);
+        (shadow.material as THREE.MeshBasicMaterial).opacity = shadowOpacity;
+      }
+    } else {
+      // Idle resting state: gentle organic breathing & life
+      const targetPos = TILE_POSITIONS[currentTile] ?? [0, 0, 0];
+      const easing = calm ? 1 : 1 - Math.exp(-18 * delta);
+      root.position.x = THREE.MathUtils.lerp(root.position.x, targetPos[0], easing);
+      root.position.z = THREE.MathUtils.lerp(root.position.z, targetPos[2], easing);
+      animRoot.position.y = 0.4;
+
+      const breathe = calm ? 0 : Math.sin(clock.elapsedTime * 3.2) * 0.018;
+      squash.scale.set(1 - breathe * 0.5, 1 + breathe, 1 - breathe * 0.5);
+
+      torso.position.y = 0;
+      torso.rotation.x = 0;
+      backpack.rotation.x = 0;
+      backpack.position.y = 0.75;
+      backpack.position.z = -0.4;
+      leftArm.rotation.x = 0;
+      rightArm.rotation.x = 0;
+      feet.position.y = 0;
+      head.rotation.x = 0;
+      head.rotation.y = calm ? 0 : Math.sin(clock.elapsedTime * 1.6) * 0.04;
+
+      if (shadow) {
+        shadow.scale.set(1, 1, 1);
+        (shadow.material as THREE.MeshBasicMaterial).opacity = 0.35;
+      }
+    }
+
+    // Occasional subtle eye blinking
+    if (eyesRef.current) {
+      const blinkCycle = (clock.elapsedTime * 0.28) % 1;
+      const isBlinking = blinkCycle < 0.038;
+      eyesRef.current.scale.y = isBlinking ? 0.08 : 1.0;
+    }
+
+    liveTokenPosition.copy(root.position);
+  });
+
+  const initPos = TILE_POSITIONS[currentTile] ?? [0, 0, 0];
+
+  return (
+    <group ref={rootRef} position={[initPos[0], 0, initPos[2]]}>
+      {/* Soft blob shadow anchored to the diorama floor surface */}
+      <mesh ref={shadowRef} position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.62, 20]} />
         <meshBasicMaterial color="#0b1526" transparent opacity={0.35} depthWrite={false} />
       </mesh>
-      <group ref={bodyRef}>
-        <mesh position={[-0.22, 0.15, 0]} castShadow>
-          <boxGeometry args={[0.3, 0.3, 0.42]} />
-          <meshStandardMaterial color="#7c4a2d" roughness={0.8} />
-        </mesh>
-        <mesh position={[0.22, 0.15, 0]} castShadow>
-          <boxGeometry args={[0.3, 0.3, 0.42]} />
-          <meshStandardMaterial color="#7c4a2d" roughness={0.8} />
-        </mesh>
-        <mesh position={[0, 0.75, 0]} castShadow>
-          <boxGeometry args={[0.8, 0.85, 0.62]} />
-          <meshStandardMaterial color="#f97316" roughness={0.7} />
-        </mesh>
-        <mesh position={[0, 0.75, -0.4]} castShadow>
-          <boxGeometry args={[0.5, 0.6, 0.22]} />
-          <meshStandardMaterial color="#8b5cf6" roughness={0.7} />
-        </mesh>
-        <mesh position={[0, 1.5, 0]} castShadow>
-          <boxGeometry args={[0.66, 0.62, 0.6]} />
-          <meshStandardMaterial color="#fed7aa" roughness={0.65} />
-        </mesh>
-        <mesh position={[-0.18, 1.52, 0.31]}>
-          <boxGeometry args={[0.12, 0.12, 0.05]} />
-          <meshStandardMaterial color="#1e293b" />
-        </mesh>
-        <mesh position={[0.18, 1.52, 0.31]}>
-          <boxGeometry args={[0.12, 0.12, 0.05]} />
-          <meshStandardMaterial color="#1e293b" />
-        </mesh>
-        <mesh position={[0, 1.95, 0]} castShadow>
-          <boxGeometry args={[0.8, 0.28, 0.72]} />
-          <meshStandardMaterial color="#facc15" roughness={0.55} />
-        </mesh>
-        <mesh position={[0, 2.12, 0]} castShadow>
-          <boxGeometry args={[0.4, 0.18, 0.36]} />
-          <meshStandardMaterial color="#facc15" roughness={0.55} />
-        </mesh>
+
+      {/* Hopping vertical arc container */}
+      <group ref={animRootRef} position={[0, 0.4, 0]}>
+        {/* Squash and stretch pivot group (pivots from ground/feet base) */}
+        <group ref={squashStretchRef}>
+          {/* Feet group (anchored during anticipation tension, tucks during flight) */}
+          <group ref={feetRef}>
+            <mesh position={[-0.22, 0.15, 0]} castShadow>
+              <boxGeometry args={[0.3, 0.3, 0.42]} />
+              <meshStandardMaterial color="#7c4a2d" roughness={0.8} />
+            </mesh>
+            <mesh position={[0.22, 0.15, 0]} castShadow>
+              <boxGeometry args={[0.3, 0.3, 0.42]} />
+              <meshStandardMaterial color="#7c4a2d" roughness={0.8} />
+            </mesh>
+          </group>
+
+          {/* Torso & overalls */}
+          <group ref={torsoRef}>
+            <mesh position={[0, 0.75, 0]} castShadow>
+              <boxGeometry args={[0.8, 0.85, 0.62]} />
+              <meshStandardMaterial color="#f97316" roughness={0.7} />
+            </mesh>
+            {/* Center pocket & brass buckle detail */}
+            <mesh position={[0, 0.78, 0.32]}>
+              <boxGeometry args={[0.34, 0.32, 0.04]} />
+              <meshStandardMaterial color="#ea580c" roughness={0.75} />
+            </mesh>
+            <mesh position={[0, 0.92, 0.33]}>
+              <boxGeometry args={[0.16, 0.08, 0.04]} />
+              <meshStandardMaterial color="#facc15" roughness={0.4} />
+            </mesh>
+
+            {/* Articulated builder arms & mittens */}
+            <group ref={leftArmRef} position={[-0.48, 0.75, 0]}>
+              <mesh position={[0, -0.05, 0]} castShadow>
+                <boxGeometry args={[0.2, 0.42, 0.22]} />
+                <meshStandardMaterial color="#ea580c" roughness={0.75} />
+              </mesh>
+              <mesh position={[0, -0.28, 0]} castShadow>
+                <boxGeometry args={[0.22, 0.2, 0.24]} />
+                <meshStandardMaterial color="#7c4a2d" roughness={0.8} />
+              </mesh>
+            </group>
+            <group ref={rightArmRef} position={[0.48, 0.75, 0]}>
+              <mesh position={[0, -0.05, 0]} castShadow>
+                <boxGeometry args={[0.2, 0.42, 0.22]} />
+                <meshStandardMaterial color="#ea580c" roughness={0.75} />
+              </mesh>
+              <mesh position={[0, -0.28, 0]} castShadow>
+                <boxGeometry args={[0.22, 0.2, 0.24]} />
+                <meshStandardMaterial color="#7c4a2d" roughness={0.8} />
+              </mesh>
+            </group>
+
+            {/* Dangling backpack accessory (lagging & overshooting secondary inertia) */}
+            <group ref={backpackRef} position={[0, 0.75, -0.4]}>
+              <mesh castShadow>
+                <boxGeometry args={[0.52, 0.62, 0.26]} />
+                <meshStandardMaterial color="#8b5cf6" roughness={0.65} />
+              </mesh>
+              {/* Bedroll on top */}
+              <mesh position={[0, 0.36, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+                <cylinderGeometry args={[0.13, 0.13, 0.54, 8]} />
+                <meshStandardMaterial color="#facc15" roughness={0.5} />
+              </mesh>
+            </group>
+
+            {/* Head, Eyes & Yellow Hardhat */}
+            <group ref={headRef} position={[0, 1.5, 0]}>
+              <mesh castShadow>
+                <boxGeometry args={[0.66, 0.62, 0.6]} />
+                <meshStandardMaterial color="#fed7aa" roughness={0.65} />
+              </mesh>
+              <group ref={eyesRef}>
+                <mesh position={[-0.18, 0.02, 0.31]}>
+                  <boxGeometry args={[0.12, 0.12, 0.05]} />
+                  <meshStandardMaterial color="#1e293b" />
+                </mesh>
+                <mesh position={[0.18, 0.02, 0.31]}>
+                  <boxGeometry args={[0.12, 0.12, 0.05]} />
+                  <meshStandardMaterial color="#1e293b" />
+                </mesh>
+              </group>
+              <mesh position={[0, 0.45, 0]} castShadow>
+                <boxGeometry args={[0.82, 0.26, 0.74]} />
+                <meshStandardMaterial color="#facc15" roughness={0.5} />
+              </mesh>
+              <mesh position={[0, 0.62, 0]} castShadow>
+                <boxGeometry args={[0.42, 0.18, 0.38]} />
+                <meshStandardMaterial color="#facc15" roughness={0.5} />
+              </mesh>
+              <mesh position={[0, 0.48, 0.38]} rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.08, 0.08, 0.06, 8]} />
+                <meshStandardMaterial color="#ffffff" emissive="#fef08a" emissiveIntensity={0.6} />
+              </mesh>
+            </group>
+          </group>
+        </group>
       </group>
     </group>
   );
@@ -1167,6 +1741,7 @@ export function VoxelScene() {
       <directionalLight position={[20, 14, -18]} intensity={0.35} color="#bcd7ff" />
       <VoxelBoard />
       <TokenCharacter />
+      <HopLandingParticles />
       <Buildings />
       <Villagers />
       <Clouds />

@@ -1,2 +1,123 @@
 [     728ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:21550
 [   66916ms] [LOG] THREE.WebGLRenderer: Context Lost. @ http://localhost:3000/node_modules/.vite/deps/chunk-567F6HUI.js?v=1a84874f:17417
+[  100704ms] [LOG] THREE.WebGLRenderer: Context Lost. @ http://localhost:3000/node_modules/.vite/deps/chunk-567F6HUI.js?v=1a84874f:17417
+[  163856ms] ReferenceError: nextLockedDistrict is not defined
+    at App (http://localhost:3000/src/App.tsx?t=1791482284660:134:22)
+    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:11548:26)
+    at updateFunctionComponent (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:14582:28)
+    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:15924:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3699:24)
+    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3733:39)
+    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19765:15)
+    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19198:20)
+    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19137:13)
+[  163856ms] ReferenceError: nextLockedDistrict is not defined
+    at App (http://localhost:3000/src/App.tsx?t=1791482284660:134:22)
+    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:11548:26)
+    at updateFunctionComponent (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:14582:28)
+    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:15924:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3699:24)
+    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3733:39)
+    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19765:15)
+    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19198:20)
+    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19137:13)
+[  163855ms] [ERROR] The above error occurred in the <App> component:
+
+    at App (http://localhost:3000/src/App.tsx?t=1791482284660:114:39)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:3000/node_modules/.vite/deps/chunk-6WZ5BWFW.js?v=1a84874f:17704
+[  163858ms] ReferenceError: nextLockedDistrict is not defined
+    at App (http://localhost:3000/src/App.tsx?t=1791482284660:134:22)
+    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:11548:26)
+    at updateFunctionComponent (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:14582:28)
+    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:15924:22)
+    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19753:22)
+    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19198:20)
+    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19137:13)
+    at renderRootSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19116:15)
+    at recoverFromConcurrentError (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:18736:28)
+    at performSyncWorkOnRoot (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:18879:28)
+[  163912ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/src/App.tsx?t=1791482284760:0
+[  163921ms] [ERROR] [hmr] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3000/node_modules/.vite/deps/chunk-6WZ5BWFW.js?v=1a84874f:17704
+[  164365ms] [LOG] THREE.WebGLRenderer: Context Lost. @ http://localhost:3000/node_modules/.vite/deps/chunk-567F6HUI.js?v=1a84874f:17417
+[  173635ms] ReferenceError: nextLockedDistrict is not defined
+    at App (http://localhost:3000/src/App.tsx?t=1791482294450:134:22)
+    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:11548:26)
+    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:14926:21)
+    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3699:24)
+    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3733:39)
+    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19765:15)
+    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19198:20)
+    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19137:13)
+[  173636ms] ReferenceError: nextLockedDistrict is not defined
+    at App (http://localhost:3000/src/App.tsx?t=1791482294450:134:22)
+    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:11548:26)
+    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:14926:21)
+    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3699:24)
+    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3733:39)
+    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19765:15)
+    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19198:20)
+    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19137:13)
+[  173636ms] [ERROR] The above error occurred in the <App> component:
+
+    at App (http://localhost:3000/src/App.tsx?t=1791482294450:114:39)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:3000/node_modules/.vite/deps/chunk-6WZ5BWFW.js?v=1a84874f:17704
+[  173636ms] ReferenceError: nextLockedDistrict is not defined
+    at App (http://localhost:3000/src/App.tsx?t=1791482294450:134:22)
+    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:11548:26)
+    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:14926:21)
+    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:15914:22)
+    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19753:22)
+    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19198:20)
+    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19137:13)
+    at renderRootSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19116:15)
+    at recoverFromConcurrentError (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:18736:28)
+    at performSyncWorkOnRoot (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:18879:28)
+[  176563ms] ReferenceError: districts is not defined
+    at App (http://localhost:3000/src/App.tsx?t=1791482297378:244:16)
+    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:11548:26)
+    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:14926:21)
+    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3699:24)
+    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3733:39)
+    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19765:15)
+    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19198:20)
+    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19137:13)
+[  176564ms] ReferenceError: districts is not defined
+    at App (http://localhost:3000/src/App.tsx?t=1791482297378:244:16)
+    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:11548:26)
+    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:14926:21)
+    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3699:24)
+    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:3733:39)
+    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19765:15)
+    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19198:20)
+    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19137:13)
+[  176564ms] [ERROR] The above error occurred in the <App> component:
+
+    at App (http://localhost:3000/src/App.tsx?t=1791482297378:114:39)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:3000/node_modules/.vite/deps/chunk-6WZ5BWFW.js?v=1a84874f:17704
+[  176564ms] ReferenceError: districts is not defined
+    at App (http://localhost:3000/src/App.tsx?t=1791482297378:244:16)
+    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:11548:26)
+    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:14926:21)
+    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:15914:22)
+    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19753:22)
+    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19198:20)
+    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19137:13)
+    at renderRootSync (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:19116:15)
+    at recoverFromConcurrentError (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:18736:28)
+    at performSyncWorkOnRoot (http://localhost:3000/node_modules/.vite/deps/chunk-YCOEJRGR.js?v=1a84874f:18879:28)
