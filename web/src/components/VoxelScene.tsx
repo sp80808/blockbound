@@ -155,8 +155,30 @@ const PIP_LAYOUTS: Record<number, [number, number][]> = {
   6: [[-0.32, 0.32], [0.32, 0.32], [-0.32, 0], [0.32, 0], [-0.32, -0.32], [0.32, -0.32]]
 };
 
-function DiceFace({ value }: { value: number }) {
-  return <group position={[0, 0, 0.76]}>{PIP_LAYOUTS[value].map(([x, y], index) => <mesh key={index} position={[x, y, 0]}><sphereGeometry args={[0.11, 12, 8]} /><meshLambertMaterial color={0x312e81} /></mesh>)}</group>;
+function DiceFace({ value, position = [0, 0, 0.76], rotation = [0, 0, 0] }: { value: number; position?: [number, number, number]; rotation?: [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {PIP_LAYOUTS[value].map(([x, y], index) => (
+        <mesh key={index} position={[x, y, 0]}>
+          <sphereGeometry args={[0.11, 12, 8]} />
+          <meshLambertMaterial color={0x312e81} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function DicePips({ value }: { value: number }) {
+  return (
+    <>
+      <DiceFace value={value} position={[0, 0, 0.76]} />
+      <DiceFace value={7 - value} position={[0, 0, -0.76]} rotation={[0, Math.PI, 0]} />
+      <DiceFace value={2} position={[0.76, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
+      <DiceFace value={5} position={[-0.76, 0, 0]} rotation={[0, -Math.PI / 2, 0]} />
+      <DiceFace value={3} position={[0, 0.76, 0]} rotation={[-Math.PI / 2, 0, 0]} />
+      <DiceFace value={4} position={[0, -0.76, 0]} rotation={[Math.PI / 2, 0, 0]} />
+    </>
+  );
 }
 
 function PhysicalDice() {
@@ -186,7 +208,7 @@ function PhysicalDice() {
     <group>
       <group ref={die1Ref} position={[-1.4, 1.0, 0]}>
         <mesh castShadow><boxGeometry args={[1.5, 1.5, 1.5]} /><meshLambertMaterial color={0xfffbeb} /></mesh>
-        <DiceFace value={5} />
+        <DicePips value={5} />
       </group>
       <group ref={die2Ref} position={[1.4, 1.0, 0]}>
         <mesh castShadow><boxGeometry args={[1.5, 1.5, 1.5]} /><meshLambertMaterial color={0xfffbeb} /></mesh>
