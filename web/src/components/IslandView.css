@@ -1,0 +1,716 @@
+/* Monopoly Go / Coin Master Inspired Island View */
+.bb-island-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  background: #08111e;
+  color: #fff;
+  overflow: hidden;
+  user-select: none;
+  font-family: "Avenir Next", "Trebuchet MS", system-ui, sans-serif;
+  animation: bb-island-fade-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes bb-island-fade-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Header & Top Bar */
+.bb-island-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(12px, env(safe-area-inset-top)) 16px 10px;
+  background: rgba(10, 20, 38, 0.88);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 10;
+  gap: 10px;
+}
+
+.bb-island-back-btn,
+.bb-island-close-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(180deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.bb-island-back-btn:hover,
+.bb-island-close-btn:hover {
+  background: #334155;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.bb-island-back-btn:active,
+.bb-island-close-btn:active {
+  transform: translateY(1px);
+}
+
+.bb-island-resources {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bb-island-res-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.bb-island-res-pill--coins {
+  color: #fde047;
+  border-color: rgba(250, 204, 21, 0.3);
+}
+
+.bb-island-res-pill--materials {
+  color: #f472b6;
+  border-color: rgba(244, 114, 182, 0.3);
+}
+
+/* Island Info Banner & Navigation */
+.bb-island-subbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  z-index: 9;
+}
+
+.bb-island-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bb-island-nav-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bb-island-nav-btn:hover:not(:disabled) {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.bb-island-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.bb-island-title-block {
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.bb-island-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.bb-island-level-badge {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.bb-island-name {
+  font-size: 18px;
+  font-weight: 900;
+  margin: 0;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.bb-island-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status & Shield Indicators */
+.bb-island-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bb-island-star-gauge {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bb-island-star-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fde047;
+}
+
+.bb-island-star-bar {
+  height: 8px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  border-radius: 99px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.bb-island-star-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #eab308, #fde047);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.6);
+  border-radius: 99px;
+  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bb-island-defense-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.bb-island-defense-badge--shielded {
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid #0ea5e9;
+  color: #38bdf8;
+}
+
+.bb-island-defense-badge--vulnerable {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+  animation: bb-island-pulse 1.8s infinite;
+}
+
+@keyframes bb-island-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(0.97); }
+}
+
+/* Island Panorama / Main Stage */
+.bb-island-stage {
+  flex: 1;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background-size: cover;
+  background-position: center bottom;
+  perspective: 1000px;
+}
+
+/* Theme Backdrops */
+.bb-island-stage[data-theme="0"] {
+  background: radial-gradient(circle at 50% 20%, #38bdf840 0%, transparent 60%),
+              linear-gradient(180deg, #0369a1 0%, #0f4c6e 40%, #14532d 85%, #052e16 100%);
+}
+
+.bb-island-stage[data-theme="1"] {
+  background: radial-gradient(circle at 50% 20%, #f472b640 0%, transparent 60%),
+              linear-gradient(180deg, #be185d 0%, #831843 40%, #701a75 80%, #4a044e 100%);
+}
+
+.bb-island-stage[data-theme="2"] {
+  background: radial-gradient(circle at 50% 20%, #8b5cf640 0%, transparent 60%),
+              linear-gradient(180deg, #1e1b4b 0%, #311042 40%, #180928 80%, #030014 100%);
+}
+
+/* Floating Environmental Props */
+.bb-island-clouds {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 20% 40%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+              radial-gradient(ellipse at 75% 30%, rgba(255, 255, 255, 0.12) 0%, transparent 45%);
+  animation: bb-island-float 10s ease-in-out infinite alternate;
+}
+
+@keyframes bb-island-float {
+  from { transform: translateX(-15px); }
+  to { transform: translateX(15px); }
+}
+
+/* Warp / Completion Banner */
+.bb-island-warp-banner {
+  width: 100%;
+  max-width: 520px;
+  background: linear-gradient(135deg, #1e1b4b, #312e81);
+  border: 2px solid #fbbf24;
+  border-radius: 18px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(251, 191, 36, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  animation: bb-warp-glow 2s infinite alternate;
+}
+
+@keyframes bb-warp-glow {
+  from { box-shadow: 0 6px 20px rgba(251, 191, 36, 0.25); }
+  to { box-shadow: 0 10px 35px rgba(251, 191, 36, 0.5); }
+}
+
+.bb-island-warp-title {
+  font-size: 14px;
+  font-weight: 900;
+  color: #fef08a;
+}
+
+.bb-island-warp-sub {
+  font-size: 11px;
+  color: #e2e8f0;
+}
+
+.bb-island-warp-btn {
+  background: linear-gradient(180deg, #fbbf24, #d97706);
+  border: 1px solid #fef08a;
+  border-radius: 12px;
+  padding: 10px 16px;
+  color: #451a03;
+  font-weight: 950;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 0 #92400e, 0 8px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.15s ease;
+}
+
+.bb-island-warp-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #92400e, 0 12px 20px rgba(0, 0, 0, 0.4);
+}
+
+.bb-island-warp-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #92400e;
+}
+
+/* Landmark Showcase Cards Grid */
+.bb-island-landmarks-grid {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 2;
+}
+
+/* Individual Landmark Card */
+.bb-landmark-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(26, 38, 63, 0.94), rgba(15, 23, 42, 0.95));
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
+}
+
+.bb-landmark-card:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-2px);
+}
+
+.bb-landmark-card--damaged {
+  background: linear-gradient(135deg, rgba(76, 5, 25, 0.95), rgba(40, 10, 20, 0.95));
+  border-color: #ef4444;
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.25);
+}
+
+.bb-landmark-card--maxed {
+  border-color: rgba(250, 204, 21, 0.5);
+  background: linear-gradient(135deg, rgba(35, 40, 65, 0.95), rgba(20, 25, 45, 0.95));
+}
+
+/* Landmark Left: 3D Silhouette Diorama */
+.bb-landmark-diorama {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.3) 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.bb-landmark-icon-art {
+  font-size: 34px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bb-landmark-card:hover .bb-landmark-icon-art {
+  transform: scale(1.15) rotate(-3deg);
+}
+
+/* Tier Evolution Ring / Frame around landmark */
+.bb-landmark-tier-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 18px;
+  pointer-events: none;
+  border: 2px solid transparent;
+}
+
+.bb-landmark-tier-ring--0 { border-color: rgba(148, 163, 184, 0.3); border-style: dashed; }
+.bb-landmark-tier-ring--1 { border-color: rgba(56, 189, 248, 0.4); }
+.bb-landmark-tier-ring--2 { border-color: rgba(99, 102, 241, 0.6); }
+.bb-landmark-tier-ring--3 { border-color: rgba(236, 72, 153, 0.7); }
+.bb-landmark-tier-ring--4 {
+  border-color: #fbbf24;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+  animation: bb-golden-pulse 2s infinite alternate;
+}
+
+@keyframes bb-golden-pulse {
+  from { box-shadow: 0 0 8px rgba(251, 191, 36, 0.4); }
+  to { box-shadow: 0 0 16px rgba(251, 191, 36, 0.8); }
+}
+
+/* Smoke & Damage Effect */
+.bb-landmark-damage-tag {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  animation: bb-island-pulse 1.2s infinite;
+}
+
+/* Middle: Landmark Info & Stars */
+.bb-landmark-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bb-landmark-name {
+  font-size: 15px;
+  font-weight: 850;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bb-landmark-tier-stars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bb-star-pip {
+  font-size: 14px;
+  color: #334155;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.bb-star-pip--active {
+  color: #fde047;
+  filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.8));
+}
+
+.bb-landmark-cost-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.bb-cost-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bb-cost-chip--ok {
+  color: #cbd5e1;
+}
+
+.bb-cost-chip--short {
+  color: #f87171;
+}
+
+/* Right: Action Buttons */
+.bb-landmark-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Juicy 3D Upgrade Button */
+.bb-btn-upgrade {
+  background: linear-gradient(180deg, #10b981, #059669);
+  border: 1px solid #6ee7b7;
+  border-radius: 12px;
+  padding: 9px 18px;
+  color: #fff;
+  font-weight: 950;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #047857, 0 8px 16px rgba(16, 185, 129, 0.35);
+  transition: all 0.12s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bb-btn-upgrade:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #047857, 0 10px 20px rgba(16, 185, 129, 0.45);
+}
+
+.bb-btn-upgrade:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #047857;
+}
+
+.bb-btn-upgrade:disabled {
+  background: #334155;
+  border-color: #475569;
+  color: #94a3b8;
+  box-shadow: 0 3px 0 #1e293b;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Repair Button */
+.bb-btn-repair {
+  background: linear-gradient(180deg, #ef4444, #dc2626);
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  padding: 9px 16px;
+  color: #fff;
+  font-weight: 950;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #b91c1c, 0 8px 16px rgba(239, 68, 68, 0.4);
+  transition: all 0.12s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: bb-repair-wiggle 1.5s infinite;
+}
+
+@keyframes bb-repair-wiggle {
+  0%, 80%, 100% { transform: rotate(0deg); }
+  85% { transform: rotate(-3deg); }
+  95% { transform: rotate(3deg); }
+}
+
+.bb-btn-repair:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #b91c1c;
+}
+
+/* Maxed Golden Plate */
+.bb-plate-maxed {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(180deg, #fef08a, #f59e0b);
+  border: 1px solid #fffbeb;
+  border-radius: 12px;
+  padding: 8px 14px;
+  color: #78350f;
+  font-weight: 950;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  box-shadow: 0 3px 0 #b45309, 0 6px 15px rgba(245, 158, 11, 0.4);
+}
+
+/* Locked Island State */
+.bb-island-locked-overlay {
+  width: 100%;
+  max-width: 480px;
+  margin: 40px auto;
+  text-align: center;
+  padding: 30px 20px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.bb-island-locked-icon {
+  font-size: 48px;
+  color: #fbbf24;
+  margin-bottom: 4px;
+}
+
+.bb-island-locked-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.bb-island-locked-desc {
+  font-size: 13px;
+  color: #94a3b8;
+  max-width: 340px;
+  line-height: 1.5;
+}
+
+/* Bottom Quick-Build Bar */
+.bb-island-bottombar {
+  padding: 10px 16px max(12px, env(safe-area-inset-bottom));
+  background: rgba(10, 20, 38, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 10;
+}
+
+.bb-island-quick-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bb-island-quick-label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #38bdf8;
+}
+
+.bb-island-quick-title {
+  font-size: 13px;
+  font-weight: 850;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bb-island-quick-btn {
+  background: linear-gradient(180deg, #f59e0b, #d97706);
+  border: 1px solid #fef3c7;
+  border-radius: 14px;
+  padding: 10px 18px;
+  color: #451a03;
+  font-weight: 950;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #92400e, 0 8px 18px rgba(245, 158, 11, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.bb-island-quick-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.bb-island-quick-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #92400e;
+}
+
+.bb-island-quick-btn:disabled {
+  background: #334155;
+  border-color: #475569;
+  color: #94a3b8;
+  box-shadow: 0 2px 0 #1e293b;
+  cursor: not-allowed;
+  opacity: 0.6;
+}

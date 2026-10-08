@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 
 import { ArrowRight, Blocks, Check, Coins, Dice5, Flame, Gift, Hammer, Settings2, Shield, Sparkles, Square, Trophy, Volume2, VolumeX, Zap } from 'lucide-react';
 import { allowedMultipliers, buildingUpgradeCost } from '../game/rollRules';
 import { claimableQuests } from '../game/quests';
+import { countClaimableQuests } from '../game/questDispatcher';
 import { ENERGY_REFILL_MS } from '../game/gameSave';
 import { STREAK_REWARDS, useGameStore } from '../store/gameStore';
 import './GameFeel.css';
@@ -24,7 +25,7 @@ export function HUD() {
     autoAdjustMultiplier, districts, currentDistrict, dailyStreak, streakClaimedToday,
     activeModal, claimStreakReward, closeModal, rollDice, cycleMultiplier,
     toggleTurbo, openModal, startAutoRoll, stopAutoRoll, setAutoBatchSize,
-    toggleAutoOkay, toggleAutoAdjust
+    toggleAutoOkay, toggleAutoAdjust, rotationState
   } = useGameStore();
 
   const [showOptions, setShowOptions] = useState(false);
@@ -112,10 +113,12 @@ export function HUD() {
   const nextBuild = buildOptions.find(({ cost }) => coins >= cost.coins && materials >= cost.materials) ?? buildOptions[0];
   const buildReady = !!nextBuild && coins >= nextBuild.cost.coins && materials >= nextBuild.cost.materials;
   const nextMilestone = Math.floor(totalRolls / 5 + 1) * 5;
-  const claimableCount = claimableQuests(
+  const lifetimeClaimableCount = claimableQuests(
     { totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit },
     claimedQuests
   ).length;
+  const rotationClaimableCount = rotationState ? countClaimableQuests(rotationState) : 0;
+  const claimableCount = lifetimeClaimableCount + rotationClaimableCount;
   const canRoll = autoRolling || (!isRolling && energy >= multiplier && !activeModal);
   const maxAffordable = allowedMultipliers(energy).slice(-1)[0] ?? 0;
   const remainingBudget = Math.max(0, autoEnergyBudget - autoEnergySpent);

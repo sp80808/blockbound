@@ -4,9 +4,12 @@ import { HUD } from './components/HUD';
 import { SplashScreen } from './components/SplashScreen';
 import { VaultHeist } from './minigames/heist/VaultHeist';
 import { TownRaid } from './minigames/raid/TownRaid';
-import { districtComplete, questViews } from './game/quests';
+import { districtComplete } from './game/quests';
 import { matchHotkey } from './game/hotkeys';
 import { nextLockedDistrict, useGameStore } from './store/gameStore';
+import { buildingUpgradeCost } from './game/rollRules';
+import { RewardPresentation } from './components/RewardPresentation';
+import { QuestsModal } from './components/QuestsModal';
 
 const CONFETTI_COLORS = ['#fde047', '#f472b6', '#67e8f9', '#a3e635', '#fb923c', '#c4b5fd'];
 
@@ -40,8 +43,8 @@ function Celebration() {
     : celebration.kind === 'doubles3'
       ? { icon: '🎲', title: 'DOUBLES STREAK!', sub: 'Three doubles in a row — the dice love you. Bonus shield earned!' }
       : celebration.kind === 'unlock'
-        ? { icon: '🍬', title: 'CANDY HARBOUR!', sub: 'A whole new district joins your town. Sweet building ahead!' }
-        : { icon: '🏗️', title: 'GRAND MILESTONE!', sub: 'Ten rolls strong! Bonus shield and energy incoming.' };
+        ? { icon: '🏙️', title: 'DISTRICT UNLOCKED!', sub: 'A new corner of the world is ready for your next build.' }
+        : { icon: '🏗️', title: 'GRAND MILESTONE!', sub: 'Another ten rolls built your town. Bonus energy and shield earned.' };
 
   return (
     <div className="bb-celebration" aria-live="polite">
@@ -74,15 +77,8 @@ export default function App() {
     upgradeBuilding, repairBuilding,
     totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit,
     claimedQuests, unlockedDistricts, claimQuest, unlockDistrict, setDistrict,
-    isRolling
+    isRolling, rewardPresentation
   } = useGameStore();
-  const quests = useMemo(
-    () => questViews(
-      { totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit },
-      claimedQuests
-    ),
-    [totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit, claimedQuests]
-  );
   const nextLocked = nextLockedDistrict(districts, unlockedDistricts);
   const nextDef = nextLocked !== null ? districts.find(d => d.id === nextLocked) : undefined;
   const prevDef = nextLocked !== null ? districts.find(d => d.id === nextLocked - 1) : undefined;
@@ -159,10 +155,51 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    window.render_game_to_text = () => {
+      const s = useGameStore.getState();
+      return JSON.stringify({
+        mode: showSplash ? 'splash' : s.rewardPresentation ? 'reward' : s.activeModal ?? (s.isRolling ? 'rolling' : 'board'),
+        coordinates: '32 clockwise perimeter tiles; tile 0 is GO',
+        tile: s.currentTile, visualTile: s.visualTile, lastRoll: s.lastRoll,
+        coins: s.coins, blocks: s.materials, energy: s.energy, shields: s.shields,
+        rolls: s.totalRolls, momentum: s.momentum, autoRolling: s.autoRolling,
+        district: s.districts[s.currentDistrict].name,
+        buildings: s.districts[s.currentDistrict].buildings.map(b => ({ name: b.name, tier: b.tier, damaged: b.damaged })),
+        encounter: s.pendingEncounter, reward: s.rewardPresentation ?? s.pendingReward
+      });
+    };
+    return () => { delete window.render_game_to_text; };
+  }, [showSplash]);
+
+  useEffect(() => {
+    if ((!activeModal && !rewardPresentation) || showSplash) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    if (!dialog) return;
+    const focusable = () => Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]'));
+    (focusable()[0] ?? dialog).focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && activeModal && ['upgrade', 'quests', 'streak'].includes(activeModal)) closeModal();
+      if (event.key !== 'Tab') return;
+      const items = focusable();
+      const first = items[0], last = items[items.length - 1];
+      if (!first) { event.preventDefault(); return; }
+      if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); previous?.focus(); };
+  }, [activeModal, rewardPresentation?.id, showSplash, closeModal]);
+
   const dist = districts[currentDistrict];
 
   return (
-    <div className="bb-shell">
+    <div className="bb-shell" data-district={currentDistrict}>
       {showSplash ? (
         <SplashScreen onFinish={() => setShowSplash(false)} />
       ) : (
@@ -170,6 +207,7 @@ export default function App() {
           <main className="bb-world" aria-label="Interactive 3D board"><VoxelScene /></main>
           <HUD />
           <Celebration />
+          <RewardPresentation />
           {updateReady && (
             <div className="bb-update" role="status">
               <span>✨ A new Blockbound version is ready</span>
@@ -198,7 +236,7 @@ export default function App() {
                 boxSizing: 'border-box'
               }}
             >
-              <div
+              <div role="dialog" aria-modal="true" aria-label="Build your district" className="bb-workshop"
                 onClick={e => e.stopPropagation()}
                 style={{
                   width: '100%',
@@ -252,8 +290,7 @@ export default function App() {
                   </div>
                 )}
                 {dist.buildings.map((b, idx) => {
-                  const cost = Math.floor(b.baseCost * (1 + b.tier * 1.5));
-                  const mats = b.baseMats + b.tier * 2;
+                  const { coins: cost, materials: mats } = buildingUpgradeCost(b);
                   const canAfford = coins >= cost && materials >= mats && b.tier < 4 && !b.damaged;
                   return (
                     <div key={b.id} style={{ background: b.damaged ? '#450a0a' : '#1e293b', padding: '10px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -278,71 +315,8 @@ export default function App() {
             </div>
           )}
 
-          {/* Quest board: progress derived from lifetime counters, one claim each. */}
-          {activeModal === 'quests' && (
-            <div className="bb-streak-scrim" role="presentation" onClick={closeModal}>
-              <div className="bb-streak-dialog" role="dialog" aria-modal="true"
-                aria-label="Quests" onClick={e => e.stopPropagation()}>
-                <div className="bb-streak-heading">
-                  <div><strong>📜 Quests</strong>
-                    <div className="bb-auto-note">Finish goals, claim each reward once.</div>
-                  </div>
-                  <button className="bb-control bb-secondary-action" onClick={closeModal}
-                    aria-label="Close quests">✕</button>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {quests.map(q => (
-                    <div key={q.def.id}
-                      style={{ background: q.state === 'claimed' ? '#185349' : '#283a57',
-                        border: '1px solid ' + (q.state === 'claimable' ? '#f6c35c' : '#5a7293'),
-                        padding: '10px 12px', borderRadius: '12px',
-                        display: 'flex', justifyContent: 'space-between',
-                        alignItems: 'center', gap: 8 }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>
-                          {q.def.icon} {q.def.name}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{q.def.desc}</div>
-                        <div className="bb-progress-track" style={{ marginTop: 6 }}
-                          role="progressbar" aria-label={q.def.name + ' progress'}
-                          aria-valuemin={0} aria-valuemax={q.goal} aria-valuenow={q.have}>
-                          <div className="bb-progress-fill" style={{ width: (q.goal ? 100 * q.have / q.goal : 0) + '%' }} />
-                        </div>
-                        <div style={{ fontSize: '10px', color: '#b6cce2', marginTop: 3 }}>
-                          {q.have}/{q.goal} · 🪙 {q.def.reward.coins.toLocaleString()}
-                          {q.def.reward.materials ? ' · 🧱 ' + q.def.reward.materials : ''}
-                          {q.def.reward.energy ? ' · ⚡ ' + q.def.reward.energy : ''}
-                        </div>
-                      </div>
-                      {q.state === 'claimed' ? (
-                        <span style={{ color: '#6ee7b7', fontWeight: 800, fontSize: '11px' }}>DONE ✓</span>
-                      ) : (
-                        <button className="bb-control" onClick={() => claimQuest(q.def.id)}
-                          disabled={q.state !== 'claimable' || isRolling}
-                          style={{ background: q.state === 'claimable' ? '#f59e0b' : '#475569',
-                            color: q.state === 'claimable' ? '#422006' : '#cbd5e1',
-                            border: 'none', padding: '8px 12px', borderRadius: '10px',
-                            fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                          CLAIM
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: 12 }}>
-                  <div className="bb-micro" style={{ marginBottom: 6, letterSpacing: '.06em' }}>LIFETIME STATS</div>
-                  <div className="bb-mini-tally" style={{ justifyContent: 'space-between' }} aria-label="Lifetime statistics">
-                    <span title="Total dice rolls">🎲 {totalRolls.toLocaleString()}</span>
-                    <span title="Doubles rolled">🍀 {doublesTotal.toLocaleString()}</span>
-                    <span title="Jackpots landed">✨ {jackpotsHit.toLocaleString()}</span>
-                    <span title="Buildings upgraded">🔨 {upgradesBuilt.toLocaleString()}</span>
-                    <span title="Raids and heists completed">⚔️ {(raidsCompleted + heistsCompleted).toLocaleString()}</span>
-                    <span title="Districts unlocked">🗺️ {unlockedDistricts.length}/{districts.length}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Quest board: rotating timed challenges and permanent milestones */}
+          {activeModal === 'quests' && <QuestsModal />}
 
           {/* Optional acknowledgement for players who turn Auto-OK off. */}
           {activeModal === 'reward' && pendingReward && (

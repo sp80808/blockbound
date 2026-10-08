@@ -28,6 +28,12 @@ for (let i = 0; i < 32; i++) {
   TILE_POSITIONS.push([x, 0, z]);
 }
 
+export const liveTokenPosition = new THREE.Vector3(
+  TILE_POSITIONS[0]?.[0] ?? -9.6,
+  0.4,
+  TILE_POSITIONS[0]?.[2] ?? -9.6
+);
+
 const TILE_COLORS: Record<TileKind, string> = {
   go: '#2fbd84',
   'coin-small': '#e9aa3f',
@@ -46,35 +52,44 @@ const TILE_COLORS: Record<TileKind, string> = {
 const IMPORTANT_TILES = new Set<TileKind>(['go', 'raid', 'heist', 'jackpot', 'mystery', 'district']);
 const CORNERS = new Set([0, 8, 16, 24]);
 
+const EVENT_HIGHLIGHTS: Partial<Record<TileKind, string>> = {
+  go: '#b7f7dc',
+  raid: '#ffd1cb',
+  heist: '#ddd2ff',
+  jackpot: '#fff0a8',
+  mystery: '#ffe0b5',
+  district: '#dbe4ff'
+};
+
 function reducedMotion(): boolean {
   return typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-/** Readable 3D glyph per tile kind — 2-3 cheap meshes each. */
+/** Large toy-like silhouettes, kept to a few primitive meshes per tile. */
 function TileGlyph({ kind }: { kind: TileKind }) {
   const disc = (
-    <mesh receiveShadow>
-      <cylinderGeometry args={[0.43, 0.43, 0.1, 12]} />
-      <meshStandardMaterial color="#20314c" roughness={0.58} />
+    <mesh receiveShadow position={[0, 0.02, 0]}>
+      <cylinderGeometry args={[0.68, 0.72, 0.12, 12]} />
+      <meshStandardMaterial color="#20314c" roughness={0.58} metalness={0.08} />
     </mesh>
   );
   switch (kind) {
     case 'go':
       return (
-        <group position={[0, 0.335, 0]}>
+        <group position={[0, 0.34, 0]}>
           {disc}
-          <mesh position={[0, 0.42, 0]} castShadow>
-            <boxGeometry args={[0.12, 0.75, 0.12]} />
+          <mesh position={[-0.28, 0.48, 0]} castShadow>
+            <boxGeometry args={[0.14, 0.9, 0.14]} />
             <meshStandardMaterial color="#e8eef7" roughness={0.5} />
           </mesh>
-          <mesh position={[0.3, 0.62, 0]}>
-            <boxGeometry args={[0.5, 0.3, 0.06]} />
+          <mesh position={[0.14, 0.68, 0]} castShadow>
+            <boxGeometry args={[0.68, 0.4, 0.11]} />
             <meshStandardMaterial color="#10b981" roughness={0.5} />
           </mesh>
-          <mesh position={[0.3, 0.62, 0.045]}>
-            <boxGeometry args={[0.12, 0.3, 0.02]} />
+          <mesh position={[0.14, 0.68, 0.065]}>
+            <boxGeometry args={[0.15, 0.4, 0.03]} />
             <meshStandardMaterial color="#ffffff" roughness={0.5} />
           </mesh>
         </group>
@@ -84,12 +99,12 @@ function TileGlyph({ kind }: { kind: TileKind }) {
     case 'coin-large': {
       const stacks = kind === 'coin-small' ? 1 : kind === 'coin-medium' ? 2 : 3;
       return (
-        <group position={[0, 0.335, 0]}>
+        <group position={[0, 0.34, 0]}>
           {disc}
           {Array.from({ length: stacks }, (_, i) => (
-            <mesh key={i} position={[(i - (stacks - 1) / 2) * 0.34, 0.16, 0]} castShadow>
-              <cylinderGeometry args={[0.14, 0.14, kind === 'coin-large' ? 0.3 : 0.2, 10]} />
-              <meshStandardMaterial color="#fbbf24" metalness={0.45} roughness={0.3} />
+            <mesh key={i} position={[(i - (stacks - 1) / 2) * 0.42, 0.24 + i * 0.09, 0]} castShadow>
+              <cylinderGeometry args={[0.27, 0.27, 0.22, 12]} />
+              <meshStandardMaterial color="#ffd66e" emissive="#76501d" emissiveIntensity={0.16} metalness={0.45} roughness={0.3} />
             </mesh>
           ))}
         </group>
@@ -97,106 +112,130 @@ function TileGlyph({ kind }: { kind: TileKind }) {
     }
     case 'materials':
       return (
-        <group position={[0, 0.335, 0]}>
+        <group position={[0, 0.34, 0]}>
           {disc}
-          <mesh position={[-0.14, 0.13, 0]} castShadow>
-            <boxGeometry args={[0.3, 0.2, 0.3]} />
-            <meshStandardMaterial color="#f472b6" roughness={0.6} />
+          <mesh position={[-0.25, 0.25, 0.13]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <boxGeometry args={[0.45, 0.38, 0.45]} />
+            <meshStandardMaterial color="#e28155" roughness={0.6} />
           </mesh>
-          <mesh position={[0.16, 0.28, 0.05]} castShadow>
-            <boxGeometry args={[0.3, 0.2, 0.3]} />
-            <meshStandardMaterial color="#fb9ec9" roughness={0.6} />
+          <mesh position={[0.22, 0.25, 0.08]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <boxGeometry args={[0.45, 0.38, 0.45]} />
+            <meshStandardMaterial color="#cb674f" roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 0.58, -0.1]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <boxGeometry args={[0.45, 0.38, 0.45]} />
+            <meshStandardMaterial color="#ffd58d" roughness={0.55} />
           </mesh>
         </group>
       );
     case 'shield':
       return (
-        <group position={[0, 0.335, 0]}>
+        <group position={[0, 0.34, 0]}>
           {disc}
-          <mesh position={[0, 0.3, 0]} castShadow>
-            <octahedronGeometry args={[0.3]} />
-            <meshStandardMaterial color="#06b6d4" emissive="#0e7490" emissiveIntensity={0.45} roughness={0.3} />
+          <mesh position={[0, 0.38, 0]} scale={[1, 1.15, 0.35]} castShadow>
+            <octahedronGeometry args={[0.48]} />
+            <meshStandardMaterial color="#78d4df" emissive="#3e91b9" emissiveIntensity={0.35} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, 0.39, 0.18]}>
+            <boxGeometry args={[0.12, 0.54, 0.06]} />
+            <meshStandardMaterial color="#e9ffff" roughness={0.4} />
+          </mesh>
+          <mesh position={[0, 0.39, 0.18]}>
+            <boxGeometry args={[0.5, 0.12, 0.06]} />
+            <meshStandardMaterial color="#e9ffff" roughness={0.4} />
           </mesh>
         </group>
       );
     case 'energy':
       return (
-        <group position={[0, 0.335, 0]}>
+        <group position={[0, 0.34, 0]}>
           {disc}
-          <mesh position={[0, 0.32, 0]} castShadow>
-            <coneGeometry args={[0.24, 0.5, 4]} />
-            <meshStandardMaterial color="#fde047" emissive="#a16207" emissiveIntensity={0.4} flatShading />
+          <mesh position={[-0.13, 0.48, 0]} rotation={[0, 0, -0.55]} castShadow>
+            <boxGeometry args={[0.26, 0.65, 0.24]} />
+            <meshStandardMaterial color="#fff099" emissive="#f2b928" emissiveIntensity={0.45} roughness={0.32} />
+          </mesh>
+          <mesh position={[0.16, 0.22, 0]} rotation={[0, 0, -0.55]} castShadow>
+            <coneGeometry args={[0.25, 0.52, 4]} />
+            <meshStandardMaterial color="#f2b928" emissive="#a16207" emissiveIntensity={0.35} flatShading />
           </mesh>
         </group>
       );
     case 'raid':
       return (
-        <group position={[0, 0.335, 0]}>
+        <group position={[0, 0.34, 0]}>
           {disc}
-          <mesh rotation={[0, 0, Math.PI / 4]} position={[0, 0.24, 0]} castShadow>
-            <boxGeometry args={[0.62, 0.12, 0.12]} />
-            <meshStandardMaterial color="#ef4444" roughness={0.5} />
+          <mesh rotation={[0, 0, Math.PI / 4]} position={[0, 0.38, 0]} castShadow>
+            <boxGeometry args={[0.9, 0.18, 0.18]} />
+            <meshStandardMaterial color="#f8fafc" metalness={0.3} roughness={0.4} />
           </mesh>
-          <mesh rotation={[0, 0, -Math.PI / 4]} position={[0, 0.24, 0]} castShadow>
-            <boxGeometry args={[0.62, 0.12, 0.12]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.5} />
+          <mesh rotation={[0, 0, -Math.PI / 4]} position={[0, 0.38, 0]} castShadow>
+            <boxGeometry args={[0.9, 0.18, 0.18]} />
+            <meshStandardMaterial color="#ef4444" roughness={0.5} />
           </mesh>
         </group>
       );
     case 'heist':
       return (
-        <group position={[0, 0.335, 0]}>
+        <group position={[0, 0.34, 0]}>
           {disc}
-          <mesh position={[0, 0.26, 0]} castShadow>
-            <boxGeometry args={[0.5, 0.42, 0.28]} />
+          <mesh position={[0, 0.36, 0]} castShadow>
+            <boxGeometry args={[0.78, 0.62, 0.5]} />
             <meshStandardMaterial color="#8b5cf6" roughness={0.45} metalness={0.25} />
           </mesh>
-          <mesh position={[0, 0.26, 0.16]}>
-            <cylinderGeometry args={[0.09, 0.09, 0.06, 10]} />
+          <mesh position={[0, 0.37, 0.28]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.16, 0.16, 0.07, 12]} />
             <meshStandardMaterial color="#fde68a" metalness={0.6} roughness={0.3} />
           </mesh>
         </group>
       );
     case 'mystery':
       return (
-        <group position={[0, 0.335, 0]}>
+        <group position={[0, 0.34, 0]}>
           {disc}
-          <mesh position={[0, 0.22, 0]} castShadow>
-            <boxGeometry args={[0.44, 0.34, 0.44]} />
+          <mesh position={[0, 0.34, 0]} castShadow>
+            <boxGeometry args={[0.72, 0.58, 0.62]} />
             <meshStandardMaterial color="#f97316" roughness={0.55} />
           </mesh>
-          <mesh position={[0, 0.4, 0]}>
-            <boxGeometry args={[0.5, 0.1, 0.5]} />
+          <mesh position={[0, 0.67, 0]}>
+            <boxGeometry args={[0.82, 0.14, 0.7]} />
+            <meshStandardMaterial color="#fef3c7" roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.35, 0.33]}>
+            <boxGeometry args={[0.14, 0.58, 0.05]} />
             <meshStandardMaterial color="#fef3c7" roughness={0.5} />
           </mesh>
         </group>
       );
     case 'district':
       return (
-        <group position={[0, 0.335, 0]}>
+        <group position={[0, 0.34, 0]}>
           {disc}
-          <mesh position={[0, 0.2, 0]} castShadow>
-            <boxGeometry args={[0.44, 0.3, 0.4]} />
+          <mesh position={[0, 0.32, 0]} castShadow>
+            <boxGeometry args={[0.72, 0.54, 0.64]} />
             <meshStandardMaterial color="#e2e8f0" roughness={0.6} />
           </mesh>
-          <mesh position={[0, 0.44, 0]}>
-            <coneGeometry args={[0.36, 0.26, 4]} />
+          <mesh position={[0, 0.68, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.58, 0.44, 4]} />
             <meshStandardMaterial color="#6366f1" roughness={0.55} flatShading />
           </mesh>
         </group>
       );
     case 'jackpot':
       return (
-        <group position={[0, 0.335, 0]}>
+        <group position={[0, 0.34, 0]}>
           {disc}
-          <mesh position={[0, 0.34, 0]} castShadow>
-            <octahedronGeometry args={[0.32]} />
+          <mesh position={[0, 0.42, 0]} castShadow>
+            <octahedronGeometry args={[0.52]} />
             <meshStandardMaterial color="#fde047" emissive="#b45309" emissiveIntensity={0.55} flatShading />
+          </mesh>
+          <mesh position={[0, 0.4, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.56, 0.07, 8, 16]} />
+            <meshStandardMaterial color="#fff7c2" emissive="#b45309" emissiveIntensity={0.3} />
           </mesh>
         </group>
       );
     default:
-      return <group position={[0, 0.335, 0]}>{disc}</group>;
+      return <group position={[0, 0.34, 0]}>{disc}</group>;
   }
 }
 
@@ -336,19 +375,21 @@ function VoxelBoard() {
             {IMPORTANT_TILES.has(kind) && (
               <mesh position={[0, 0.235, 0]}>
                 <boxGeometry args={[1.83, 0.05, 1.83]} />
-                <meshStandardMaterial color={kind === 'jackpot' ? '#fef08a' : '#e6eeff'} transparent opacity={0.35} />
+                <meshStandardMaterial color={EVENT_HIGHLIGHTS[kind] ?? '#e6eeff'} emissive={TILE_COLORS[kind]} emissiveIntensity={0.12} transparent opacity={0.58} />
               </mesh>
             )}
             <TileGlyph kind={kind} />
             {isCorner && (
-              <mesh position={[0, 1.35, 0]} castShadow>
-                <boxGeometry args={[0.22, 1.1, 0.22]} />
-                <meshStandardMaterial
-                  color={kind === 'jackpot' ? '#fde047' : kind === 'go' ? '#34d399' : '#f8fafc'}
-                  emissive={kind === 'jackpot' ? '#b45309' : '#000000'}
-                  emissiveIntensity={kind === 'jackpot' ? 0.5 : 0}
-                />
-              </mesh>
+              <group position={[0.78, 0.75, -0.78]}>
+                <mesh castShadow>
+                  <cylinderGeometry args={[0.13, 0.18, 0.9, 8]} />
+                  <meshStandardMaterial color="#263956" roughness={0.5} />
+                </mesh>
+                <mesh position={[0, 0.55, 0]} castShadow>
+                  <octahedronGeometry args={[0.25]} />
+                  <meshStandardMaterial color={EVENT_HIGHLIGHTS[kind] ?? '#f8fafc'} emissive={TILE_COLORS[kind]} emissiveIntensity={0.45} roughness={0.35} />
+                </mesh>
+              </group>
             )}
             {isCurrent && !isRolling && <ActiveTileBeacon />}
           </group>
@@ -378,18 +419,24 @@ function TokenCharacter() {
     const dz = targetPos[2] - token.position.z;
     const distance = Math.hypot(dx, dz);
     const calm = reducedMotion();
-    const easing = calm ? 1 : 1 - Math.exp(-13 * delta);
+    const easing = calm ? 1 : 1 - Math.exp(-14 * delta);
     token.position.x = THREE.MathUtils.lerp(token.position.x, targetPos[0], easing);
     token.position.z = THREE.MathUtils.lerp(token.position.z, targetPos[2], easing);
     if (distance > 0.05) {
-      token.rotation.y = Math.atan2(dx, dz);
+      const targetRot = Math.atan2(dx, dz);
+      let diff = (targetRot - token.rotation.y) % (Math.PI * 2);
+      if (diff < -Math.PI) diff += Math.PI * 2;
+      if (diff > Math.PI) diff -= Math.PI * 2;
+      token.rotation.y += diff * (calm ? 1 : 1 - Math.exp(-15 * delta));
     }
-    const hop = calm || distance <= 0.08 ? 0 : Math.abs(Math.sin(clock.elapsedTime * 18)) * 0.4;
-    token.position.y = 0.4 + hop;
+    const isMoving = distance > 0.08;
+    const targetHop = calm || !isMoving ? 0 : Math.abs(Math.sin(clock.elapsedTime * 14)) * 0.42;
+    token.position.y = THREE.MathUtils.damp(token.position.y, 0.4 + targetHop, 18, delta);
     if (bodyRef.current && !calm) {
-      const squash = distance > 0.08 ? 1 + Math.sin(clock.elapsedTime * 18) * 0.04 : 1;
-      bodyRef.current.scale.set(1, squash, 1);
+      const targetSquash = isMoving ? 1 + Math.sin(clock.elapsedTime * 14) * 0.05 : 1;
+      bodyRef.current.scale.y = THREE.MathUtils.damp(bodyRef.current.scale.y, targetSquash, 18, delta);
     }
+    liveTokenPosition.copy(token.position);
   });
 
   return (
@@ -982,40 +1029,104 @@ function PhysicalDice() {
   );
 }
 
-// Keep the cinematic dice-focus and token-follow states introduced on main.
-// Orbit controls are disabled only during the brief scripted focus.
-function CinematicCamera() {
+const OVERVIEW_POS = new THREE.Vector3(26, 34, 26);
+const OVERVIEW_TARGET = new THREE.Vector3(0, 0, 0);
+
+// Cinematic camera gently frames dice and follows the token along the board,
+// smoothly gliding between states and easing back to overview without snap cuts.
+function CinematicCamera({ controlsRef }: { controlsRef?: React.RefObject<any> }) {
   const mode = useGameStore(s => s.cameraMode);
-  const tile = useGameStore(s => s.visualTile);
   const { camera, size } = useThree();
   const destination = useRef(new THREE.Vector3(0, 0, 0));
+  const isSettled = useRef(true);
+
   useEffect(() => {
-    if (mode !== 'OVERVIEW' || !(camera instanceof THREE.OrthographicCamera)) return;
-    camera.position.set(26, 34, 26);
-    camera.lookAt(0, 0, 0);
-    camera.zoom = Math.max(5.5, Math.min(size.width / 33.5, size.height / 24));
-    camera.updateProjectionMatrix();
-    destination.current.set(0, 0, 0);
+    if (!(camera instanceof THREE.OrthographicCamera)) return;
+    if (mode === 'OVERVIEW' && isSettled.current) {
+      camera.zoom = Math.max(5.5, Math.min(size.width / 33.5, size.height / 24));
+      camera.updateProjectionMatrix();
+    }
   }, [camera, mode, size.width, size.height]);
 
   useFrame((_, delta) => {
     if (!(camera instanceof THREE.OrthographicCamera)) return;
-    if (mode === 'OVERVIEW') return;
-    const settle = reducedMotion() ? 1 : 1 - Math.exp(-8 * delta);
-    const target = mode === 'DICE_FOCUS'
-      ? new THREE.Vector3(0, 2, 0)
-      : new THREE.Vector3(...(TILE_POSITIONS[tile] || [0, 0, 0]));
-    destination.current.lerp(target, settle);
-    const offset = mode === 'DICE_FOCUS'
-      ? new THREE.Vector3(11, 15, 11)
-      : new THREE.Vector3(17, 22, 17);
-    camera.position.lerp(target.clone().add(offset), settle);
-    camera.lookAt(destination.current);
+
     const baseZoom = Math.max(5.5, Math.min(size.width / 33.5, size.height / 24));
-    const focusZoom = mode === 'DICE_FOCUS' ? Math.min(baseZoom * 1.6, 28) : Math.min(baseZoom * 1.12, 24);
-    camera.zoom = reducedMotion() ? focusZoom : THREE.MathUtils.damp(camera.zoom, focusZoom, 8, delta);
+    let targetPos: THREE.Vector3;
+    let targetLookAt: THREE.Vector3;
+    let targetZoom: number;
+    let dampSpeed: number;
+
+    if (mode === 'DICE_FOCUS') {
+      isSettled.current = false;
+      targetLookAt = new THREE.Vector3(0, 1.2, 0);
+      targetPos = new THREE.Vector3(22, 28, 22);
+      targetZoom = Math.min(baseZoom * 1.22, 22);
+      dampSpeed = 5;
+    } else if (mode === 'TOKEN_FOLLOW') {
+      isSettled.current = false;
+      // Gentle framing bias (28% towards token) keeps the diorama anchored
+      // while smoothly tracking player progress along the perimeter.
+      const bias = 0.28;
+      targetLookAt = new THREE.Vector3(
+        liveTokenPosition.x * bias,
+        0,
+        liveTokenPosition.z * bias
+      );
+      targetPos = OVERVIEW_POS.clone().add(targetLookAt);
+      targetZoom = Math.min(baseZoom * 1.08, 20);
+      dampSpeed = 4.5;
+    } else {
+      // OVERVIEW mode: smoothly glide back if not yet settled
+      targetLookAt = OVERVIEW_TARGET;
+      targetPos = OVERVIEW_POS;
+      targetZoom = baseZoom;
+      dampSpeed = 4;
+    }
+
+    const calm = reducedMotion();
+    if (calm) {
+      destination.current.copy(targetLookAt);
+      camera.position.copy(targetPos);
+      camera.zoom = targetZoom;
+      camera.lookAt(destination.current);
+      camera.updateProjectionMatrix();
+      isSettled.current = true;
+      if (controlsRef?.current) controlsRef.current.enabled = true;
+      return;
+    }
+
+    if (mode === 'OVERVIEW' && isSettled.current) {
+      if (controlsRef?.current) controlsRef.current.enabled = true;
+      return;
+    }
+
+    if (controlsRef?.current) controlsRef.current.enabled = false;
+
+    const settle = 1 - Math.exp(-dampSpeed * delta);
+    destination.current.lerp(targetLookAt, settle);
+    camera.position.lerp(targetPos, settle);
+    camera.lookAt(destination.current);
+
+    camera.zoom = THREE.MathUtils.damp(camera.zoom, targetZoom, dampSpeed, delta);
     camera.updateProjectionMatrix();
+
+    if (mode === 'OVERVIEW') {
+      const posDist = camera.position.distanceTo(OVERVIEW_POS);
+      const lookDist = destination.current.distanceTo(OVERVIEW_TARGET);
+      const zoomDiff = Math.abs(camera.zoom - targetZoom);
+      if (posDist < 0.05 && lookDist < 0.05 && zoomDiff < 0.05) {
+        camera.position.copy(OVERVIEW_POS);
+        destination.current.copy(OVERVIEW_TARGET);
+        camera.zoom = targetZoom;
+        camera.lookAt(destination.current);
+        camera.updateProjectionMatrix();
+        isSettled.current = true;
+        if (controlsRef?.current) controlsRef.current.enabled = true;
+      }
+    }
   });
+
   return null;
 }
 
@@ -1032,6 +1143,7 @@ function CameraFit() {
 
 export function VoxelScene() {
   const mode = useGameStore(s => s.cameraMode);
+  const controlsRef = useRef<any>(null);
   return (
     <Canvas
       shadows
@@ -1041,7 +1153,7 @@ export function VoxelScene() {
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', touchAction: 'none' }}
     >
       <CameraFit />
-      <CinematicCamera />
+      <CinematicCamera controlsRef={controlsRef} />
       <fog attach="fog" args={['#101f3a', 55, 120]} />
       <ambientLight intensity={0.85} />
       <hemisphereLight args={['#ddf5ff', '#496b5a', 0.62]} />
@@ -1060,6 +1172,7 @@ export function VoxelScene() {
       <Clouds />
       <PhysicalDice />
       <OrbitControls
+        ref={controlsRef}
         enabled={mode === 'OVERVIEW'}
         target={[0, 0, 0]}
         enablePan={false}

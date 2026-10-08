@@ -104,7 +104,6 @@ export function checkAndTurnoverWindows(
   // Prevent time travel backwards
   const safeTime = Math.max(state.lastSeenTimestamp, currentTimestamp);
 
-  let anyTurnover = false;
   let collectedCoins = 0;
   let collectedMats = 0;
   let collectedEnergy = 0;
@@ -116,7 +115,6 @@ export function checkAndTurnoverWindows(
     const targetWinId = getWindowId(cadence, safeTime);
 
     if (!currentWin || targetWinId > currentWin.windowId) {
-      anyTurnover = true;
 
       // Auto-collect completed, unclaimed quests in the old window
       if (currentWin) {

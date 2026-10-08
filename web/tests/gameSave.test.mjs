@@ -11,7 +11,7 @@ const compiled = ts.transpileModule(readFileSync(path, 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
 });
 const saves = {};
-runInNewContext(compiled.outputText, { exports: saves, Date, JSON, Number, Math }, { timeout: 1000 });
+runInNewContext(compiled.outputText, { exports: saves, Date, JSON, Number, Math, Array, String, Set }, { timeout: 1000 });
 
 const startTime = Date.parse('2026-10-08T12:00:00.000Z');
 const defaults = () => ({

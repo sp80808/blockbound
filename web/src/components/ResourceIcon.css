@@ -1,0 +1,13 @@
+.bb-resource-icon { width:1.35em; height:1.35em; overflow:visible; vertical-align:-.22em; filter:drop-shadow(0 .12em .08em #07102066); }
+.bb-resource-icon--coins { fill:#d89b28; }
+.bb-resource-icon--coins .bb-icon-detail { fill:#ffd66e; }
+.bb-resource-icon--coins .bb-icon-mark { fill:#76501d; }
+.bb-resource-icon--materials { fill:#f0a45f; }
+.bb-resource-icon--materials .bb-icon-detail { fill:#cb674f; }
+.bb-resource-icon--materials .bb-icon-side { fill:#e28155; }
+.bb-resource-icon--materials .bb-icon-mark { fill:#ffd58d; }
+.bb-resource-icon--energy { fill:#f2b928; }
+.bb-resource-icon--energy .bb-icon-detail { fill:#fff099; }
+.bb-resource-icon--shields { fill:#3e91b9; }
+.bb-resource-icon--shields .bb-icon-detail { fill:#78d4df; }
+.bb-resource-icon--shields .bb-icon-mark { fill:#e9ffff; }
