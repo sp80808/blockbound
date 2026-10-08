@@ -164,3 +164,36 @@ test('day-seven reward cycle restarts at day one', () => {
   const restored = saves.restoreProgress(state, defaults(), startTime);
   assert.equal(restored.dailyStreak, 1);
 });
+
+test('saves without rotationState are safely upgraded without breaking', () => {
+  const legacy = defaults();
+  delete legacy.rotationState;
+  const restored = saves.restoreProgress(legacy, defaults(), startTime);
+  assert.equal(restored.rotationState, null);
+  assert.equal(restored.coins, legacy.coins);
+});
+
+test('round-trip preserves rotationState windows, quest progress and claims', () => {
+  const state = defaults();
+  state.rotationState = {
+    lastSeenTimestamp: startTime,
+    windows: {
+      flash: {
+        windowId: 10,
+        quests: [{
+          id: 'q_f_1', templateId: 't1', cadence: 'flash', windowId: 10,
+          title: 'Speedy', icon: '⚡', desc: 'Roll 5', actionType: 'roll',
+          current: 3, goal: 5, claimed: false, reward: { coins: 1000, materials: 1, energy: 2 }
+        }]
+      },
+      daily: { windowId: 5, quests: [] },
+      weekly: { windowId: 1, quests: [] }
+    }
+  };
+  const encoded = saves.encodeSave(state, startTime);
+  const restored = saves.decodeSave(encoded, defaults(), startTime);
+  assert.ok(restored?.rotationState);
+  assert.equal(restored.rotationState.windows.flash.windowId, 10);
+  assert.equal(restored.rotationState.windows.flash.quests[0].current, 3);
+});
+

@@ -8,6 +8,8 @@ export const SAVE_BACKUP_KEY = 'blockbound:web:save:invalid-backup';
 export const SAVE_VERSION = 1;
 export const ENERGY_REFILL_MS = 45_000;
 
+import type { RotationState } from './questDispatcher';
+
 export interface SavedBuilding { id: string; tier: number; damaged: boolean }
 export interface SavedDistrict { id: number; buildings: SavedBuilding[] }
 export interface SavedRoll { id: number; die1: number; die2: number; total: number; multiplier: number; doubles: boolean }
@@ -30,6 +32,7 @@ export interface ProgressSnapshot {
   pendingEncounter: SavedEncounter | null; pendingReward: SavedReward | null;
   autoOkay: boolean; autoAdjustMultiplier: boolean; autoBatchSize: 5 | 10 | 25;
   isTurbo: boolean; energyUpdatedAt: number;
+  rotationState?: RotationState | null;
 }
 
 type SaveEnvelope = { version: number; savedAt: number; progress: ProgressSnapshot };
@@ -117,6 +120,62 @@ function checkedReward(value: unknown): SavedReward | null {
   return { title: r.title, detail: r.detail };
 }
 
+function checkedRotationState(value: unknown, now: number): RotationState | null {
+  const r = object(value);
+  if (!r) return null;
+  const lastSeen = numberIn(r.lastSeenTimestamp, now, 0, Number.MAX_SAFE_INTEGER);
+  const windowsObj = object(r.windows);
+  if (!windowsObj) return null;
+
+  const validCadences = ['flash', 'daily', 'weekly'] as const;
+  const windows: any = {};
+
+  for (const cad of validCadences) {
+    const win = object(windowsObj[cad]);
+    if (!win) return null;
+    const windowId = numberIn(win.windowId, -1, 0, 100_000_000);
+    if (windowId < 0 || !Array.isArray(win.quests)) return null;
+
+    const quests: any[] = [];
+    for (const qRaw of win.quests) {
+      const q = object(qRaw);
+      if (!q) continue;
+      if (typeof q.id !== 'string' || typeof q.templateId !== 'string' ||
+          typeof q.title !== 'string' || typeof q.desc !== 'string' ||
+          typeof q.actionType !== 'string' || typeof q.icon !== 'string') continue;
+      const current = numberIn(q.current, 0, 0, 100_000_000);
+      const goal = numberIn(q.goal, 1, 1, 100_000_000);
+      const claimed = bool(q.claimed, false);
+      const rew = object(q.reward);
+      const reward = {
+        coins: numberIn(rew?.coins, 0, 0, 100_000_000),
+        materials: numberIn(rew?.materials, 0, 0, 100_000_000),
+        energy: numberIn(rew?.energy, 0, 0, 100)
+      };
+      quests.push({
+        id: q.id,
+        templateId: q.templateId,
+        cadence: cad,
+        windowId,
+        title: q.title.slice(0, 48),
+        icon: q.icon.slice(0, 8),
+        desc: q.desc.slice(0, 128),
+        actionType: q.actionType,
+        current,
+        goal,
+        claimed,
+        reward
+      });
+    }
+    windows[cad] = { windowId, quests };
+  }
+
+  return {
+    lastSeenTimestamp: Math.min(lastSeen, now),
+    windows
+  };
+}
+
 /** Pure validation and hydration; neither function reads the browser's storage. */
 export function restoreProgress(raw: unknown, defaults: ProgressSnapshot, now: number): ProgressSnapshot {
   const source = object(raw);
@@ -193,7 +252,8 @@ export function restoreProgress(raw: unknown, defaults: ProgressSnapshot, now: n
     autoBatchSize: source.autoBatchSize === 5 || source.autoBatchSize === 10 || source.autoBatchSize === 25
       ? source.autoBatchSize : 5,
     isTurbo: bool(source.isTurbo, defaults.isTurbo),
-    energyUpdatedAt
+    energyUpdatedAt,
+    rotationState: checkedRotationState(source.rotationState, now) ?? defaults.rotationState ?? null
   };
   result = refreshStreak(result, now);
   const filled = refillEnergy(result.energy, cap, result.energyUpdatedAt, now);
