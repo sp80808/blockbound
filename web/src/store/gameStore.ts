@@ -83,6 +83,7 @@ export interface GameState {
   visualTile: number;
   multiplier: number;
   isRolling: boolean;
+  isDiceAnimating: boolean;
   isTurbo: boolean;
   currentDistrict: number;
   districts: District[];
@@ -198,6 +199,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   visualTile: 0,
   multiplier: 1,
   isRolling: false,
+  isDiceAnimating: false,
   isTurbo: false,
   currentDistrict: 0,
   districts: initialDistricts,
@@ -240,7 +242,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }));
     set({
       ...restored, districts, visualTile: restored.currentTile,
-      isRolling: false, cameraMode: 'OVERVIEW', dicePopup: null,
+      isRolling: false, isDiceAnimating: false, cameraMode: 'OVERVIEW', dicePopup: null,
       autoRolling: false, autoRollsRemaining: 0, autoEnergyBudget: 0, autoEnergySpent: 0,
       activeModal: restored.pendingEncounter ? 'encounter' : restored.pendingReward ? 'reward' : null,
       toast: null, hydrated: true
@@ -398,7 +400,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const anchor = s.energy === s.maxEnergy ? now : s.energyUpdatedAt;
 
     set({
-      isRolling: true, lastRoll: roll,
+      isRolling: true, isDiceAnimating: true, lastRoll: roll,
       cameraMode: 'DICE_FOCUS', dicePopup: null, toast: null,
       currentTile: destination, visualTile: s.currentTile,
       coins: s.coins + landing.coins,
@@ -419,7 +421,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     setTimeout(() => {
       if (get().lastRoll?.id !== id) return;
-      set({ cameraMode: 'TOKEN_FOLLOW',
+      set({ isDiceAnimating: false, cameraMode: 'TOKEN_FOLLOW',
         dicePopup: { d1: die1, d2: die2, total, isDoubles: doubles } });
 
       function animateStep(index: number): void {
@@ -433,7 +435,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Closing the tab while animating restores a finished roll, never a half-roll.
         const latest = get();
         set({
-          isRolling: false, visualTile: destination,
+          isRolling: false, isDiceAnimating: false, visualTile: destination,
           cameraMode: 'OVERVIEW', dicePopup: null,
           activeModal: latest.pendingEncounter ? 'encounter' :
             latest.pendingReward ? 'reward' : null
