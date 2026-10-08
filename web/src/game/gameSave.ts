@@ -4,6 +4,7 @@
  * The loader restores only known IDs and bounded primitive values.
  */
 export const SAVE_KEY = 'blockbound:web:save:v1';
+export const SAVE_BACKUP_KEY = 'blockbound:web:save:invalid-backup';
 export const SAVE_VERSION = 1;
 export const ENERGY_REFILL_MS = 45_000;
 
@@ -192,12 +193,27 @@ export function loadFromStorage(defaults: ProgressSnapshot, now = Date.now()): P
   try {
     if (typeof localStorage === 'undefined') return null;
     const raw = localStorage.getItem(SAVE_KEY);
-    return raw === null ? null : decodeSave(raw, defaults, now);
+    if (raw === null) return null;
+    const decoded = decodeSave(raw, defaults, now);
+    if (decoded === null) {
+      // A future-version, corrupt or truncated save must remain recoverable for
+      // manual inspection. Do not overwrite the single backup once created.
+      if (localStorage.getItem(SAVE_BACKUP_KEY) === null) {
+        localStorage.setItem(SAVE_BACKUP_KEY, raw);
+      }
+    }
+    return decoded;
   } catch { return null; }
 }
 export function saveToStorage(progress: ProgressSnapshot, now = Date.now()): boolean {
   try {
     if (typeof localStorage === 'undefined') return false;
+    const existing = localStorage.getItem(SAVE_KEY);
+    if (existing !== null && decodeSave(existing, progress, now) === null &&
+        localStorage.getItem(SAVE_BACKUP_KEY) === null) {
+      // Refuse to overwrite invalid progress if no backup can be made.
+      localStorage.setItem(SAVE_BACKUP_KEY, existing);
+    }
     localStorage.setItem(SAVE_KEY, encodeSave(progress, now));
     return true;
   } catch { return false; }
