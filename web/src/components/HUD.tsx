@@ -1,248 +1,285 @@
-import React from 'react';
-import { useGameStore, STREAK_REWARDS } from '../store/gameStore';
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
+import { allowedMultipliers } from '../game/rollRules';
+import { STREAK_REWARDS, useGameStore } from '../store/gameStore';
+import './GameFeel.css';
+
+/** One physical affordance for tap-roll, hold-to-auto, and tap-to-stop.
+ * A long hold never produces a second click-roll on release.
+ * An explicit Auto button in Options ensures keyboard/switch users can use auto-play.
+ */
+const HOLD_TO_AUTO_MS = 540;
+const DRAG_TOLERANCE_PX = 12;
 
 export function HUD() {
   const {
-    coins,
-    materials,
-    energy,
-    maxEnergy,
-    shields,
-    maxShields,
-    multiplier,
-    isRolling,
-    isTurbo,
-    toast,
-    dailyStreak,
-    streakClaimedToday,
-    dicePopup,
-    activeModal,
-    rollDice,
-    cycleMultiplier,
-    toggleTurbo,
-    openModal,
-    closeModal,
-    claimStreakReward
+    coins, materials, energy, maxEnergy, shields, maxShields, multiplier,
+    isRolling, isTurbo, toast, lastRoll, momentum, autoRolling, autoBatchSize,
+    autoRollsRemaining, autoEnergyBudget, autoEnergySpent, autoOkay,
+    autoAdjustMultiplier, districts, currentDistrict, dailyStreak, streakClaimedToday,
+    activeModal, claimStreakReward, closeModal, rollDice, cycleMultiplier,
+    toggleTurbo, openModal, startAutoRoll, stopAutoRoll, setAutoBatchSize,
+    toggleAutoOkay, toggleAutoAdjust
   } = useGameStore();
 
+  const [showOptions, setShowOptions] = useState(false);
+  const [showRollSummary, setShowRollSummary] = useState(false);
+  const [isHolding, setIsHolding] = useState(false);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdOrigin = useRef<{ x: number; y: number; id: number } | null>(null);
+  const heldAt = useRef(0);
+
+  useEffect(() => {
+    if (!lastRoll) return;
+    setShowRollSummary(true);
+    const timer = window.setTimeout(() => setShowRollSummary(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, [lastRoll?.id]);
+
+  const clearHold = () => {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+    holdOrigin.current = null;
+    setIsHolding(false);
+  };
+  useEffect(() => () => {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+  }, []);
+
+  const beginHold = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0 || autoRolling || isRolling || energy < multiplier || activeModal) return;
+    clearHold();
+    holdOrigin.current = { x: event.clientX, y: event.clientY, id: event.pointerId };
+    setIsHolding(true);
+    holdTimer.current = setTimeout(() => {
+      holdTimer.current = null;
+      const state = useGameStore.getState();
+      if (!state.isRolling && !state.autoRolling && !state.activeModal) {
+        heldAt.current = Date.now();
+        state.startAutoRoll();
+      }
+      setIsHolding(false);
+    }, HOLD_TO_AUTO_MS);
+  };
+  const trackHold = (event: PointerEvent<HTMLButtonElement>) => {
+    const origin = holdOrigin.current;
+    if (origin && origin.id === event.pointerId &&
+      Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > DRAG_TOLERANCE_PX) {
+      clearHold();
+    }
+  };
+  const clickRoll = (event: MouseEvent<HTMLButtonElement>) => {
+    // The native click following a long pointer hold must not roll or stop auto.
+    if (Date.now() - heldAt.current < 1100 && event.detail !== 0) return;
+    if (autoRolling) stopAutoRoll();
+    else if (!isRolling && energy >= multiplier) rollDice();
+  };
+  const interruptAutoForOtherTouch = (event: PointerEvent<HTMLDivElement>) => {
+    if (!useGameStore.getState().autoRolling) return;
+    const target = event.target;
+    if (target instanceof Element && !target.closest('[data-roll-trigger]')) stopAutoRoll();
+  };
+  const stopAutoForOtherAction = (event: MouseEvent<HTMLDivElement>) => {
+    if (!useGameStore.getState().autoRolling) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest('button');
+    if (button && !button.hasAttribute('data-roll-trigger')) stopAutoRoll();
+  };
+
+  const district = districts[currentDistrict];
+  const completed = district?.buildings.reduce((sum, b) => sum + b.tier, 0) ?? 0;
+  const total = (district?.buildings.length ?? 0) * 4;
+  const progress = total > 0 ? (completed / total) * 100 : 0;
+  const canRoll = autoRolling || (!isRolling && energy >= multiplier && !activeModal);
+  const maxAffordable = allowedMultipliers(energy).slice(-1)[0] ?? 0;
+  const remainingBudget = Math.max(0, autoEnergyBudget - autoEnergySpent);
+
   return (
-    <div style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      pointerEvents: 'none',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      padding: 'calc(env(safe-area-inset-top, 24px) + 16px) 16px calc(env(safe-area-inset-bottom, 16px) + 12px) 16px',
-      boxSizing: 'border-box'
-    }}>
-      {/* Top Header */}
-      <div style={{ pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ background: 'rgba(30,41,59,0.92)', padding: '6px 12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', color: '#fbbf24', fontWeight: 800, fontSize: '13px' }}>
+    <div className="bb-hud" onPointerDownCapture={interruptAutoForOtherTouch} onClickCapture={stopAutoForOtherAction}>
+      <header className="bb-top" aria-label="Player resources and district progress">
+        <div className="bb-resource-row">
+          <div className="bb-resource" key={'coins-' + coins} data-flash="true"
+            style={{ color: '#ffe07f' }} aria-label={coins.toLocaleString() + ' coins'}>
             🪙 {coins.toLocaleString()}
           </div>
-          <div style={{ background: 'rgba(30,41,59,0.92)', padding: '6px 12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', color: '#f472b6', fontWeight: 800, fontSize: '13px' }}>
-            🧱 {materials}
+          <div className="bb-resource" key={'materials-' + materials} data-flash="true"
+            style={{ color: '#ffc0d9' }} aria-label={materials + ' building blocks'}>
+            🧱 {materials.toLocaleString()}
           </div>
-          <div style={{ background: 'rgba(8,47,73,0.92)', padding: '6px 10px', borderRadius: '14px', border: '1px solid #0284c7', display: 'flex', gap: '4px' }}>
-            {Array.from({ length: maxShields }).map((_, i) => (
-              <span key={i} style={{ filter: i < shields ? 'none' : 'grayscale(100%)', opacity: i < shields ? 1 : 0.4 }}>🛡️</span>
-            ))}
+          <div className="bb-resource" style={{ color: '#c8efff' }}
+            aria-label={shields + ' of ' + maxShields + ' shields'}>
+            {Array.from({ length: maxShields }, (_, i) =>
+              <span key={i} aria-hidden="true" style={{ opacity: i < shields ? 1 : 0.28 }}>🛡️</span>)}
           </div>
-
-          {/* Daily Streak Badge */}
-          <button
-            onClick={() => openModal('streak')}
-            style={{
-              background: 'linear-gradient(135deg, #ea580c, #f97316)',
-              border: '1px solid #fdba74',
-              borderRadius: '14px',
-              padding: '6px 10px',
-              color: '#fff',
-              fontWeight: 900,
-              fontSize: '12px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            🔥 Day {dailyStreak}
+          <button className="bb-control bb-streak" onClick={() => openModal('streak')}
+            aria-label={'Daily login reward, day ' + dailyStreak}>
+            🔥 {dailyStreak}
+            {!streakClaimedToday && <span className="bb-streak-dot" aria-label="Reward available" />}
           </button>
-
-          <button
-            onClick={() => openModal('upgrade')}
-            style={{ background: '#10b981', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '12px', fontWeight: 900, cursor: 'pointer' }}
-          >
-            🔨 BUILD
-          </button>
+          <button className="bb-control bb-build" onClick={() => openModal('upgrade')}
+            title="Upgrade or repair buildings">🔨 BUILD</button>
         </div>
 
-        {toast && (
-          <div style={{ background: '#312e81', border: '1.5px solid #fbbf24', borderRadius: '12px', padding: '8px 14px', textAlign: 'center', color: '#fde68a', fontWeight: 900, fontSize: '13px' }}>
-            {toast}
+        <div className="bb-district">
+          <div className="bb-district-row">
+            <div style={{ minWidth: 0 }}>
+              <div className="bb-district-caption">BLOCKBOUND · DISTRICT {currentDistrict + 1}</div>
+              <div className="bb-district-title">🏡 {district?.name ?? 'My District'}</div>
+            </div>
+            <span className="bb-pill" aria-label={'Building progress ' + completed + ' out of ' + total}>
+              ⭐ {completed}/{total}
+            </span>
           </div>
-        )}
-      </div>
+          <div className="bb-progress-track" style={{ marginTop: 8 }}
+            role="progressbar" aria-label="District building progress"
+            aria-valuemin={0} aria-valuemax={total} aria-valuenow={completed}>
+            <div className="bb-progress-fill" style={{ width: progress + '%' }} />
+          </div>
+        </div>
+        {toast && <div className="bb-toast" role="status" aria-live="polite" key={toast}>{toast}</div>}
+      </header>
 
-      {/* Dynamic Dice Outcome Pop-up Overlay */}
-      {dicePopup && (
-        <div style={{
-          alignSelf: 'center',
-          background: 'rgba(15, 23, 42, 0.94)',
-          border: '2px solid #fbbf24',
-          borderRadius: '24px',
-          padding: '16px 26px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '6px',
-          boxShadow: '0 16px 45px rgba(0,0,0,0.65)'
-        }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <span style={{ background: '#1e1b4b', border: '1.5px solid #f59e0b', borderRadius: '12px', padding: '4px 10px', fontSize: '20px', fontWeight: 900, color: '#fde047' }}>
-              ⚀ {dicePopup.d1}
-            </span>
-            <span style={{ fontWeight: 900, color: '#94a3b8' }}>+</span>
-            <span style={{ background: '#1e1b4b', border: '1.5px solid #f59e0b', borderRadius: '12px', padding: '4px 10px', fontSize: '20px', fontWeight: 900, color: '#fde047' }}>
-              ⚀ {dicePopup.d2}
-            </span>
-          </div>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: '#fff' }}>
-            = {dicePopup.total} STEPS
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: '#38bdf8' }}>
-            {dicePopup.isDoubles ? '🔥 DOUBLES BONUS! +10 ROLLS!' : 'CAMERA TRACKING TOKEN'}
-          </div>
+      {showRollSummary && lastRoll && (
+        <div className="bb-roll-chip" role="status" aria-live="polite">
+          🎲 {lastRoll.die1} + {lastRoll.die2} = {lastRoll.total}
+          <span style={{ color: '#fce787' }}> ×{lastRoll.multiplier}</span>
+          {lastRoll.doubles && <span style={{ color: '#86efac' }}>✦ DOUBLES!</span>}
         </div>
       )}
 
-      {/* Bottom Controls */}
-      <div style={{ pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15', fontSize: '11px', fontWeight: 800, padding: '0 8px' }}>
-          <span>⚡ DICE ENERGY: {energy}/{maxEnergy}</span>
-          <span>{energy < maxEnergy ? '+1 in 00:45' : 'FULL'}</span>
-        </div>
-
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <button
-            onClick={cycleMultiplier}
-            style={{ width: '56px', height: '60px', borderRadius: '16px', background: '#1e1b4b', border: '2px solid #fbbf24', color: '#fbbf24', fontWeight: 900, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
-          >
-            <span style={{ fontSize: '9px', color: '#94a3b8' }}>BET</span>
-            <span style={{ fontSize: '16px' }}>{multiplier}X</span>
-          </button>
-
-          <button
-            onClick={rollDice}
-            disabled={isRolling || energy < multiplier}
-            style={{ flex: 1, height: '64px', borderRadius: '20px', background: 'linear-gradient(135deg, #f43f5e, #e11d48)', border: 'none', color: '#fff', fontSize: '22px', fontWeight: 900, cursor: isRolling ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', opacity: isRolling || energy < multiplier ? 0.6 : 1 }}
-          >
-            <span>{isRolling ? 'ROLLING...' : 'ROLL'}</span>
-            <span style={{ background: 'rgba(0,0,0,0.3)', padding: '4px 8px', borderRadius: '10px', fontSize: '13px', color: '#facc15' }}>⚡ -{multiplier}</span>
-          </button>
-
-          <button
-            onClick={toggleTurbo}
-            style={{ width: '56px', height: '60px', borderRadius: '16px', background: isTurbo ? '#064e3b' : '#1e1b4b', border: `2px solid ${isTurbo ? '#10b981' : '#64748b'}`, color: isTurbo ? '#34d399' : '#94a3b8', fontWeight: 900, cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
-          >
-            <span>⚡</span>
-            <span style={{ fontSize: '9px' }}>FAST</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Daily Streak Modal */}
-      {activeModal === 'streak' && (
-        <div
-          onClick={closeModal}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'rgba(0,0,0,0.78)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 65,
-            padding: '16px',
-            pointerEvents: 'auto'
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: '360px',
-              background: '#0f172a',
-              border: '2px solid #f97316',
-              borderRadius: '24px',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, color: '#fb923c' }}>🔥 Daily Login Streak</h3>
-                <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Claim consecutive day bonuses!</p>
-              </div>
-              <button onClick={closeModal} style={{ background: '#1e293b', border: 'none', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>✕</button>
+      {showOptions && (
+        <div id="bb-auto-options" className="bb-options bb-options-sheet" role="group"
+          aria-label="Dice roll preferences">
+          <div className="bb-prompt">ROLL PREFERENCES</div>
+          <div className="bb-options-line">
+            <span>Auto batch</span>
+            <div className="bb-segmented" role="group" aria-label="Auto Roll batch size">
+              {([5, 10, 25] as const).map(count => (
+                <button key={count} className="bb-control bb-segment"
+                  disabled={autoRolling || isRolling} aria-pressed={autoBatchSize === count}
+                  onClick={() => setAutoBatchSize(count)}>{count}</button>
+              ))}
             </div>
+          </div>
+          <div className="bb-options-line">
+            <span>Roll speed</span>
+            <button className="bb-control bb-secondary-action" aria-pressed={isTurbo}
+              onClick={toggleTurbo}>{isTurbo ? '⚡ QUICK' : '▶ NORMAL'}</button>
+          </div>
+          <div className="bb-options-line">
+            <span>Standard reward popups</span>
+            <button className="bb-control bb-secondary-action" aria-pressed={autoOkay}
+              onClick={toggleAutoOkay}>{autoOkay ? '✓ AUTO OK' : 'MANUAL OK'}</button>
+          </div>
+          <div className="bb-options-line">
+            <span>Auto adjust stake</span>
+            <button className="bb-control bb-secondary-action" aria-pressed={autoAdjustMultiplier}
+              disabled={autoRolling || isRolling} onClick={toggleAutoAdjust}>
+              {autoAdjustMultiplier ? '✓ ADAPT ON' : 'ADAPT OFF'}
+            </button>
+          </div>
+          <button className="bb-control bb-secondary-action bb-keyboard-auto"
+            disabled={!autoRolling && (isRolling || energy < multiplier)}
+            onClick={autoRolling ? stopAutoRoll : startAutoRoll}>
+            {autoRolling ? '■ Stop Auto Roll' : '▶ Start Auto Roll (' + autoBatchSize + ' rolls)'}
+          </button>
+          <span className="bb-auto-note">Holding ROLL is optional. Auto never chooses raid or heist targets.</span>
+        </div>
+      )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-              {STREAK_REWARDS.map(r => {
-                const isPast = r.day < dailyStreak || (r.day === dailyStreak && streakClaimedToday);
-                const isCurrent = r.day === dailyStreak && !streakClaimedToday;
-                return (
-                  <div
-                    key={r.day}
-                    style={{
-                      background: isCurrent ? '#1e1b4b' : isPast ? '#064e3b' : '#1e293b',
-                      border: `1.5px solid ${isCurrent ? '#f59e0b' : isPast ? '#10b981' : '#334155'}`,
-                      borderRadius: '12px',
-                      padding: '8px 4px',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8' }}>{r.label}</div>
-                    <div style={{ fontSize: '20px', margin: '2px 0' }}>{r.icon}</div>
-                    <div style={{ fontSize: '9px', fontWeight: 800, color: '#fde047' }}>
-                      {isPast ? 'CLAIMED' : r.desc}
-                    </div>
-                  </div>
-                );
+      {activeModal === 'streak' && (
+        <div className="bb-streak-scrim" role="presentation" onClick={closeModal}>
+          <div className="bb-streak-dialog" role="dialog" aria-modal="true"
+            aria-label="Daily login streak rewards" onClick={e => e.stopPropagation()}>
+            <div className="bb-streak-heading">
+              <div><strong>🔥 Daily Rewards</strong>
+                <div className="bb-auto-note">Claim once each day to build your streak.</div>
+              </div>
+              <button className="bb-control bb-secondary-action" onClick={closeModal}
+                aria-label="Close daily rewards">✕</button>
+            </div>
+            <div className="bb-streak-rewards">
+              {STREAK_REWARDS.map(reward => {
+                const past = reward.day < dailyStreak || (reward.day === dailyStreak && streakClaimedToday);
+                const today = reward.day === dailyStreak && !streakClaimedToday;
+                return <div className="bb-streak-reward" key={reward.day}
+                  data-today={today} data-claimed={past}>
+                  <div className="bb-micro">DAY {reward.day}</div>
+                  <div style={{ fontSize: 26 }}>{reward.icon}</div>
+                  <div className="bb-micro">{past ? 'CLAIMED' : reward.desc}</div>
+                </div>;
               })}
             </div>
-
-            <button
-              onClick={claimStreakReward}
-              disabled={streakClaimedToday}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '14px',
-                border: 'none',
-                background: streakClaimedToday ? '#334155' : 'linear-gradient(135deg, #ea580c, #f97316)',
-                color: '#fff',
-                fontSize: '14px',
-                fontWeight: 900,
-                cursor: streakClaimedToday ? 'not-allowed' : 'pointer',
-                opacity: streakClaimedToday ? 0.6 : 1
-              }}
-            >
-              {streakClaimedToday ? `DAY ${dailyStreak} CLAIMED` : `CLAIM DAY ${dailyStreak} REWARD!`}
+            <button className="bb-control bb-build" disabled={streakClaimedToday}
+              onClick={claimStreakReward} style={{ width: '100%', minHeight: 50 }}>
+              {streakClaimedToday ? 'DAY ' + dailyStreak + ' CLAIMED ✓' : 'CLAIM DAY ' + dailyStreak}
             </button>
           </div>
         </div>
       )}
+
+      <footer className="bb-controls" aria-label="Dice roll controls">
+        <div className="bb-activity">
+          <div className="bb-energy-summary">
+            <div className="bb-energy-title">⚡ {energy}<span style={{ color: '#a4c5d7' }}>/{maxEnergy}</span> DICE</div>
+            <div className="bb-energy-track" role="progressbar" aria-label="Dice energy"
+              aria-valuemin={0} aria-valuemax={maxEnergy} aria-valuenow={energy}>
+              <div className="bb-energy-fill" style={{ width: (maxEnergy ? 100 * energy / maxEnergy : 0) + '%' }} />
+            </div>
+          </div>
+          <div className="bb-momentum">
+            <div className="bb-momentum-label">
+              <span>🏗️ BUILD STREAK</span><span>{momentum}/5 · +3 🧱</span>
+            </div>
+            <div className="bb-progress-track" role="progressbar"
+              aria-label="Rolls until three bonus building blocks"
+              aria-valuemin={0} aria-valuemax={5} aria-valuenow={momentum}>
+              <div className="bb-progress-fill" style={{ width: (momentum / 5 * 100) + '%' }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bb-roll-row">
+          <button className="bb-control bb-multiplier" onClick={cycleMultiplier}
+            disabled={isRolling || autoRolling} title="Cycle available dice multipliers"
+            aria-label={'Stake multiplier ' + multiplier + '; highest affordable is ' + maxAffordable}>
+            <span style={{ display: 'block', fontSize: 9, color: '#d1c3ff' }}>STAKE</span>
+            <span style={{ fontSize: 20, fontWeight: 950 }}>×{multiplier}</span>
+          </button>
+
+          <button className="bb-control bb-roll-button" data-roll-trigger="true"
+            data-auto={autoRolling} data-holding={isHolding}
+            disabled={!canRoll}
+            onPointerDown={beginHold}
+            onPointerMove={trackHold}
+            onPointerUp={clearHold}
+            onPointerCancel={clearHold}
+            onPointerLeave={clearHold}
+            onContextMenu={e => e.preventDefault()}
+            onClick={clickRoll}
+            title={autoRolling ? 'Tap to stop after current roll' : 'Tap once to roll; hold to start Auto Roll'}
+            aria-label={autoRolling ? 'Stop Auto Roll after current roll' :
+              'Roll two dice for ' + multiplier + ' energy. Hold to auto roll. Options provide accessible auto controls.'}>
+            <span>{autoRolling ? '■ STOP AUTO' : isRolling ? '🎲 ROLLING…' : isHolding ? '⌛ HOLD FOR AUTO' : '🎲 ROLL'}</span>
+            <span className="bb-micro" style={{ color: '#fff1c4', marginTop: 4 }}>
+              {autoRolling ? autoRollsRemaining + ' LEFT · ⚡ ' + remainingBudget + ' BUDGET' :
+                '⚡ ' + multiplier + ' · HOLD TO AUTO'}
+            </span>
+            {isHolding && <span className="bb-hold-progress" aria-hidden="true" />}
+          </button>
+
+          <button className="bb-control bb-settings-button" onClick={() => setShowOptions(v => !v)}
+            aria-expanded={showOptions} aria-controls="bb-auto-options"
+            aria-label={showOptions ? 'Close dice settings' : 'Open dice settings'}>
+            <span style={{ fontSize: 22 }}>⚙</span>
+            <span style={{ fontSize: 9 }}>MORE</span>
+          </button>
+        </div>
+        <div className="bb-auto-note" style={{ textAlign: 'center' }} aria-live="polite">
+          {autoRolling ? 'Auto Roll active · tap ROLL or another control to stop' :
+            'Tap to roll · hold to auto · ' + autoBatchSize + '-roll cap'}
+        </div>
+      </footer>
     </div>
   );
 }
