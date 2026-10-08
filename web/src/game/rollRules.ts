@@ -15,6 +15,25 @@ export const BOARD_TILES: readonly TileKind[] = [
   'mystery', 'coin-medium', 'shield', 'materials', 'coin-small', 'raid', 'district', 'coin-large'
 ];
 
+export interface DicePair {
+  die1: number;
+  die2: number;
+  total: number;
+  doubles: boolean;
+}
+
+/** Inject an RNG in tests; animations must not make additional gameplay rolls. */
+export function rollPair(rng: () => number): DicePair {
+  const next = () => {
+    const draw = rng();
+    if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new Error('Invalid RNG draw');
+    return 1 + Math.floor(draw * 6);
+  };
+  const die1 = next();
+  const die2 = next();
+  return { die1, die2, total: die1 + die2, doubles: die1 === die2 };
+}
+
 export type EncounterKind = 'raid' | 'heist';
 
 export interface TileReward {
