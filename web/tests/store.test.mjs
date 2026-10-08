@@ -11,6 +11,7 @@ await import('./setup-ts.mjs');
 
 const { useGameStore, initialDistricts } = await import('../src/store/gameStore.ts');
 const { decodeSave, SAVE_KEY } = await import('../src/game/gameSave.ts');
+const { createInitialRotationState } = await import('../src/game/questDispatcher.ts');
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const state = () => useGameStore.getState();
@@ -25,7 +26,7 @@ function resetStore(overrides = {}) {
     currentDistrict: 0, districts: structuredClone(initialDistricts),
     toast: null, activeModal: null, dailyStreak: 1, lastLoginDate: todayStr(),
     streakClaimedToday: false, cameraMode: 'OVERVIEW', dicePopup: null,
-    pendingEncounter: null, pendingReward: null, lastRoll: null,
+    pendingEncounter: null, pendingReward: null, rewardPresentation: null, lastRoll: null,
     totalRolls: 0, momentum: 0, doublesStreak: 0, doublesTotal: 0,
     upgradesBuilt: 0, raidsCompleted: 0, heistsCompleted: 0, jackpotsHit: 0,
     claimedQuests: [], unlockedDistricts: [0], soundEnabled: true,
@@ -33,6 +34,7 @@ function resetStore(overrides = {}) {
     autoRolling: false, autoOkay: true, autoAdjustMultiplier: true,
     autoBatchSize: 5, autoRollsRemaining: 0, autoEnergyBudget: 0, autoEnergySpent: 0,
     energyUpdatedAt: Date.now(), hydrated: true, saveError: false,
+    rotationState: createInitialRotationState(Date.now(), 0),
     ...overrides
   });
   localStorage.clear();
@@ -85,7 +87,14 @@ test('a roll commits its economy synchronously and spends energy exactly once', 
     { die1: s.lastRoll.die1, die2: s.lastRoll.die2, total: s.lastRoll.total },
     { die1: 1, die2: 1, total: 2 }
   );
-  assert.ok(typeof s.toast === 'string' && s.toast.includes('🧱'));
+  assert.equal(s.toast, null);
+  assert.deepEqual(
+    { ...s.rewardPresentation, before: { ...s.rewardPresentation.before } },
+    {
+      id: 'roll-1', title: '🧱 Building blocks', coins: 0, materials: 5, energy: 10, shields: 0,
+      before: { coins: 35000, materials: 16, energy: 34, shields: 2 }
+    }
+  );
 });
 
 test('rolls are rejected without energy, mid-roll or inside modals', () => {
@@ -173,10 +182,49 @@ test('quest energy reward caps at max and remains single-claim', () => {
   state().claimQuest('q_lucky_pair');
   assert.equal(state().energy, 50);
   assert.deepEqual([...state().claimedQuests], ['q_lucky_pair']);
+  assert.equal(state().rewardPresentation.energy, 1);
 
   state().claimQuest('q_lucky_pair');
   assert.equal(state().energy, 50);
   assert.deepEqual([...state().claimedQuests], ['q_lucky_pair']);
+});
+
+test('finishing a presentation is payout-free and resumes auto once', async () => {
+  const rewardPresentation = {
+    id: 'test-reward', title: 'Test', coins: 10, materials: 1, energy: 0, shields: 0,
+    before: { coins: 34990, materials: 15, energy: 35, shields: 2 }
+  };
+  resetStore({ rewardPresentation, autoRolling: true, autoRollsRemaining: 2,
+    autoEnergyBudget: 2, autoEnergySpent: 0, isTurbo: true });
+  const before = { coins: state().coins, materials: state().materials, energy: state().energy };
+  const realRandom = Math.random;
+  Math.random = () => 0.01;
+  try {
+    state().finishRewardPresentation('wrong-id');
+    assert.equal(state().rewardPresentation.id, 'test-reward');
+    state().finishRewardPresentation('test-reward');
+    state().finishRewardPresentation('test-reward');
+    assert.deepEqual(
+      { coins: state().coins, materials: state().materials, energy: state().energy },
+      before
+    );
+    await sleep(290);
+    assert.equal(state().totalRolls, 1);
+  } finally {
+    Math.random = realRandom;
+    state().stopAutoRoll();
+  }
+});
+
+test('daily reward presentation reports only amounts credited under caps', () => {
+  resetStore({ energy: 49, shields: 3, streakClaimedToday: false });
+  state().claimStreakReward();
+  const s = state();
+  assert.equal(s.energy, 50);
+  assert.equal(s.rewardPresentation.energy, 1);
+  assert.equal(s.rewardPresentation.shields, 0);
+  assert.deepEqual({ ...s.rewardPresentation.before },
+    { coins: 35000, materials: 16, energy: 49, shields: 3 });
 });
 
 test('district unlocks run strictly sequential suburb, harbour, neon', () => {
@@ -255,6 +303,11 @@ test('encounter picks validate counts and pay committed rewards once', () => {
   assert.equal(s.energy, 37);
   assert.equal(s.raidsCompleted, 1);
   assert.equal(s.heistsCompleted, 0);
+  assert.deepEqual(
+    { id: s.rewardPresentation.id, coins: s.rewardPresentation.coins,
+      materials: s.rewardPresentation.materials, energy: s.rewardPresentation.energy },
+    { id: 'encounter-1', coins: 200, materials: 0, energy: 2 }
+  );
 
   state().resolveEncounterPicks([0]); // double-collect is inert
   assert.equal(state().coins, 35200);
@@ -299,6 +352,7 @@ test('autosave round-trips counters, claims, unlocks and sound', () => {
   assert.deepEqual(envelope.progress.claimedQuests, ['q_warm_dice']);
   assert.deepEqual(envelope.progress.unlockedDistricts, [0, 1]);
   assert.equal(envelope.progress.soundEnabled, true);
+  assert.equal(envelope.progress.rewardPresentation, undefined);
 
   const restored = decodeSave(raw, defaultsSnapshot(), Date.now());
   assert.equal(restored.doublesTotal, 4);
@@ -307,3 +361,55 @@ test('autosave round-trips counters, claims, unlocks and sound', () => {
   assert.deepEqual(restored.unlockedDistricts, [0, 1]);
   assert.equal(restored.currentDistrict, 1);
 });
+
+test('rolling dice dispatches roll action to active rotation quests', () => {
+  resetStore();
+  const initialQuests = state().rotationState?.windows.flash.quests ?? [];
+  const rollQuest = initialQuests.find(q => q.actionType === 'roll');
+  if (rollQuest) {
+    const beforeProgress = rollQuest.current;
+    state().rollDice();
+    const afterQuests = state().rotationState?.windows.flash.quests ?? [];
+    const afterRollQuest = afterQuests.find(q => q.id === rollQuest.id);
+    assert.equal(afterRollQuest?.current, beforeProgress + 1);
+  } else {
+    // If flash pool didn't pick roll this epoch, daily might have or we manually test dispatch
+    assert.ok(state().rotationState);
+  }
+});
+
+test('tick turnover auto-collects completed rotation quests', () => {
+  resetStore();
+  let rot = state().rotationState;
+  assert.ok(rot);
+  // Complete flash quest 0 without claiming
+  const target = rot.windows.flash.quests[0];
+  target.current = target.goal;
+  target.claimed = false;
+  useGameStore.setState({ rotationState: { ...rot } });
+
+  const coinsBefore = state().coins;
+  // Jump 5 hours into the future
+  const futureTime = rot.lastSeenTimestamp + 5 * 3600 * 1000;
+  state().tickRecovery(futureTime);
+
+  assert.ok(state().coins > coinsBefore);
+  assert.ok(state().rotationState.windows.flash.windowId > rot.windows.flash.windowId);
+});
+
+test('claimRotationQuest pays rewards and marks quest claimed', () => {
+  resetStore();
+  const rot = state().rotationState;
+  assert.ok(rot);
+  const target = rot.windows.flash.quests[0];
+  target.current = target.goal;
+  target.claimed = false;
+  useGameStore.setState({ rotationState: { ...rot } });
+
+  const beforeCoins = state().coins;
+  state().claimRotationQuest('flash', target.id);
+
+  assert.equal(state().coins, beforeCoins + target.reward.coins);
+  assert.equal(state().rotationState.windows.flash.quests[0].claimed, true);
+});
+

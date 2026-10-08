@@ -20,6 +20,14 @@ import {
 } from '../game/rollRules';
 import { districtComplete, validateClaim, type LifetimeCounters } from '../game/quests';
 import {
+  createInitialRotationState,
+  dispatchQuestAction,
+  checkAndTurnoverWindows,
+  claimQuest as claimRotationQuestFn,
+  type RotationState
+} from '../game/questDispatcher';
+import type { WindowCadence } from '../game/rotationEngine';
+import {
   buzz,
   playBuild,
   playClick,
@@ -183,6 +191,8 @@ export interface GameState {
   claimStreakReward: () => void;
   closeModal: () => void;
   showToast: (msg: string) => void;
+  rotationState: RotationState;
+  claimRotationQuest: (cadence: WindowCadence, questId: string) => void;
 }
 
 let autoTimer: ReturnType<typeof setTimeout> | undefined;
@@ -229,7 +239,8 @@ function progressOf(s: GameState): ProgressSnapshot {
     lastRoll: s.lastRoll,
     pendingEncounter: s.pendingEncounter, pendingReward: s.pendingReward,
     autoOkay: s.autoOkay, autoAdjustMultiplier: s.autoAdjustMultiplier,
-    autoBatchSize: s.autoBatchSize, isTurbo: s.isTurbo, energyUpdatedAt: s.energyUpdatedAt
+    autoBatchSize: s.autoBatchSize, isTurbo: s.isTurbo, energyUpdatedAt: s.energyUpdatedAt,
+    rotationState: s.rotationState
   };
 }
 
@@ -344,6 +355,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   energyUpdatedAt: Date.now(),
   hydrated: false,
   saveError: false,
+  rotationState: createInitialRotationState(Date.now(), 0),
 
   hydrateGame: () => {
     if (get().hydrated) return;
@@ -374,9 +386,24 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!unlockedDistricts.includes(0)) unlockedDistricts.unshift(0);
     const currentDistrict = initialDistricts.some(d => d.id === restored.currentDistrict)
       ? restored.currentDistrict : 0;
+    const now = Date.now();
+    const baseRot = restored.rotationState ?? createInitialRotationState(now, currentDistrict);
+    const turnover = checkAndTurnoverWindows(baseRot, now, currentDistrict);
+    let autoCoins = 0;
+    let autoMats = 0;
+    let autoEnergy = 0;
+    if (turnover.autoCollectedReward) {
+      autoCoins = turnover.autoCollectedReward.coins;
+      autoMats = turnover.autoCollectedReward.materials;
+      autoEnergy = turnover.autoCollectedReward.energy;
+    }
     setSoundEnabled(restored.soundEnabled);
     set({
       ...restored, districts, visualTile: restored.currentTile,
+      coins: restored.coins + autoCoins,
+      materials: restored.materials + autoMats,
+      energy: Math.min(restored.maxEnergy, restored.energy + autoEnergy),
+      rotationState: turnover.state,
       currentDistrict: unlockedDistricts.includes(currentDistrict) ? currentDistrict : 0,
       unlockedDistricts,
       pendingEncounter,
@@ -393,15 +420,30 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!s.hydrated) return;
     const filled = refillEnergy(s.energy, s.maxEnergy, s.energyUpdatedAt, now);
     const day = refreshStreak(progressOf(s), now);
+    const rotTurnover = checkAndTurnoverWindows(s.rotationState, now, s.currentDistrict);
+    let extraCoins = 0;
+    let extraMats = 0;
+    let extraEnergy = 0;
+    if (rotTurnover.autoCollectedReward) {
+      extraCoins = rotTurnover.autoCollectedReward.coins;
+      extraMats = rotTurnover.autoCollectedReward.materials;
+      extraEnergy = rotTurnover.autoCollectedReward.energy;
+      playCoins();
+      get().showToast(`🔄 Quests Rotated! Auto-collected +${extraCoins.toLocaleString()} 🪙`);
+    }
     const energyChange = filled.energy !== s.energy;
     const dayChange = day.lastLoginDate !== s.lastLoginDate;
-    if (energyChange || dayChange) {
+    const rotChanged = rotTurnover.state !== s.rotationState || rotTurnover.autoCollectedReward !== null;
+    if (energyChange || dayChange || rotChanged) {
       set({
-        energy: filled.energy,
+        energy: Math.min(s.maxEnergy, filled.energy + extraEnergy),
         energyUpdatedAt: filled.energyUpdatedAt,
         dailyStreak: day.dailyStreak,
         lastLoginDate: day.lastLoginDate,
-        streakClaimedToday: day.streakClaimedToday
+        streakClaimedToday: day.streakClaimedToday,
+        coins: s.coins + extraCoins,
+        materials: s.materials + extraMats,
+        rotationState: rotTurnover.state
       });
     }
   },
@@ -530,7 +572,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     const shieldCharge = goShieldCharge(s.shields, touchesGo);
     const newStreak = doubles ? s.doublesStreak + 1 : 0;
     const streakBonus = doublesBonus(newStreak, cost);
-    const milestone = id % 5 === 0;
     const grandMilestone = id % 10 === 0;
     const progressReward = rollProgressReward(id);
     const materialGain = landing.materials + progressReward.materials;
@@ -549,22 +590,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
     }
 
-    const parts: string[] = [landing.label];
-    if (coinGain) parts.push('+' + coinGain.toLocaleString() + ' 🪙');
-    if (materialGain) parts.push('+' + materialGain + ' 🧱');
-    if (energyGain) {
-      parts.push('+' + energyGain + ' ⚡');
-    }
-    if (landing.shields + streakBonus.shields + progressReward.shields) {
-      parts.push('+' + (landing.shields + streakBonus.shields + progressReward.shields) + ' 🛡️');
-    }
-    if (passes > 0) parts.push('· Passed GO +' + passReward.coins.toLocaleString() + ' 🪙');
-    if (shieldCharge > 0) parts.push('· 🛡️ Shield charge +' + shieldCharge + ' ⚡');
-    if (newStreak === 2) parts.push('· Doubles ×2 bonus!');
-    if (newStreak >= 3) parts.push('· DOUBLES STREAK ×' + newStreak + '!');
-    if (milestone) parts.push('· Build momentum +3 🧱!');
-    if (grandMilestone) parts.push('· GRAND milestone +🛡️!');
-    const message = parts.join(' ');
     // Legacy restored notices remain supported; new rewards use the transient presenter.
     const notice = null;
     const celebration = landing.kind === 'jackpot'
@@ -578,6 +603,15 @@ export const useGameStore = create<GameState>((set, get) => ({
     const resumeAuto = fromAuto && remaining > 0 && !encounter;
     const now = Date.now();
     const anchor = s.energy === s.maxEnergy ? now : s.energyUpdatedAt;
+
+    let rot = s.rotationState;
+    if (rot) {
+      rot = dispatchQuestAction(rot, 'roll', 1);
+      if (doubles) rot = dispatchQuestAction(rot, 'doubles', 1);
+      if (landing.kind === 'jackpot') rot = dispatchQuestAction(rot, 'jackpot', 1);
+      if (coinGain > 0) rot = dispatchQuestAction(rot, 'earn_coins', coinGain);
+      if (passes > 0) rot = dispatchQuestAction(rot, 'pass_go', passes);
+    }
 
     playRoll();
     set({
@@ -596,12 +630,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       pendingEncounter: encounter, pendingReward: notice, activeModal: null,
       autoRolling: resumeAuto, autoRollsRemaining: resumeAuto ? remaining : 0,
       autoEnergySpent: fromAuto ? s.autoEnergySpent + cost : s.autoEnergySpent,
+      rotationState: rot,
       // Record the actual automatic stake only if adaptive mode changed it.
       multiplier: fromAuto ? cost : s.multiplier
     });
 
-    const motionDelay = s.isTurbo ? 300 : 650;
-    const stepDelay = s.isTurbo ? 55 : 115;
+    const motionDelay = s.isTurbo ? 280 : 600;
+    const stepDelay = s.isTurbo ? 70 : 175;
 
     setTimeout(() => {
       if (get().lastRoll?.id !== id) return;
@@ -617,25 +652,27 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
         // Rewards were committed and saved before the very first animation frame.
         // Closing the tab while animating restores a finished roll, never a half-roll.
-        const latest = get();
         set({
           isRolling: false, isDiceAnimating: false, visualTile: destination,
           cameraMode: 'OVERVIEW', dicePopup: null,
           landingPulse: { tile: destination, key: id },
-          activeModal: latest.pendingEncounter ? 'encounter' :
-            latest.pendingReward ? 'reward' : null
+          activeModal: null,
+          celebration: null,
+          rewardPresentation: {
+            id: 'roll-' + id,
+            title: landing.label,
+            coins: coinGain,
+            materials: materialGain,
+            energy: newEnergy - energyBeforeGain,
+            shields: newShields - s.shields,
+            before: { coins: s.coins, materials: s.materials, energy: energyBeforeGain, shields: s.shields }
+          }
         });
         playDiceLand();
         if (coinGain > 0) playCoins();
-        if (latest.shields > s.shields) playShield();
+        if (newShields > s.shields) playShield();
         if (celebration) playFanfare();
         else if (newStreak >= 2) buzz(20);
-        get().showToast(message);
-        const completed = get();
-        if (completed.autoRolling && completed.autoRollsRemaining > 0 &&
-            !completed.pendingEncounter && !completed.pendingReward) {
-          queueAutoRoll(get, completed.isTurbo ? 230 : 600);
-        }
       }
       animateStep(0);
     }, motionDelay);
@@ -646,6 +683,20 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ pendingReward: null, activeModal: null });
     // Auto-OK is off: wait for explicit acknowledgement before each new roll.
     if (get().autoRolling && get().autoRollsRemaining > 0) queueAutoRoll(get, 330);
+  },
+
+  finishRewardPresentation: id => {
+    const s = get();
+    if (s.rewardPresentation?.id !== id) return;
+    set({
+      rewardPresentation: null,
+      activeModal: s.pendingEncounter ? 'encounter' : s.pendingReward ? 'reward' : null
+    });
+    const next = get();
+    if (next.autoRolling && next.autoRollsRemaining > 0 &&
+        !next.pendingEncounter && !next.pendingReward && !next.activeModal) {
+      queueAutoRoll(get, next.isTurbo ? 230 : 600);
+    }
   },
 
   dismissCelebration: () => set({ celebration: null }),
@@ -659,7 +710,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   claimQuest: questId => {
     const s = get();
-    if (s.isRolling) return;
+    if (s.isRolling || s.rewardPresentation) return;
     const def = validateClaim(questId, lifetimeOf(s), s.claimedQuests);
     if (!def) return;
     playCoins();
@@ -668,7 +719,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       materials: s.materials + def.reward.materials,
       energy: Math.min(s.maxEnergy, s.energy + def.reward.energy),
       claimedQuests: [...s.claimedQuests, def.id],
-      toast: '⭐ QUEST COMPLETE: ' + def.name.toUpperCase() + '!'
+      activeModal: null,
+      toast: null,
+      celebration: null,
+      rewardPresentation: {
+        id: 'quest-' + def.id,
+        title: '⭐ ' + def.name,
+        coins: def.reward.coins,
+        materials: def.reward.materials,
+        energy: Math.min(def.reward.energy, s.maxEnergy - s.energy),
+        shields: 0,
+        before: { coins: s.coins, materials: s.materials, energy: s.energy, shields: s.shields }
+      }
     });
   },
 
@@ -709,7 +771,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   resolveEncounterPicks: choiceIndices => {
     const current = get();
     const event = current.pendingEncounter;
-    if (!event || current.isRolling) return;
+    if (!event || current.isRolling || current.rewardPresentation) return;
     // Exactly one target for raids, exactly three distinct safes for heists.
     // Duplicates, out-of-range seats and double-collects are rejected.
     const want = event.kind === 'raid' ? 1 : 3;
@@ -719,6 +781,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const coins = picks.reduce((sum, p) => sum + p.coins, 0);
     const materials = picks.reduce((sum, p) => sum + (p.materials ?? 0), 0);
     const energy = picks.reduce((sum, p) => sum + (p.energy ?? 0), 0);
+
+    let rot = current.rotationState;
+    if (rot) {
+      if (event.kind === 'raid') rot = dispatchQuestAction(rot, 'raid', 1);
+      if (event.kind === 'heist') rot = dispatchQuestAction(rot, 'heist', 1);
+      if (coins > 0) rot = dispatchQuestAction(rot, 'earn_coins', coins);
+    }
+
     playCoins();
     set({
       pendingEncounter: null,
@@ -728,12 +798,24 @@ export const useGameStore = create<GameState>((set, get) => ({
       energy: Math.min(current.maxEnergy, current.energy + energy),
       raidsCompleted: current.raidsCompleted + (event.kind === 'raid' ? 1 : 0),
       heistsCompleted: current.heistsCompleted + (event.kind === 'heist' ? 1 : 0),
-      toast: null
+      rotationState: rot,
+      toast: null,
+      celebration: null,
+      rewardPresentation: {
+        id: 'encounter-' + event.id,
+        title: event.kind === 'raid' ? '⚔️ Raid success' : '🗝️ Vault opened',
+        coins,
+        materials,
+        energy: Math.min(energy, current.maxEnergy - current.energy),
+        shields: 0,
+        before: {
+          coins: current.coins,
+          materials: current.materials,
+          energy: current.energy,
+          shields: current.shields
+        }
+      }
     });
-    get().showToast((event.kind === 'raid' ? '⚔️ Raid success' : '🗝️ Vault opened') +
-      ' · +' + coins.toLocaleString() + ' 🪙' +
-      (materials ? ' +' + materials + ' 🧱' : '') +
-      (energy ? ' +' + energy + ' ⚡' : ''));
   },
 
   upgradeBuilding: plotIdx => {
@@ -748,12 +830,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       buildings[plotIdx] = { ...building, tier: building.tier + 1 };
       const nextDistricts = [...districts];
       nextDistricts[currentDistrict] = { ...dist, buildings };
+      let rot = get().rotationState;
+      if (rot) rot = dispatchQuestAction(rot, 'upgrade', 1);
       playBuild();
       set({
         coins: coins - cost,
         materials: materials - mats,
         districts: nextDistricts,
         upgradesBuilt: get().upgradesBuilt + 1,
+        rotationState: rot,
         buildPulse: { plot: plotIdx, tier: building.tier + 1, key: Date.now() },
         toast: '🔨 ' + building.name.toUpperCase() + ' · TIER ' + (building.tier + 1) + '!'
       });
@@ -769,12 +854,39 @@ export const useGameStore = create<GameState>((set, get) => ({
     buildings[plotIdx] = { ...building, damaged: false };
     const nextDistricts = [...districts];
     nextDistricts[currentDistrict] = { ...dist, buildings };
+    let rot = get().rotationState;
+    if (rot) rot = dispatchQuestAction(rot, 'repair', 1);
     playBuild();
     set({
       coins: coins - 2500,
       districts: nextDistricts,
+      rotationState: rot,
       buildPulse: { plot: plotIdx, tier: building.tier, key: Date.now() },
       toast: '✨ REPAIRED ' + building.name.toUpperCase() + '!'
+    });
+  },
+
+  claimRotationQuest: (cadence, questId) => {
+    const s = get();
+    if (s.isRolling || s.rewardPresentation) return;
+    const res = claimRotationQuestFn(s.rotationState, cadence, questId);
+    if (!res) return;
+    playCoins();
+    const qTitle = res.state.windows[cadence]?.quests.find(q => q.id === questId)?.title ?? 'Quest Complete';
+    set({
+      coins: s.coins + res.reward.coins,
+      materials: s.materials + res.reward.materials,
+      energy: Math.min(s.maxEnergy, s.energy + res.reward.energy),
+      rotationState: res.state,
+      rewardPresentation: {
+        id: 'rotation-quest-' + questId,
+        title: '⭐ ' + qTitle,
+        coins: res.reward.coins,
+        materials: res.reward.materials,
+        energy: Math.min(res.reward.energy, s.maxEnergy - s.energy),
+        shields: 0,
+        before: { coins: s.coins, materials: s.materials, energy: s.energy, shields: s.shields }
+      }
     });
   }
 }));
