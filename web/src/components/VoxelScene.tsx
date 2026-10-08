@@ -411,6 +411,35 @@ function PhysicalDice() {
   );
 }
 
+// Keep the cinematic dice-focus and token-follow states introduced on main.
+// Orbit controls are disabled only during the brief scripted focus.
+function CinematicCamera() {
+  const mode = useGameStore(s => s.cameraMode);
+  const tile = useGameStore(s => s.currentTile);
+  const { camera, size } = useThree();
+  const destination = useRef(new THREE.Vector3(0, 0, 0));
+
+  useFrame((_, delta) => {
+    if (!(camera instanceof THREE.OrthographicCamera)) return;
+    if (mode === 'OVERVIEW') return;
+    const settle = 1 - Math.exp(-8 * delta);
+    const target = mode === 'DICE_FOCUS'
+      ? new THREE.Vector3(0, 2, 0)
+      : new THREE.Vector3(...(TILE_POSITIONS[tile] || [0, 0, 0]));
+    destination.current.lerp(target, settle);
+    const offset = mode === 'DICE_FOCUS'
+      ? new THREE.Vector3(11, 15, 11)
+      : new THREE.Vector3(17, 22, 17);
+    camera.position.lerp(target.clone().add(offset), settle);
+    camera.lookAt(destination.current);
+    const baseZoom = Math.max(5.5, Math.min(size.width / 33.5, size.height / 24));
+    const focusZoom = mode === 'DICE_FOCUS' ? Math.min(baseZoom * 1.6, 28) : Math.min(baseZoom * 1.12, 24);
+    camera.zoom = THREE.MathUtils.damp(camera.zoom, focusZoom, 8, delta);
+    camera.updateProjectionMatrix();
+  });
+  return null;
+}
+
 function CameraFit() {
   const { camera, size } = useThree();
   useEffect(() => {
@@ -423,6 +452,7 @@ function CameraFit() {
 }
 
 export function VoxelScene() {
+  const mode = useGameStore(s => s.cameraMode);
   return (
     <Canvas
       shadows
@@ -432,6 +462,7 @@ export function VoxelScene() {
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', touchAction: 'none' }}
     >
       <CameraFit />
+      <CinematicCamera />
       <ambientLight intensity={0.85} />
       <hemisphereLight args={['#ddf5ff', '#496b5a', 0.62]} />
       <directionalLight
@@ -446,6 +477,7 @@ export function VoxelScene() {
       <Buildings />
       <PhysicalDice />
       <OrbitControls
+        enabled={mode === 'OVERVIEW'}
         target={[0, 0, 0]}
         enablePan={false}
         enableRotate
