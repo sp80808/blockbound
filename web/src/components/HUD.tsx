@@ -317,7 +317,7 @@ export function HUD() {
         </div>
         <div className="bb-auto-note" style={{ textAlign: 'center' }} aria-live="polite">
           {autoRolling ? 'Auto Roll active · tap ROLL or another control to stop' :
-            'Tap to roll · hold to auto · ' + autoBatchSize + '-roll cap'}
+            'Tap to roll · hold to auto · ' + autoBatchSize + '-roll cap · Space rolls'}
         </div>
       </footer>
     </div>

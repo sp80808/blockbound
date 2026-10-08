@@ -239,6 +239,21 @@ button { font-family: inherit; }
   border-color:#aaa4fd !important; color:white; min-height:48px !important;
 }
 .bb-streak { min-width:48px; min-height:46px; background:linear-gradient(#d57533,#ad471d); color:#fff3d2; position:relative; padding:6px 7px; }
+/* PWA update banner: sits above the board, below nothing interactive. */
+.bb-update {
+  position:absolute; z-index:65; pointer-events:auto;
+  top:calc(max(12px,env(safe-area-inset-top)) + 118px);
+  left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:10px; white-space:nowrap;
+  background:rgba(20,35,61,.97); border:1.5px solid #67e8f9; border-radius:999px;
+  box-shadow:0 10px 27px #0006; padding:8px 8px 8px 14px;
+  color:#e0f7ff; font-size:12px; font-weight:850;
+  animation:bb-enter .3s cubic-bezier(.2,.9,.2,1.2);
+}
+.bb-update-btn {
+  background:linear-gradient(180deg,#67e8f9,#0891b2); color:#083344;
+  border:none !important; padding:8px 14px; font-size:12px;
+}
 .bb-quest-btn {
   position:relative; white-space:nowrap; padding:6px 9px; min-height:34px; font-size:11px;
   background:linear-gradient(160deg,#44336c,#302855); color:#ffe188; border-color:#dbb959 !important;

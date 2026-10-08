@@ -6,11 +6,14 @@ import {
 import {
   affordableAutoMultiplier,
   boardPath,
+  buildingUpgradeCost,
   doublesBonus,
   encounterOptions,
+  goShieldCharge,
   nextMultiplier,
   passGoCount,
   passGoReward,
+  rollProgressReward,
   rollPair,
   tileReward,
   type EncounterKind
@@ -218,7 +221,8 @@ function progressOf(s: GameState): ProgressSnapshot {
   };
 }
 
-const initialDistricts: District[] = [
+/** Starting districts, exported for tests and future content tooling. */
+export const initialDistricts: District[] = [
   {
     id: 0,
     name: 'Sunny Suburb',
@@ -474,18 +478,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     const landing = tileReward(destination, cost, die1, die2);
     const passes = passGoCount(path);
     const passReward = passGoReward(passes, cost);
+    const touchesGo = passes > 0 || destination === 0;
+    const shieldCharge = goShieldCharge(s.shields, touchesGo);
     const newStreak = doubles ? s.doublesStreak + 1 : 0;
     const streakBonus = doublesBonus(newStreak, cost);
     const milestone = id % 5 === 0;
     const grandMilestone = id % 10 === 0;
-    const milestoneShield = grandMilestone ? 1 : 0;
-    const milestoneEnergy = grandMilestone ? 8 : 0;
-    const materialGain = landing.materials + (milestone ? 3 : 0);
+    const progressReward = rollProgressReward(id);
+    const materialGain = landing.materials + progressReward.materials;
     const coinGain = landing.coins + passReward.coins + streakBonus.coins;
-    const newEnergy = Math.min(
-      s.maxEnergy,
-      s.energy - cost + landing.energy + passReward.energy + streakBonus.energy + milestoneEnergy
-    );
+    const energyGain = landing.energy + passReward.energy + streakBonus.energy + progressReward.energy + shieldCharge;
+    const newEnergy = Math.min(s.maxEnergy, s.energy - cost + energyGain);
 
     let encounter: Encounter | null = null;
     if (landing.encounter) {
@@ -498,13 +501,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const parts: string[] = [landing.label];
     if (coinGain) parts.push('+' + coinGain.toLocaleString() + ' 🪙');
     if (materialGain) parts.push('+' + materialGain + ' 🧱');
-    if (landing.energy + passReward.energy + streakBonus.energy + milestoneEnergy) {
-      parts.push('+' + (landing.energy + passReward.energy + streakBonus.energy + milestoneEnergy) + ' ⚡');
+    if (energyGain) {
+      parts.push('+' + energyGain + ' ⚡');
     }
-    if (landing.shields + streakBonus.shields + milestoneShield) {
-      parts.push('+' + (landing.shields + streakBonus.shields + milestoneShield) + ' 🛡️');
+    if (landing.shields + streakBonus.shields + progressReward.shields) {
+      parts.push('+' + (landing.shields + streakBonus.shields + progressReward.shields) + ' 🛡️');
     }
     if (passes > 0) parts.push('· Passed GO +' + passReward.coins.toLocaleString() + ' 🪙');
+    if (shieldCharge > 0) parts.push('· 🛡️ Shield charge +' + shieldCharge + ' ⚡');
     if (newStreak === 2) parts.push('· Doubles ×2 bonus!');
     if (newStreak >= 3) parts.push('· DOUBLES STREAK ×' + newStreak + '!');
     if (milestone) parts.push('· Build momentum +3 🧱!');
@@ -533,7 +537,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       materials: s.materials + materialGain,
       energy: newEnergy,
       energyUpdatedAt: newEnergy === s.maxEnergy ? now : anchor,
-      shields: Math.min(s.maxShields, s.shields + landing.shields + streakBonus.shields + milestoneShield),
+      shields: Math.min(s.maxShields, s.shields + landing.shields + streakBonus.shields + progressReward.shields),
       totalRolls: id, momentum: id % 5, doublesStreak: newStreak,
       doublesTotal: s.doublesTotal + (doubles ? 1 : 0),
       jackpotsHit: s.jackpotsHit + (landing.kind === 'jackpot' ? 1 : 0),
@@ -681,8 +685,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const dist = districts[currentDistrict];
     const building = dist?.buildings[plotIdx];
     if (!building || isRolling) return;
-    const cost = Math.floor(building.baseCost * (1 + building.tier * 1.5));
-    const mats = building.baseMats + building.tier * 2;
+    const { coins: cost, materials: mats } = buildingUpgradeCost(building);
 
     if (coins >= cost && materials >= mats && building.tier < 4 && !building.damaged) {
       const buildings = [...dist.buildings];

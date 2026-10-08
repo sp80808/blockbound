@@ -5,6 +5,7 @@ import { SplashScreen } from './components/SplashScreen';
 import { VaultHeist } from './minigames/heist/VaultHeist';
 import { TownRaid } from './minigames/raid/TownRaid';
 import { districtComplete, questViews } from './game/quests';
+import { matchHotkey } from './game/hotkeys';
 import { useGameStore } from './store/gameStore';
 
 const CONFETTI_COLORS = ['#fde047', '#f472b6', '#67e8f9', '#a3e635', '#fb923c', '#c4b5fd'];
@@ -66,6 +67,7 @@ function Celebration() {
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [updateReady, setUpdateReady] = useState(false);
   const {
     activeModal, closeModal, districts, currentDistrict, coins, materials,
     pendingEncounter, pendingReward, resolveEncounterPicks, acknowledgeReward,
@@ -116,6 +118,45 @@ export default function App() {
     };
   }, []);
 
+  // Desktop/keyboard play: Space/R rolls, M toggles sound. Buttons and
+  // modals keep native behaviour; the matcher suppresses double-handling.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const action = matchHotkey({
+        key: e.key,
+        targetTag: (e.target as HTMLElement | null)?.tagName,
+        modalOpen: useGameStore.getState().activeModal !== null
+      });
+      if (action === 'roll') {
+        e.preventDefault();
+        const s = useGameStore.getState();
+        if (s.autoRolling) s.stopAutoRoll();
+        else if (!s.isRolling && s.energy >= s.multiplier) s.rollDice();
+      } else if (action === 'mute') {
+        useGameStore.getState().toggleSound();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // PWA lifecycle: surface new versions and offline transitions without
+  // ever blocking play. Progress always persists locally first.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const onControllerChange = () => setUpdateReady(true);
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    const onOffline = () => useGameStore.getState().showToast('📴 Offline — progress stays on this device');
+    const onOnline = () => useGameStore.getState().showToast('📡 Back online');
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
+    };
+  }, []);
+
   const dist = districts[currentDistrict];
 
   return (
@@ -127,6 +168,14 @@ export default function App() {
           <main className="bb-world" aria-label="Interactive 3D board"><VoxelScene /></main>
           <HUD />
           <Celebration />
+          {updateReady && (
+            <div className="bb-update" role="status">
+              <span>✨ A new Blockbound version is ready</span>
+              <button className="bb-control bb-update-btn" onClick={() => window.location.reload()}>
+                RELOAD
+              </button>
+            </div>
+          )}
 
           {/* Upgrade Modal */}
           {activeModal === 'upgrade' && (
@@ -273,6 +322,17 @@ export default function App() {
                       )}
                     </div>
                   ))}
+                </div>
+                <div style={{ marginTop: 12 }}>
+                  <div className="bb-micro" style={{ marginBottom: 6, letterSpacing: '.06em' }}>LIFETIME STATS</div>
+                  <div className="bb-mini-tally" style={{ justifyContent: 'space-between' }} aria-label="Lifetime statistics">
+                    <span title="Total dice rolls">🎲 {totalRolls.toLocaleString()}</span>
+                    <span title="Doubles rolled">🍀 {doublesTotal.toLocaleString()}</span>
+                    <span title="Jackpots landed">✨ {jackpotsHit.toLocaleString()}</span>
+                    <span title="Buildings upgraded">🔨 {upgradesBuilt.toLocaleString()}</span>
+                    <span title="Raids and heists completed">⚔️ {(raidsCompleted + heistsCompleted).toLocaleString()}</span>
+                    <span title="Districts unlocked">🗺️ {unlockedDistricts.length}/{districts.length}</span>
+                  </div>
                 </div>
               </div>
             </div>

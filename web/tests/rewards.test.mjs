@@ -51,8 +51,16 @@ test('passing GO pays a small bonus without double-paying the landing', () => {
   assert.throws(() => rules.passGoReward(-1, 5));
 });
 
-test('doubles streaks escalate without RNG', () => {
-  const zero = rules.doublesBonus(0, 5);
+test('shielded engines charge dice only when touching GO', () => {
+  assert.equal(rules.goShieldCharge(0, true), 0);
+  assert.equal(rules.goShieldCharge(2, true), 4);
+  assert.equal(rules.goShieldCharge(3, true), 6);
+  assert.equal(rules.goShieldCharge(3, false), 0);
+  assert.equal(rules.goShieldCharge(0, false), 0);
+  assert.throws(() => rules.goShieldCharge(-1, true));
+});
+
+test('doubles streaks escalate without RNG', () => {  const zero = rules.doublesBonus(0, 5);
   assert.equal(zero.coins + zero.energy + zero.shields, 0);
   const first = rules.doublesBonus(1, 5);
   assert.equal(first.energy, 10);

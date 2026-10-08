@@ -162,6 +162,51 @@ export function passGoReward(passes: number, multiplier: number): { coins: numbe
   return { coins: 5000 * passes * multiplier, energy: 2 * passes };
 }
 
+export interface RollProgressReward {
+  materials: number;
+  energy: number;
+  shields: number;
+}
+
+/** Guaranteed build progress, with the existing five/ten-roll bonuses folded in. */
+export function rollProgressReward(rollNumber: number): RollProgressReward {
+  if (!Number.isInteger(rollNumber) || rollNumber < 1) throw new Error('Invalid roll number');
+  return {
+    materials: 1 + (rollNumber % 5 === 0 ? 3 : 0),
+    energy: rollNumber % 10 === 0 ? 8 : 0,
+    shields: rollNumber % 10 === 0 ? 1 : 0
+  };
+}
+
+export interface UpgradeCostSource {
+  baseCost: number;
+  baseMats: number;
+  tier: number;
+}
+
+/** One upgrade-price authority for the build menu and store transaction. */
+export function buildingUpgradeCost(building: UpgradeCostSource): { coins: number; materials: number } {
+  if (!Number.isFinite(building.baseCost) || building.baseCost < 0 ||
+      !Number.isInteger(building.baseMats) || building.baseMats < 0 ||
+      !Number.isInteger(building.tier) || building.tier < 0 || building.tier > 4) {
+    throw new Error('Invalid building cost');
+  }
+  return {
+    coins: Math.floor(building.baseCost * (1 + building.tier * 1.5)),
+    materials: building.baseMats + building.tier * 2
+  };
+}
+
+/**
+ * Shielded engines charge dice on GO: each held shield converts into bonus
+ * energy whenever the token passes or lands on GO. Shields stay purely
+ * positive — nothing in the game spends or breaks them.
+ */
+export function goShieldCharge(shields: number, passesGo: boolean): number {
+  if (!Number.isInteger(shields) || shields < 0) throw new Error('Invalid shield count');
+  return passesGo ? 2 * shields : 0;
+}
+
 /** Escalating doubles-streak bonus. Pure: streak counts consecutive doubles. */
 export function doublesBonus(streak: number, multiplier: number): { coins: number; energy: number; shields: number } {
   if (!Number.isInteger(streak) || streak < 0) throw new Error('Invalid streak');

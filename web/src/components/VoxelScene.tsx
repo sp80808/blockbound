@@ -28,12 +28,20 @@ for (let i = 0; i < 32; i++) {
   TILE_POSITIONS.push([x, 0, z]);
 }
 
-const TILE_COLORS = [
-  0x10b981, 0xf59e0b, 0xec4899, 0xf59e0b, 0x06b6d4, 0xf59e0b, 0xef4444, 0xeab308,
-  0x8b5cf6, 0xf59e0b, 0xf97316, 0xec4899, 0xf59e0b, 0x06b6d4, 0xf59e0b, 0x6366f1,
-  0xd946ef, 0xf59e0b, 0xef4444, 0xec4899, 0xf59e0b, 0xeab308, 0x8b5cf6, 0xf59e0b,
-  0xf97316, 0xf59e0b, 0x06b6d4, 0xec4899, 0xf59e0b, 0xef4444, 0x6366f1, 0xf59e0b
-];
+const TILE_COLORS: Record<TileKind, string> = {
+  go: '#2fbd84',
+  'coin-small': '#e9aa3f',
+  'coin-medium': '#e9aa3f',
+  'coin-large': '#e9aa3f',
+  materials: '#d76d9d',
+  shield: '#2ea9bd',
+  energy: '#e3c13e',
+  raid: '#d95855',
+  heist: '#8065c4',
+  mystery: '#df7941',
+  district: '#6178c3',
+  jackpot: '#c961b8'
+};
 
 const IMPORTANT_TILES = new Set<TileKind>(['go', 'raid', 'heist', 'jackpot', 'mystery', 'district']);
 const CORNERS = new Set([0, 8, 16, 24]);
@@ -192,6 +200,21 @@ function TileGlyph({ kind }: { kind: TileKind }) {
   }
 }
 
+function ActiveTileBeacon() {
+  const ring = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    if (!ring.current) return;
+    const scale = reducedMotion() ? 1 : 1 + Math.sin(clock.elapsedTime * 4) * 0.08;
+    ring.current.scale.setScalar(scale);
+  });
+  return (
+    <mesh ref={ring} position={[0, 0.43, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[0.72, 0.91, 24]} />
+      <meshBasicMaterial color="#fff1a8" side={THREE.DoubleSide} transparent opacity={0.95} />
+    </mesh>
+  );
+}
+
 /** Expanding shockwave ring where the token lands. */
 function LandingPulse() {
   const pulse = useGameStore(s => s.landingPulse);
@@ -202,6 +225,10 @@ function LandingPulse() {
     const ring = ringRef.current;
     const mat = matRef.current;
     if (!ring || !mat) return;
+    if (reducedMotion()) {
+      ring.visible = false;
+      return;
+    }
     if (pulse && pulse.key !== anim.current.key) {
       anim.current = { t: 0, key: pulse.key };
     }
@@ -209,7 +236,7 @@ function LandingPulse() {
       ring.visible = false;
       return;
     }
-    anim.current.t = Math.min(1, anim.current.t + delta * (reducedMotion() ? 3 : 1.4));
+    anim.current.t = Math.min(1, anim.current.t + delta * 1.4);
     const t = anim.current.t;
     const pos = TILE_POSITIONS[pulse?.tile ?? 0] ?? [0, 0, 0];
     ring.visible = true;
@@ -302,7 +329,7 @@ function VoxelBoard() {
             </mesh>
             <mesh position={[0, 0.02, 0]} receiveShadow castShadow>
               <boxGeometry args={[2.08, 0.37, 2.08]} />
-              <meshStandardMaterial color={TILE_COLORS[idx]} roughness={0.68} />
+              <meshStandardMaterial color={TILE_COLORS[kind]} roughness={0.68} />
             </mesh>
             {IMPORTANT_TILES.has(kind) && (
               <mesh position={[0, 0.235, 0]}>
@@ -321,12 +348,7 @@ function VoxelBoard() {
                 />
               </mesh>
             )}
-            {isCurrent && !isRolling && (
-              <mesh position={[0, 0.43, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <ringGeometry args={[0.72, 0.89, 24]} />
-                <meshBasicMaterial color="#fffac8" side={THREE.DoubleSide} transparent opacity={0.9} />
-              </mesh>
-            )}
+            {isCurrent && !isRolling && <ActiveTileBeacon />}
           </group>
         );
       })}
@@ -454,6 +476,10 @@ function BuildGlint({ plot }: { plot: number }) {
     const mesh = meshRef.current;
     const mat = matRef.current;
     if (!mesh || !mat) return;
+    if (reducedMotion()) {
+      mesh.visible = false;
+      return;
+    }
     if (pulse && pulse.plot === plot && pulse.key !== anim.current.key) {
       anim.current = { t: 0, key: pulse.key };
     }
@@ -548,6 +574,24 @@ function DamageBoards() {
   );
 }
 
+function TierStuds({ tier, damaged }: { tier: number; damaged: boolean }) {
+  return (
+    <group position={[0, 0.22, 1.36]}>
+      {[0, 1, 2, 3].map(index => (
+        <mesh key={index} position={[(index - 1.5) * 0.36, 0, 0]} castShadow>
+          <cylinderGeometry args={[0.1, 0.12, 0.12, 8]} />
+          <meshStandardMaterial
+            color={damaged ? '#8f3e42' : index < tier ? '#ffd166' : '#526779'}
+            emissive={!damaged && index < tier ? '#8a5b16' : '#000000'}
+            emissiveIntensity={!damaged && index < tier ? 0.28 : 0}
+            roughness={0.55}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function BuildingPlot({ plot, tier, damaged, palette }: {
   plot: number;
   tier: number;
@@ -593,6 +637,7 @@ function BuildingPlot({ plot, tier, damaged, palette }: {
         <boxGeometry args={[3.1, 0.14, 3.1]} />
         <meshStandardMaterial color={damaged ? '#b96d6e' : '#b8c9b7'} roughness={0.9} />
       </mesh>
+      <TierStuds tier={tier} damaged={damaged} />
       {tier === 0 && (
         <group>
           <mesh position={[0, 0.19, 0]}>
@@ -873,7 +918,12 @@ function DieBody({ value, isRolling, index }: { value: number; isRolling: boolea
     const die = diceRef.current;
     const inner = innerRef.current;
     if (!die || !inner) return;
-    if (isRolling) {
+    const calm = reducedMotion();
+    if (calm) {
+      die.quaternion.copy(targetQuaternion);
+      die.position.y = 1;
+      inner.scale.set(1, 1, 1);
+    } else if (isRolling) {
       die.rotation.x += delta * (11 + index);
       die.rotation.y += delta * (14 + index * 2);
       die.rotation.z += delta * 7;
@@ -938,7 +988,7 @@ function CinematicCamera() {
   useFrame((_, delta) => {
     if (!(camera instanceof THREE.OrthographicCamera)) return;
     if (mode === 'OVERVIEW') return;
-    const settle = 1 - Math.exp(-8 * delta);
+    const settle = reducedMotion() ? 1 : 1 - Math.exp(-8 * delta);
     const target = mode === 'DICE_FOCUS'
       ? new THREE.Vector3(0, 2, 0)
       : new THREE.Vector3(...(TILE_POSITIONS[tile] || [0, 0, 0]));

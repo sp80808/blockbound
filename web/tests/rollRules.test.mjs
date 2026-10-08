@@ -43,6 +43,24 @@ test('auto multipliers adapt to remaining energy or spending budget', () => {
   assert.equal(rules.affordableAutoMultiplier(10, 10, false), 10);
 });
 
+test('roll progress guarantees blocks and pays exact five/ten-roll milestones', () => {
+  assert.deepEqual({ ...rules.rollProgressReward(1) }, { materials: 1, energy: 0, shields: 0 });
+  assert.deepEqual({ ...rules.rollProgressReward(5) }, { materials: 4, energy: 0, shields: 0 });
+  assert.deepEqual({ ...rules.rollProgressReward(10) }, { materials: 4, energy: 8, shields: 1 });
+  assert.throws(() => rules.rollProgressReward(0));
+});
+
+test('building upgrade costs preserve tier boundaries in one shared rule', () => {
+  const building = { baseCost: 8000, baseMats: 3, tier: 0 };
+  assert.deepEqual({ ...rules.buildingUpgradeCost(building) }, { coins: 8000, materials: 3 });
+  assert.deepEqual(
+    { ...rules.buildingUpgradeCost({ ...building, tier: 3 }) },
+    { coins: 44000, materials: 9 }
+  );
+  assert.throws(() => rules.buildingUpgradeCost({ ...building, tier: -1 }));
+  assert.throws(() => rules.buildingUpgradeCost({ ...building, tier: 5 }));
+});
+
 test('tile rewards scale standard coin/material rewards, not shields/energy', () => {
   assert.equal(rules.tileReward(1, 5, 1, 2).coins, 17500);
   assert.equal(rules.tileReward(2, 5, 1, 2).materials, 20);
