@@ -90,13 +90,130 @@ export function tileReward(index: number, multiplier: number, die1: number, die2
     case 'district': reward.materials = 3; reward.coins = 5000 * multiplier; reward.label = '🏡 District bonus'; break;
     case 'raid': reward.encounter = 'raid'; reward.label = '⚔️ Town raid'; break;
     case 'heist': reward.encounter = 'heist'; reward.label = '🗝️ Vault heist'; break;
-    case 'mystery':
-      // A known, reproducible choice from the already committed dice outcome.
-      // Replace with injected RNG when the full content/event model is ported.
-      if ((die1 + die2) % 2 === 0) reward.materials = 6 * multiplier;
-      else reward.coins = 12000 * multiplier;
-      reward.label = '🎁 Mystery surprise';
+    case 'mystery': {
+      // Deterministic from the already-committed dice: lucky totals pay
+      // energy/shields, middling totals pay mixed caches, extremes pay big.
+      const outcome = mysteryOutcome(die1, die2, multiplier);
+      reward.coins = outcome.coins;
+      reward.materials = outcome.materials;
+      reward.energy = outcome.energy;
+      reward.shields = outcome.shields;
+      reward.label = outcome.label;
       break;
+    }
   }
   return reward;
+}
+
+/** Deterministic mystery table driven only by committed dice + stake. */
+export interface MysteryOutcome {
+  label: string;
+  coins: number;
+  materials: number;
+  energy: number;
+  shields: number;
+}
+
+export function mysteryOutcome(die1: number, die2: number, multiplier: number): MysteryOutcome {
+  if (!Number.isInteger(multiplier) || multiplier < 1) throw new Error('Invalid multiplier');
+  const total = die1 + die2;
+  if (total === 2 || total === 12) {
+    return { label: '🎁 Mystery JACKPOT', coins: 22000 * multiplier, materials: 0, energy: 0, shields: 0 };
+  }
+  if (total === 7) {
+    return { label: '🎁 Lucky seven surge', coins: 0, materials: 0, energy: 12, shields: 0 };
+  }
+  if (total === 3 || total === 4) {
+    return { label: '🎁 Mystery bricks', coins: 0, materials: 6 * multiplier, energy: 0, shields: 0 };
+  }
+  if (total === 10 || total === 11) {
+    return { label: '🎁 Mystery aegis', coins: 4000 * multiplier, materials: 0, energy: 0, shields: 1 };
+  }
+  if (total === 5 || total === 6) {
+    return { label: '🎁 Mystery coins', coins: 12000 * multiplier, materials: 0, energy: 0, shields: 0 };
+  }
+  return { label: '🎁 Mystery cache', coins: 6000 * multiplier, materials: 2 * multiplier, energy: 0, shields: 0 };
+}
+
+/** How many times a stepwise path passes (not merely lands on) GO. */
+export function passGoCount(path: number[]): number {
+  let passes = 0;
+  for (let i = 1; i < path.length; i++) {
+    if (path[i] <= path[i - 1] && !(path[i - 1] === 31 && path[i] === 0 && i === path.length - 1 && path[i] === 0)) {
+      // Any wrap-around is a pass; a final landing exactly on GO counts as
+      // the landing bonus instead, so only count it when the path continues.
+      if (i < path.length - 1 || path[i] !== 0) passes += 1;
+      else if (path[i] === 0 && i === path.length - 1) {
+        // Landed on GO: the tile itself pays; still count earlier wraps only.
+      }
+    }
+  }
+  // Simpler robust rule: count index decreases, excluding a final landing on 0.
+  passes = 0;
+  for (let i = 1; i < path.length; i++) {
+    if (path[i] < path[i - 1] && !(i === path.length - 1 && path[i] === 0)) passes += 1;
+  }
+  return passes;
+}
+
+export function passGoReward(passes: number, multiplier: number): { coins: number; energy: number } {
+  if (!Number.isInteger(passes) || passes < 0) throw new Error('Invalid pass count');
+  if (!Number.isInteger(multiplier) || multiplier < 1) throw new Error('Invalid multiplier');
+  return { coins: 5000 * passes * multiplier, energy: 2 * passes };
+}
+
+/** Escalating doubles-streak bonus. Pure: streak counts consecutive doubles. */
+export function doublesBonus(streak: number, multiplier: number): { coins: number; energy: number; shields: number } {
+  if (!Number.isInteger(streak) || streak < 0) throw new Error('Invalid streak');
+  if (!Number.isInteger(multiplier) || multiplier < 1) throw new Error('Invalid multiplier');
+  if (streak <= 0) return { coins: 0, energy: 0, shields: 0 };
+  if (streak === 1) return { coins: 0, energy: 10, shields: 0 };
+  if (streak === 2) return { coins: 8000 * multiplier, energy: 10, shields: 0 };
+  return { coins: 12000 * multiplier, energy: 10, shields: 1 };
+}
+
+export interface EncounterOption {
+  label: string;
+  coins: number;
+  materials: number;
+  energy: number;
+  /** Presentation hint only — never affects the committed payout. */
+  variant?: 'brass' | 'steel' | 'crystal';
+  /** Raid only: host-supplied shield state for a transparent blocked-hit visual. */
+  shielded?: boolean;
+}
+
+/**
+ * Host-committed encounter choices. Raid offers 3 targets (pick 1); heist
+ * offers a 3×3 board of 9 safes (pick 3). Deterministic rotation from the
+ * roll id moves the best seat around — a real choice, same EV family.
+ * Rewards are shown up front in this offline prototype.
+ */
+export function encounterOptions(kind: EncounterKind, multiplier: number, seed: number): EncounterOption[] {
+  if (!Number.isInteger(multiplier) || multiplier < 1) throw new Error('Invalid multiplier');
+  if (!Number.isFinite(seed)) throw new Error('Invalid seed');
+  const rotation = Math.abs(Math.floor(seed)) % 3;
+  if (kind === 'raid') {
+    const table: EncounterOption[] = [
+      { label: '🛡️ Safe Workshop', coins: 6000 * multiplier, materials: 2 * multiplier, energy: 0, shielded: false },
+      { label: '⚔️ Bold Market', coins: 10000 * multiplier, materials: 0, energy: 4, shielded: false },
+      { label: '👑 Tower Jackpot', coins: 16000 * multiplier, materials: 0, energy: 0, shielded: false }
+    ];
+    // One target per raid is shielded by its NPC crew: transparent before
+    // the pick (barred-door badge), halved loot, shield-pop instead of damage.
+    table[rotation] = { ...table[rotation], shielded: true, coins: Math.floor(table[rotation].coins / 2) };
+    return table;
+  }
+  const variants: Array<'brass' | 'steel' | 'crystal'> = ['brass', 'steel', 'crystal'];
+  const coinTable = [1500, 2000, 2500, 3000, 4000, 5000, 7000, 9000, 12000];
+  const matsTable = [2, 0, 3, 0, 2, 0, 4, 0, 2];
+  const rotated = coinTable.map((_, i) => (i + rotation * 3) % 9);
+  return rotated.map((sourceIdx, i) => ({
+    label: (variants[i % 3] === 'brass' ? '🥉' : variants[i % 3] === 'steel' ? '🥈' : '💎') +
+      ' Vault ' + (i + 1),
+    coins: coinTable[sourceIdx] * multiplier,
+    materials: matsTable[sourceIdx] * multiplier,
+    energy: sourceIdx === 7 ? 4 : 0,
+    variant: variants[i % 3]
+  }));
 }

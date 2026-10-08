@@ -14,7 +14,7 @@ const DRAG_TOLERANCE_PX = 12;
 export function HUD() {
   const {
     coins, materials, energy, maxEnergy, energyUpdatedAt, saveError, shields, maxShields, multiplier,
-    isRolling, isTurbo, toast, lastRoll, momentum, autoRolling, autoBatchSize,
+    isRolling, isTurbo, toast, lastRoll, momentum, doublesStreak, autoRolling, autoBatchSize,
     autoRollsRemaining, autoEnergyBudget, autoEnergySpent, autoOkay,
     autoAdjustMultiplier, districts, currentDistrict, dailyStreak, streakClaimedToday,
     activeModal, claimStreakReward, closeModal, rollDice, cycleMultiplier,
@@ -162,6 +162,7 @@ export function HUD() {
           🎲 {lastRoll.die1} + {lastRoll.die2} = {lastRoll.total}
           <span style={{ color: '#fce787' }}> ×{lastRoll.multiplier}</span>
           {lastRoll.doubles && <span style={{ color: '#86efac' }}>✦ DOUBLES!</span>}
+          {doublesStreak >= 2 && <span style={{ color: '#f0abfc' }}>🔥×{doublesStreak}</span>}
         </div>
       )}
 

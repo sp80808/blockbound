@@ -22,7 +22,11 @@ export interface ProgressSnapshot {
   currentDistrict: number;
   districts: SavedDistrict[];
   dailyStreak: number; lastLoginDate: string; streakClaimedToday: boolean;
-  totalRolls: number; momentum: number; lastRoll: SavedRoll | null;
+  totalRolls: number; momentum: number; doublesStreak: number; lastRoll: SavedRoll | null;
+  doublesTotal: number; upgradesBuilt: number; raidsCompleted: number;
+  heistsCompleted: number; jackpotsHit: number;
+  claimedQuests: string[]; unlockedDistricts: number[];
+  soundEnabled: boolean;
   pendingEncounter: SavedEncounter | null; pendingReward: SavedReward | null;
   autoOkay: boolean; autoAdjustMultiplier: boolean; autoBatchSize: 5 | 10 | 25;
   isTurbo: boolean; energyUpdatedAt: number;
@@ -95,9 +99,9 @@ function checkedRoll(value: unknown): SavedRoll | null {
 function checkedEncounter(value: unknown, rollId: number | undefined): SavedEncounter | null {
   const e = object(value);
   if (!e || e.id !== rollId || (e.kind !== 'raid' && e.kind !== 'heist') ||
-      !Array.isArray(e.options) || e.options.length !== 3) return null;
+      !Array.isArray(e.options) || e.options.length < 1 || e.options.length > 9) return null;
   const options = e.options.map(o => object(o)).filter((o): o is Record<string, unknown> => !!o);
-  if (options.length !== 3 || !options.every(o => typeof o.label === 'string' &&
+  if (options.length < 1 || options.length > 9 || !options.every(o => typeof o.label === 'string' &&
       o.label.length <= 64 && typeof o.coins === 'number' &&
       Number.isSafeInteger(o.coins) && o.coins >= 0 && o.coins <= 10_000_000)) return null;
   return {
@@ -123,6 +127,20 @@ export function restoreProgress(raw: unknown, defaults: ProgressSnapshot, now: n
   const energy = numberIn(source.energy, defaults.energy, 0, cap);
   const shieldCap = defaults.maxShields;
   const totalRolls = numberIn(source.totalRolls, 0, 0, 100_000_000);
+  const doublesStreak = numberIn(source.doublesStreak, 0, 0, 1000);
+  const claimedQuests = Array.isArray(source.claimedQuests)
+    ? source.claimedQuests.filter(
+        (id): id is string =>
+          typeof id === 'string' && /^[a-z0-9_]{1,32}$/.test(id)
+      ).slice(0, 32)
+    : [];
+  const unlockedDistricts = Array.isArray(source.unlockedDistricts)
+    ? [...new Set(
+        source.unlockedDistricts.filter(
+          (id): id is number => Number.isInteger(id) && id >= 0 && id <= 7
+        )
+      )].slice(0, 8)
+    : [0];
   const lastRoll = checkedRoll(source.lastRoll);
   const sourceDistricts = Array.isArray(source.districts) ? source.districts : [];
   const districts = defaults.districts.map(d => {
@@ -158,6 +176,15 @@ export function restoreProgress(raw: unknown, defaults: ProgressSnapshot, now: n
     streakClaimedToday: bool(source.streakClaimedToday, false),
     totalRolls,
     momentum: totalRolls % 5,
+    doublesStreak,
+    doublesTotal: numberIn(source.doublesTotal, 0, 0, 100_000_000),
+    upgradesBuilt: numberIn(source.upgradesBuilt, 0, 0, 100_000_000),
+    raidsCompleted: numberIn(source.raidsCompleted, 0, 0, 100_000_000),
+    heistsCompleted: numberIn(source.heistsCompleted, 0, 0, 100_000_000),
+    jackpotsHit: numberIn(source.jackpotsHit, 0, 0, 100_000_000),
+    claimedQuests,
+    unlockedDistricts: unlockedDistricts.length > 0 ? unlockedDistricts : [0],
+    soundEnabled: bool(source.soundEnabled, true),
     lastRoll: lastRoll && lastRoll.id <= totalRolls ? lastRoll : null,
     pendingEncounter: checkedEncounter(source.pendingEncounter, lastRoll?.id),
     pendingReward: checkedReward(source.pendingReward),

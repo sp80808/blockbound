@@ -1,16 +1,74 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { VoxelScene } from './components/VoxelScene';
 import { HUD } from './components/HUD';
 import { SplashScreen } from './components/SplashScreen';
+import { VaultHeist } from './minigames/heist/VaultHeist';
+import { TownRaid } from './minigames/raid/TownRaid';
 import { useGameStore } from './store/gameStore';
+
+const CONFETTI_COLORS = ['#fde047', '#f472b6', '#67e8f9', '#a3e635', '#fb923c', '#c4b5fd'];
+
+function Celebration() {
+  const celebration = useGameStore(s => s.celebration);
+  const dismiss = useGameStore(s => s.dismissCelebration);
+  const pieces = useMemo(() => {
+    if (!celebration) return [];
+    let seed = celebration.key * 2654435761;
+    const rand = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
+    return Array.from({ length: 28 }, (_, i) => ({
+      x: rand() * 100,
+      delay: rand() * 0.7,
+      duration: 1.4 + rand() * 1.2,
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length]
+    }));
+  }, [celebration]);
+
+  useEffect(() => {
+    if (!celebration) return;
+    const timer = window.setTimeout(dismiss, 3200);
+    return () => window.clearTimeout(timer);
+  }, [celebration, dismiss]);
+
+  if (!celebration) return null;
+  const copy = celebration.kind === 'jackpot'
+    ? { icon: '✨', title: 'JACKPOT!', sub: 'The golden vault bursts open. Keep rolling!' }
+    : celebration.kind === 'doubles3'
+      ? { icon: '🎲', title: 'DOUBLES STREAK!', sub: 'Three doubles in a row — the dice love you. Bonus shield earned!' }
+      : { icon: '🏗️', title: 'GRAND MILESTONE!', sub: 'Ten rolls strong! Bonus shield and energy incoming.' };
+
+  return (
+    <div className="bb-celebration" aria-live="polite">
+      <div className="bb-confetti" aria-hidden="true">
+        {pieces.map((p, i) => (
+          <i
+            key={celebration.key + '-' + i}
+            style={{ '--x': p.x + '%', '--delay': p.delay + 's', '--d': p.duration + 's', '--c': p.color } as React.CSSProperties}
+          />
+        ))}
+      </div>
+      <div className="bb-celebration-card" role="status">
+        <div style={{ fontSize: 46 }}>{copy.icon}</div>
+        <h2>{copy.title}</h2>
+        <p>{copy.sub}</p>
+        <button className="bb-control bb-mini-collect" onClick={dismiss} style={{ width: '100%' }}>
+          KEEP ROLLING 🎲
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const {
     activeModal, closeModal, districts, currentDistrict, coins, materials,
-    pendingEncounter, pendingReward, resolveEncounter, acknowledgeReward,
+    pendingEncounter, pendingReward, resolveEncounterPicks, acknowledgeReward,
     upgradeBuilding, repairBuilding
   } = useGameStore();
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   // Restore verified local progress before the player can start a new roll.
   useEffect(() => {
@@ -18,6 +76,14 @@ export default function App() {
     useGameStore.getState().tickRecovery();
     const regenTimer = window.setInterval(() => useGameStore.getState().tickRecovery(), 1000);
     return () => window.clearInterval(regenTimer);
+  }, []);
+
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReducedMotion(query.matches);
+    const update = () => setReducedMotion(query.matches);
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
   }, []);
 
   // No unattended dice spending in background tabs or after switching apps.
@@ -45,6 +111,7 @@ export default function App() {
         <>
           <main className="bb-world" aria-label="Interactive 3D board"><VoxelScene /></main>
           <HUD />
+          <Celebration />
 
           {/* Upgrade Modal */}
           {activeModal === 'upgrade' && (
@@ -96,7 +163,7 @@ export default function App() {
                         <span style={{ fontSize: '20px' }}>{b.icon}</span>
                         <div>
                           <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>{b.name}</div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>Tier {b.tier}/4 • 🪙 {cost.toLocaleString()}</div>
+                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>Tier {b.tier}/4 • 🪙 {cost.toLocaleString()} · 🧱 {mats}</div>
                         </div>
                       </div>
                       {b.damaged ? (
@@ -134,35 +201,30 @@ export default function App() {
             </div>
           )}
 
-          {/* Encounters require a choice; auto-roll always stops here. */}
+          {/* Encounters pause auto-roll until their single completion callback fires. */}
           {activeModal === 'encounter' && pendingEncounter && (
-            <div role="dialog" aria-modal="true" aria-label="Choose encounter target"
+            <div role="dialog" aria-modal="true"
+              aria-label={pendingEncounter.kind === 'raid' ? 'Town raid encounter' : 'Vault heist encounter'}
               style={{ position: 'absolute', inset: 0, zIndex: 80,
                 background: 'rgba(2,6,23,.82)', display: 'flex',
-                justifyContent: 'center', alignItems: 'center', padding: 18 }}>
-              <div style={{ width: '100%', maxWidth: 380, borderRadius: 24,
+                justifyContent: 'center', alignItems: 'center', padding: 14 }}>
+              <div style={{ width: '100%', maxWidth: 400, maxHeight: 'min(88dvh, 700px)',
+                overflowY: 'auto', overscrollBehavior: 'contain', borderRadius: 24,
                 background: '#0f172a', border: '2px solid #a78bfa', color: '#fff',
-                padding: 22, textAlign: 'center', boxShadow: '0 16px 45px rgba(0,0,0,.35)' }}>
-                <div style={{ fontSize: 46 }}>{pendingEncounter.kind === 'raid' ? '⚔️' : '🗝️'}</div>
-                <h2 style={{ margin: '8px 0', color: '#fef08a' }}>
-                  {pendingEncounter.kind === 'raid' ? 'Town Raid' : 'Vault Heist'}
-                </h2>
-                <p style={{ margin: '0 0 18px', color: '#cbd5e1', fontSize: 13 }}>
-                  Choose a {pendingEncounter.kind === 'raid' ? 'building' : 'vault'}.
-                  This event pauses Auto Roll. Rewards are shown up front in this prototype.
-                </p>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {pendingEncounter.options.map((choice, i) => (
-                    <button key={i} className="bb-control" onClick={() => resolveEncounter(i)}
-                      style={{ width: '100%', padding: '13px 12px',
-                        background: '#312e81', borderColor: '#818cf8', color: '#fff',
-                        display: 'flex', justifyContent: 'space-between', fontSize: 15 }}>
-                      <span>{choice.label}</span><span style={{ color: '#fde68a' }}>
-                        🪙 {choice.coins.toLocaleString()}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                padding: 18, boxShadow: '0 16px 45px rgba(0,0,0,.35)' }}>
+                {pendingEncounter.kind === 'raid' ? (
+                  <TownRaid
+                    encounter={pendingEncounter}
+                    reducedMotion={reducedMotion}
+                    onComplete={indices => resolveEncounterPicks(indices)}
+                  />
+                ) : (
+                  <VaultHeist
+                    encounter={pendingEncounter}
+                    reducedMotion={reducedMotion}
+                    onComplete={indices => resolveEncounterPicks(indices)}
+                  />
+                )}
               </div>
             </div>
           )}

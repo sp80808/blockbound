@@ -10,7 +10,7 @@
     "cap:sync": "cap sync android",
     "test:rules": "node --test tests/rollRules.test.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/rollRules.test.mjs tests/gameSave.test.mjs",
+    "test": "node --test tests/rollRules.test.mjs tests/gameSave.test.mjs tests/rewards.test.mjs",
     "test:saves": "node --test tests/gameSave.test.mjs",
     "clean:appledouble": "bash ../scripts/clean-appledouble.sh"
   },
