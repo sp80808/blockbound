@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../store/gameStore';
 
@@ -34,14 +34,21 @@ const TILE_COLORS = [
   0xf97316, 0xf59e0b, 0x06b6d4, 0xec4899, 0xf59e0b, 0xef4444, 0x6366f1, 0xf59e0b
 ];
 
+const TILE_MARKS = ['GO', '2', '+', '4', '$', '6', '!', '8', 'XP', '10', '+', '12', '$', '14', '★', '16', 'XP', '18', '!', '20', '$', '22', '★', '24', '+', '26', '$', '28', '!', '30', '★', '32'];
+
 function VoxelBoard() {
   return (
     <group>
       {TILE_POSITIONS.map((pos, idx) => (
-        <mesh key={idx} position={pos} receiveShadow castShadow>
-          <boxGeometry args={[2.1, 0.5, 2.1]} />
-          <meshLambertMaterial color={TILE_COLORS[idx]} />
-        </mesh>
+        <group key={idx} position={pos}>
+          <mesh receiveShadow castShadow>
+            <boxGeometry args={[2.1, 0.5, 2.1]} />
+            <meshLambertMaterial color={TILE_COLORS[idx]} />
+          </mesh>
+          <Text position={[0, 0.28, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={idx === 0 ? 0.42 : 0.32} color="#fff" anchorX="center" anchorY="middle" outlineWidth={0.025} outlineColor="#172033">
+            {TILE_MARKS[idx]}
+          </Text>
+        </group>
       ))}
 
       {/* Courtyard Floor */}
@@ -139,6 +146,19 @@ function Buildings() {
   );
 }
 
+const PIP_LAYOUTS: Record<number, [number, number][]> = {
+  1: [[0, 0]],
+  2: [[-0.32, 0.32], [0.32, -0.32]],
+  3: [[-0.32, 0.32], [0, 0], [0.32, -0.32]],
+  4: [[-0.32, 0.32], [0.32, 0.32], [-0.32, -0.32], [0.32, -0.32]],
+  5: [[-0.32, 0.32], [0.32, 0.32], [0, 0], [-0.32, -0.32], [0.32, -0.32]],
+  6: [[-0.32, 0.32], [0.32, 0.32], [-0.32, 0], [0.32, 0], [-0.32, -0.32], [0.32, -0.32]]
+};
+
+function DiceFace({ value }: { value: number }) {
+  return <group position={[0, 0, 0.76]}>{PIP_LAYOUTS[value].map(([x, y], index) => <mesh key={index} position={[x, y, 0]}><sphereGeometry args={[0.11, 12, 8]} /><meshLambertMaterial color={0x312e81} /></mesh>)}</group>;
+}
+
 function PhysicalDice() {
   const isRolling = useGameStore(s => s.isRolling);
   const die1Ref = useRef<THREE.Mesh>(null);
@@ -164,14 +184,14 @@ function PhysicalDice() {
 
   return (
     <group>
-      <mesh ref={die1Ref} position={[-1.4, 1.0, 0]} castShadow>
-        <boxGeometry args={[1.5, 1.5, 1.5]} />
-        <meshLambertMaterial color={0xfffbeb} />
-      </mesh>
-      <mesh ref={die2Ref} position={[1.4, 1.0, 0]} castShadow>
-        <boxGeometry args={[1.5, 1.5, 1.5]} />
-        <meshLambertMaterial color={0xfffbeb} />
-      </mesh>
+      <group ref={die1Ref} position={[-1.4, 1.0, 0]}>
+        <mesh castShadow><boxGeometry args={[1.5, 1.5, 1.5]} /><meshLambertMaterial color={0xfffbeb} /></mesh>
+        <DiceFace value={5} />
+      </group>
+      <group ref={die2Ref} position={[1.4, 1.0, 0]}>
+        <mesh castShadow><boxGeometry args={[1.5, 1.5, 1.5]} /><meshLambertMaterial color={0xfffbeb} /></mesh>
+        <DiceFace value={2} />
+      </group>
     </group>
   );
 }

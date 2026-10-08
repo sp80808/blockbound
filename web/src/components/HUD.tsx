@@ -13,53 +13,41 @@ export function HUD() {
     isRolling,
     isTurbo,
     toast,
+    districts,
+    currentDistrict,
     rollDice,
     cycleMultiplier,
     toggleTurbo,
     openModal
   } = useGameStore();
 
+  const buildings = districts[currentDistrict].buildings;
+  const questTotal = buildings.length * 4;
+  const questProgress = buildings.reduce((total, building) => total + building.tier, 0);
+
   return (
-    <div style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      pointerEvents: 'none',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      padding: '16px',
-      boxSizing: 'border-box'
-    }}>
-      {/* Top Header */}
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '12px', boxSizing: 'border-box' }}>
       <div style={{ pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ background: 'rgba(30,41,59,0.9)', padding: '6px 12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', color: '#fbbf24', fontWeight: 800, fontSize: '13px' }}>
-            🪙 {coins.toLocaleString()}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', borderRadius: '18px', background: 'rgba(15, 23, 42, 0.92)', border: '1px solid rgba(148, 163, 184, 0.28)', boxShadow: '0 8px 24px rgba(2, 6, 23, 0.28)' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 900, letterSpacing: '0.12em' }}>SUNNY SUBURB</div>
+            <div style={{ color: '#fff', fontSize: '13px', fontWeight: 900, marginTop: '2px' }}>District 01</div>
           </div>
-          <div style={{ background: 'rgba(30,41,59,0.9)', padding: '6px 12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', color: '#f472b6', fontWeight: 800, fontSize: '13px' }}>
-            🧱 {materials}
+          <div style={{ display: 'flex', gap: '5px', color: '#fbbf24', fontWeight: 900, fontSize: '11px' }}><span style={{ color: '#64748b' }}>G</span>{coins.toLocaleString()}</div>
+          <div style={{ display: 'flex', gap: '5px', color: '#f472b6', fontWeight: 900, fontSize: '11px' }}><span style={{ color: '#64748b' }}>M</span>{materials}</div>
+          <div style={{ display: 'flex', gap: '3px', padding: '5px 7px', borderRadius: '9px', background: 'rgba(14, 116, 144, 0.25)', color: '#67e8f9', fontSize: '12px' }}>
+            {Array.from({ length: maxShields }).map((_, i) => <span key={i} style={{ color: i < shields ? '#67e8f9' : '#334155' }}>◆</span>)}
           </div>
-          <div style={{ background: 'rgba(8,47,73,0.9)', padding: '6px 10px', borderRadius: '14px', border: '1px solid #0284c7', display: 'flex', gap: '4px' }}>
-            {Array.from({ length: maxShields }).map((_, i) => (
-              <span key={i} style={{ filter: i < shields ? 'none' : 'grayscale(100%)', opacity: i < shields ? 1 : 0.4 }}>🛡️</span>
-            ))}
-          </div>
-          <button
-            onClick={() => openModal('upgrade')}
-            style={{ background: '#10b981', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '12px', fontWeight: 900, cursor: 'pointer' }}
-          >
-            🔨 BUILD
-          </button>
+          <button onClick={() => openModal('upgrade')} aria-label="Open build menu" style={{ background: '#10b981', color: '#052e16', border: 0, padding: '9px 11px', borderRadius: '11px', fontWeight: 950, fontSize: '10px', letterSpacing: '0.04em', cursor: 'pointer' }}>BUILD</button>
         </div>
 
-        {toast && (
-          <div style={{ background: '#312e81', border: '1.5px solid #fbbf24', borderRadius: '12px', padding: '8px 14px', textAlign: 'center', color: '#fde68a', fontWeight: 900, fontSize: '13px' }}>
-            {toast}
-          </div>
-        )}
+        <div style={{ pointerEvents: 'auto', padding: '9px 11px', borderRadius: '14px', background: 'rgba(30, 27, 75, 0.94)', border: '1px solid rgba(129, 140, 248, 0.55)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#e0e7ff', fontSize: '10px', fontWeight: 900, letterSpacing: '0.08em' }}><span>QUEST · RESTORE THE DISTRICT</span><span>{questProgress}/{questTotal}</span></div>
+          <div style={{ height: '6px', marginTop: '7px', borderRadius: '999px', background: 'rgba(15, 23, 42, 0.8)', overflow: 'hidden' }}><div style={{ width: `${(questProgress / questTotal) * 100}%`, height: '100%', borderRadius: 'inherit', background: 'linear-gradient(90deg, #818cf8, #34d399)' }} /></div>
+          <div style={{ color: '#a5b4fc', fontSize: '10px', marginTop: '5px' }}>Upgrade every building to unlock the next district</div>
+        </div>
+
+        {toast && <div style={{ background: '#312e81', border: '1.5px solid #fbbf24', borderRadius: '12px', padding: '8px 14px', textAlign: 'center', color: '#fde68a', fontWeight: 900, fontSize: '13px' }}>{toast}</div>}
       </div>
 
       {/* Bottom Controls */}
