@@ -305,12 +305,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun generateQuests(): List<Quest> {
         return listOf(
-            Quest("quest_rolls", "Roll the Dice 15 times", 15, 0, 25000L, 12, icon = "🎲", category = "DAILY"),
-            Quest("quest_upgrade", "Upgrade Town Buildings 2 times", 2, 0, 35000L, 15, icon = "🔨", category = "BUILD"),
-            Quest("quest_raid", "Launch a Town Raid", 1, 0, 30000L, 10, icon = "⚔️", category = "RAID"),
-            Quest("quest_shield", "Hold maximum Shields (3)", 3, 2, 20000L, 8, icon = "🛡️", category = "DAILY"),
-            Quest("quest_heist", "Crack Bank Vault Safes", 2, 0, 35000L, 12, icon = "🗝️", category = "EVENT"),
-            Quest("quest_coins", "Collect 50,000 Total Coins", 50000, 35000, 45000L, 18, icon = "👑", category = "MILESTONE")
+            Quest("quest_rolls", "Roll the Dice 12 times", 12, 0, 25000L, 15, icon = "🎲", category = "DAILY"),
+            Quest("quest_upgrade", "Upgrade Town Buildings 2 times", 2, 0, 40000L, 16, icon = "🔨", category = "BUILD"),
+            Quest("quest_doubles", "Roll Lucky Doubles 1 time", 1, 0, 30000L, 12, icon = "✨", category = "DAILY"),
+            Quest("quest_gold_tiles", "Land on Gold tiles 3 times", 3, 0, 25000L, 10, icon = "💰", category = "DAILY"),
+            Quest("quest_raid", "Launch a Town Raid Assault", 1, 0, 35000L, 12, icon = "⚔️", category = "RAID"),
+            Quest("quest_heist", "Crack Bank Vault Safes", 2, 0, 35000L, 14, icon = "🗝️", category = "EVENT"),
+            Quest("quest_shield", "Equip an Aegis Shield", 1, 0, 20000L, 8, icon = "🛡️", category = "DAILY"),
+            Quest("quest_coins", "Collect 50,000 Total Coins", 50000, 35000, 50000L, 20, icon = "👑", category = "MILESTONE")
         )
     }
 
@@ -349,6 +351,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             if (isDoubles) {
                 bonusEnergy = 10
                 soundManager.playJackpotFanfare()
+                updateQuestProgress("quest_doubles", 1)
             }
 
             _uiState.update {
@@ -448,6 +451,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
                 updateQuestProgress("quest_coins", coins.toInt())
+                updateQuestProgress("quest_gold_tiles", 1)
                 triggerLootAnimation("🪙", LootTargetType.COINS, coins)
                 triggerLootAnimation("⚡", LootTargetType.ENERGY, energy.toLong())
             }
@@ -462,6 +466,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 spawnConfettiParticles(6.0f, 6.0f)
                 updateQuestProgress("quest_coins", reward.toInt())
+                updateQuestProgress("quest_gold_tiles", 1)
                 triggerLootAnimation("🪙", LootTargetType.COINS, reward)
             }
             TileType.MATERIALS -> {
@@ -627,6 +632,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 bannerNotification = "✨ REPAIRED ${building.name.uppercase()}!"
             )
         }
+        updateQuestProgress("quest_repair", 1)
+        updateQuestProgress("quest_upgrade", 1)
 
         saveCurrentState()
     }
@@ -773,18 +780,37 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         triggerLootAnimation("🪙", LootTargetType.COINS, quest.coinReward)
         triggerLootAnimation("⚡", LootTargetType.ENERGY, quest.energyReward.toLong())
 
+        val nextTier = getNextTierQuest(quest)
         val updated = state.quests.map { q ->
-            if (q.id == questId) q.copy(isClaimed = true) else q
+            if (q.id == questId) {
+                nextTier ?: q.copy(isClaimed = true)
+            } else q
         }
         _uiState.update {
             it.copy(
                 coins = it.coins + quest.coinReward,
-                diceEnergy = (it.diceEnergy + quest.energyReward).coerceAtMost(it.maxEnergy + 20),
+                diceEnergy = (it.diceEnergy + quest.energyReward).coerceAtMost(it.maxEnergy + 30),
                 quests = updated,
-                bannerNotification = "🎯 Quest Claimed: +%,d Coins & +${quest.energyReward}⚡!".format(quest.coinReward)
+                bannerNotification = "🎯 Mission Reward Claimed: +%,d Coins & +${quest.energyReward}⚡ Energy!".format(quest.coinReward)
             )
         }
         saveCurrentState()
+    }
+
+    private fun getNextTierQuest(quest: Quest): Quest? {
+        return when (quest.id) {
+            "quest_rolls" -> Quest("quest_rolls_2", "Roll the Dice 30 times", 30, quest.progress, 50000L, 22, icon = "🎲", category = "DAILY")
+            "quest_rolls_2" -> Quest("quest_rolls_3", "Roll the Dice 60 times", 60, quest.progress, 90000L, 35, icon = "🎲", category = "DAILY")
+            "quest_upgrade" -> Quest("quest_upgrade_2", "Upgrade Town Buildings 4 times", 4, quest.progress, 75000L, 25, icon = "🔨", category = "BUILD")
+            "quest_upgrade_2" -> Quest("quest_upgrade_3", "Upgrade Town Buildings 8 times", 8, quest.progress, 150000L, 45, icon = "🔨", category = "BUILD")
+            "quest_raid" -> Quest("quest_raid_2", "Launch 3 Town Raids", 3, quest.progress, 70000L, 20, icon = "⚔️", category = "RAID")
+            "quest_heist" -> Quest("quest_heist_2", "Crack 4 Vault Safes", 4, quest.progress, 70000L, 24, icon = "🗝️", category = "EVENT")
+            "quest_gold_tiles" -> Quest("quest_gold_tiles_2", "Land on Gold tiles 6 times", 6, quest.progress, 50000L, 20, icon = "💰", category = "DAILY")
+            "quest_doubles" -> Quest("quest_doubles_2", "Roll Lucky Doubles 3 times", 3, quest.progress, 60000L, 22, icon = "✨", category = "DAILY")
+            "quest_shield" -> Quest("quest_shield_2", "Collect 3 Aegis Shields", 3, 0, 35000L, 12, icon = "🛡️", category = "DAILY")
+            "quest_coins" -> Quest("quest_coins_2", "Collect 150,000 Total Coins", 150000, quest.progress, 100000L, 35, icon = "👑", category = "MILESTONE")
+            else -> null
+        }
     }
 
     fun claimDailyStreak() {
@@ -836,14 +862,30 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(flyingLoots = it.flyingLoots.filter { l -> l.id != id }) }
     }
 
-    private fun updateQuestProgress(questId: String, increment: Int) {
+    fun updateQuestProgress(questIdPrefix: String, increment: Int) {
+        var newlyCompletedQuest: Quest? = null
         val state = _uiState.value
         val updated = state.quests.map { q ->
-            if (q.id == questId && !q.isClaimed) {
-                q.copy(progress = (q.progress + increment).coerceAtMost(q.target))
+            if ((q.id == questIdPrefix || q.id.startsWith(questIdPrefix)) && !q.isClaimed) {
+                val newProgress = (q.progress + increment).coerceAtMost(q.target)
+                if (q.progress < q.target && newProgress >= q.target) {
+                    newlyCompletedQuest = q.copy(progress = newProgress)
+                }
+                q.copy(progress = newProgress)
             } else q
         }
-        _uiState.update { it.copy(quests = updated) }
+        if (newlyCompletedQuest != null) {
+            soundManager.playJackpotFanfare()
+        }
+        _uiState.update {
+            it.copy(
+                quests = updated,
+                bannerNotification = newlyCompletedQuest?.let { cq ->
+                    "🎯 MISSION COMPLETED: ${cq.title}! Claim +${cq.energyReward}⚡ & Coins!"
+                } ?: it.bannerNotification
+            )
+        }
+        saveCurrentState()
     }
 
     fun resetGameProgress() {

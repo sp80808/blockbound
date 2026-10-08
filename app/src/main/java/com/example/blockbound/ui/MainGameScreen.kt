@@ -185,22 +185,35 @@ fun MainGameScreen(
                 }
 
                 // Menu buttons: Quests & Settings
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // Quest Modal Button with Notification Badge
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Quest Modal Button with Icon + Label + Notification Badge
                     Box {
-                        IconButton(
+                        Surface(
                             onClick = { viewModel.openDialog(GameDialogState.Quests) },
-                            modifier = Modifier
-                                .size(38.dp)
-                                .background(Color(0xFF1E293B), CircleShape)
-                                .testTag("quests_button")
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFF1E293B),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.5.dp,
+                                if (uiState.claimableQuestsCount > 0) Color(0xFFF59E0B) else Color(0xFF38BDF8)
+                            ),
+                            modifier = Modifier.testTag("quests_button")
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Assignment,
-                                contentDescription = "Quests",
-                                tint = Color(0xFF38BDF8),
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("🎯", fontSize = 13.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "QUESTS",
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
                         }
 
                         // Notification badge when rewards are ready to claim
@@ -209,7 +222,7 @@ fun MainGameScreen(
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .offset(x = 4.dp, y = (-2).dp)
+                                    .offset(x = 6.dp, y = (-4).dp)
                                     .scale(pulseScale)
                                     .clip(CircleShape)
                                     .background(
@@ -218,7 +231,7 @@ fun MainGameScreen(
                                         )
                                     )
                                     .border(1.5.dp, Color.White, CircleShape)
-                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                    .padding(horizontal = 6.dp, vertical = 1.dp)
                                     .testTag("quest_notification_badge")
                             ) {
                                 Text(
@@ -234,7 +247,7 @@ fun MainGameScreen(
                     IconButton(
                         onClick = { viewModel.openDialog(GameDialogState.Settings) },
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(36.dp)
                             .background(Color(0xFF1E293B), CircleShape)
                             .testTag("settings_button")
                     ) {
@@ -242,7 +255,7 @@ fun MainGameScreen(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Settings",
                             tint = Color(0xFF94A3B8),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                 }
