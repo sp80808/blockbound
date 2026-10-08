@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "cap:sync": "cap sync android"
+    "cap:sync": "cap sync android",
+    "test:rules": "node --test tests/rollRules.test.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
