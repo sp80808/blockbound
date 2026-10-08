@@ -1,0 +1,56 @@
+/* Small, legible 'game feel' accents with motion safety. */
+@keyframes bb-coin-pop {
+  0% { transform: scale(0.92); filter: brightness(1.1); }
+  55% { transform: scale(1.12); filter: brightness(1.4); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+@keyframes bb-reward-enter {
+  0% { opacity: 0; transform: translateY(-9px) scale(0.96); }
+  65% { opacity: 1; transform: translateY(2px) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes bb-momentum-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+@keyframes bb-roll-breathe {
+  0%, 100% { box-shadow: 0 7px 24px rgba(244, 63, 94, 0.25); }
+  50% { box-shadow: 0 8px 30px rgba(244, 63, 94, 0.46); }
+}
+.bb-control {
+  cursor: pointer;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  font-weight: 800;
+  font-family: inherit;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms cubic-bezier(.2,.9,.3,1), box-shadow 150ms ease, background 150ms ease, opacity 150ms ease;
+  touch-action: manipulation;
+}
+.bb-control:active:not(:disabled) { transform: translateY(2px) scale(0.96); }
+.bb-control:focus-visible { outline: 3px solid #fef08a; outline-offset: 2px; }
+.bb-control:disabled { opacity: 0.45; cursor: not-allowed; }
+.bb-resource { font-variant-numeric: tabular-nums; }
+.bb-resource[data-flash="true"] { animation: bb-coin-pop 320ms ease-out; }
+.bb-toast { animation: bb-reward-enter 250ms cubic-bezier(.17,.89,.32,1.4); }
+.bb-momentum-complete { animation: bb-momentum-pulse 500ms ease-in-out 2; }
+.bb-roll-ready { animation: bb-roll-breathe 1600ms ease-in-out infinite; }
+.bb-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+.bb-hud button { min-height: 44px; }
+.bb-mini { color: #cbd5e1; font-size: 11px; font-weight: 750; }
+@media (prefers-reduced-motion: reduce) {
+  .bb-control, .bb-resource, .bb-toast, .bb-momentum-complete, .bb-roll-ready {
+    animation: none !important;
+    transition: none !important;
+  }
+}
