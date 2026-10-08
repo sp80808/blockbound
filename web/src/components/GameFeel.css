@@ -179,9 +179,8 @@ button { font-family: inherit; }
   .bb-build { min-width:75px; font-size:11px; }
   .bb-controls { padding:9px 9px 8px; gap:7px; }
   .bb-multiplier { width:55px; }
-  .bb-auto-main { width:76px; font-size:11px; }
-  .bb-segment { min-width:36px; padding:4px 6px; }
-  .bb-secondary-action { padding:7px 6px; }
+  .bb-segment { min-width:44px; padding:5px 8px; }
+  .bb-secondary-action { padding:7px 9px; }
 }
 @media (max-height:740px) {
   .bb-world { top:calc(max(9px,env(safe-area-inset-top)) + 99px); bottom:calc(max(9px,env(safe-area-inset-bottom)) + 186px); }
@@ -195,4 +194,82 @@ button { font-family: inherit; }
   .bb-control,.bb-progress-fill,.bb-energy-fill,.bb-resource,.bb-toast {
     animation:none !important; transition:none !important;
   }
+}
+
+/* Multifunction roll input. The single prominent action carries manual roll and auto-roll.
+   Do not create separate autoplay controls in the default dock. */
+.bb-settings-button {
+  width:52px; min-width:48px; min-height:63px; flex:none;
+  background:linear-gradient(165deg,#364d76,#253655);
+  color:#e6efff; border-color:#829dc56e !important;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:2px;
+}
+.bb-roll-button { position:relative; overflow:hidden; touch-action:none; }
+.bb-roll-button[data-auto="true"] {
+  background:linear-gradient(155deg,#f16a6d,#a82551);
+  border-color:#ffc4a1 !important;
+  box-shadow:0 5px 0 #672044,0 9px 24px #f56a6250;
+}
+.bb-roll-button[data-holding="true"] { filter:brightness(1.1); }
+.bb-hold-progress {
+  position:absolute; left:0; bottom:0; height:5px; width:100%;
+  background:#ffe88b; transform-origin:left; animation:bb-hold-fill 540ms linear forwards;
+  pointer-events:none;
+}
+@keyframes bb-hold-fill {
+  from { transform:scaleX(0); } to { transform:scaleX(1); }
+}
+.bb-options-sheet {
+  position:absolute; left:max(12px,env(safe-area-inset-left));
+  right:max(12px,env(safe-area-inset-right));
+  bottom:calc(max(12px,env(safe-area-inset-bottom)) + 121px);
+  z-index:7; pointer-events:auto;
+  background:rgba(23,35,67,.98); border:1px solid #94a3b8a3;
+  border-radius:17px; box-shadow:0 12px 34px #0008;
+  padding:12px; display:flex; flex-direction:column; gap:8px;
+  max-height:min(380px,56dvh); overflow-y:auto; overscroll-behavior:contain;
+}
+.bb-options-line {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px; color:#e0ebf7; font-size:12px; font-weight:800;
+}
+.bb-options-line .bb-secondary-action { min-width:100px; }
+.bb-keyboard-auto {
+  background:linear-gradient(#564fbd,#37318a);
+  border-color:#aaa4fd !important; color:white; min-height:48px !important;
+}
+.bb-streak { min-width:48px; min-height:46px; background:linear-gradient(#d57533,#ad471d); color:#fff3d2; position:relative; padding:6px 7px; }
+.bb-streak-dot { position:absolute; right:2px; top:2px; width:7px; height:7px; border-radius:50%; background:#d8ff91; box-shadow:0 0 7px #9af97f; }
+.bb-streak-scrim { position:absolute; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; padding:16px; background:#020717d9; pointer-events:auto; }
+.bb-streak-dialog {
+  width:100%; max-width:405px; max-height:85dvh; overflow-y:auto;
+  border:2px solid #fb923c; border-radius:23px; padding:16px;
+  color:white; background:#142238; box-shadow:0 12px 38px #000a;
+}
+.bb-streak-heading { display:flex; justify-content:space-between; align-items:center; gap:7px; margin-bottom:14px; }
+.bb-streak-heading strong { color:#ffc08c; font-size:20px; }
+.bb-streak-rewards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-bottom:14px; }
+.bb-streak-reward { background:#283a57; border:1px solid #5a7293; padding:7px 3px; border-radius:12px; min-height:79px; text-align:center; }
+.bb-streak-reward[data-today="true"] { background:#3c3270; border-color:#f6c35c; }
+.bb-streak-reward[data-claimed="true"] { background:#185349; border-color:#26b58b; }
+.bb-streak-reward .bb-micro { overflow-wrap:anywhere; }
+.bb-resource-row { flex-wrap:nowrap; }
+.bb-resource { min-width:0; }
+.bb-build { min-width:80px; padding:6px 7px; }
+.bb-controls { gap:8px; }
+.bb-world { bottom:calc(max(12px,env(safe-area-inset-bottom)) + 121px); }
+.bb-roll-chip { bottom:calc(max(12px,env(safe-area-inset-bottom)) + 136px); }
+.bb-secondary-action { min-height:48px !important; }
+@media (max-width:390px) {
+  .bb-resource { font-size:11px; padding:6px; }
+  .bb-streak { min-width:44px; min-height:46px; }
+  .bb-build { min-width:72px; }
+}
+@media (max-height:740px) {
+  .bb-world { bottom:calc(max(9px,env(safe-area-inset-bottom)) + 112px); }
+  .bb-roll-chip { bottom:calc(max(9px,env(safe-area-inset-bottom)) + 126px); }
+  .bb-options-sheet { bottom:calc(max(9px,env(safe-area-inset-bottom)) + 116px); }
+}
+@media (prefers-reduced-motion:reduce) {
+ .bb-hold-progress { animation-duration:540ms; }
 }
