@@ -74,7 +74,7 @@ export function refreshStreak(progress: ProgressSnapshot, now: number): Progress
   const days = Math.floor((currentDay - previous) / 86_400_000);
   return {
     ...progress,
-    dailyStreak: days === 1 && progress.streakClaimedToday ? Math.min(progress.dailyStreak + 1, 7) : 1,
+    dailyStreak: days === 1 && progress.streakClaimedToday ? (progress.dailyStreak === 7 ? 1 : progress.dailyStreak + 1) : 1,
     lastLoginDate: current,
     streakClaimedToday: false
   };
