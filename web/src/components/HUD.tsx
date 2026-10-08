@@ -26,7 +26,7 @@ export function HUD() {
   const [isHolding, setIsHolding] = useState(false);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdOrigin = useRef<{ x: number; y: number; id: number } | null>(null);
-  const heldAt = useRef(0);
+  const suppressHoldClick = useRef(false);
 
   useEffect(() => {
     if (!lastRoll) return;
@@ -48,13 +48,14 @@ export function HUD() {
   const beginHold = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0 || autoRolling || isRolling || energy < multiplier || activeModal) return;
     clearHold();
+    suppressHoldClick.current = false;
     holdOrigin.current = { x: event.clientX, y: event.clientY, id: event.pointerId };
     setIsHolding(true);
     holdTimer.current = setTimeout(() => {
       holdTimer.current = null;
       const state = useGameStore.getState();
       if (!state.isRolling && !state.autoRolling && !state.activeModal) {
-        heldAt.current = Date.now();
+        suppressHoldClick.current = true;
         state.startAutoRoll();
       }
       setIsHolding(false);
@@ -69,7 +70,10 @@ export function HUD() {
   };
   const clickRoll = (event: MouseEvent<HTMLButtonElement>) => {
     // The native click following a long pointer hold must not roll or stop auto.
-    if (Date.now() - heldAt.current < 1100 && event.detail !== 0) return;
+    if (suppressHoldClick.current && event.detail !== 0) {
+      suppressHoldClick.current = false;
+      return;
+    }
     if (autoRolling) stopAutoRoll();
     else if (!isRolling && energy >= multiplier) rollDice();
   };
