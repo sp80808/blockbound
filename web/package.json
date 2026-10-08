@@ -11,7 +11,8 @@
     "test:rules": "node --test tests/rollRules.test.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/rollRules.test.mjs tests/gameSave.test.mjs",
-    "test:saves": "node --test tests/gameSave.test.mjs"
+    "test:saves": "node --test tests/gameSave.test.mjs",
+    "clean:appledouble": "bash ../scripts/clean-appledouble.sh"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
