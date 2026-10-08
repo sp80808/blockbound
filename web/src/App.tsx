@@ -12,6 +12,22 @@ export default function App() {
     upgradeBuilding, repairBuilding
   } = useGameStore();
 
+  // Reconcile elapsed-time dice energy while the game stays open or resumes.
+  // The authoritative checkpoint clock lives in the Zustand adapter.
+  useEffect(() => {
+    const refresh = () => useGameStore.getState().refreshEnergy();
+    refresh();
+    const timer = window.setInterval(refresh, 15_000);
+    const onVisible = () => {
+      if (!document.hidden) refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
   // No unattended dice spending in background tabs or after switching apps.
   useEffect(() => {
     const stopWhenHidden = () => {
