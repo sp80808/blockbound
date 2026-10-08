@@ -13,7 +13,7 @@ const DRAG_TOLERANCE_PX = 12;
 
 export function HUD() {
   const {
-    coins, materials, energy, maxEnergy, energyUpdatedAt, shields, maxShields, multiplier,
+    coins, materials, energy, maxEnergy, energyUpdatedAt, saveError, shields, maxShields, multiplier,
     isRolling, isTurbo, toast, lastRoll, momentum, autoRolling, autoBatchSize,
     autoRollsRemaining, autoEnergyBudget, autoEnergySpent, autoOkay,
     autoAdjustMultiplier, districts, currentDistrict, dailyStreak, streakClaimedToday,
@@ -150,6 +150,11 @@ export function HUD() {
           </div>
         </div>
         {toast && <div className="bb-toast" role="status" aria-live="polite" key={toast}>{toast}</div>}
+        {saveError && (
+          <div role="alert" className="bb-toast" style={{ borderColor: '#fca5a5', color: '#fecaca' }}>
+            ⚠️ Local progress isn't saving. Check browser storage before closing the game.
+          </div>
+        )}
       </header>
 
       {showRollSummary && lastRoll && (
