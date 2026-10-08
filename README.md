@@ -4,7 +4,7 @@
 
 > **Development status: experimental prototype, not a production-ready release.** The repository now includes an **actual React + TypeScript + React Three Fiber/Three.js web scene** as well as an earlier **Kotlin/Jetpack Compose Android prototype** and a **separate Android WebView shell with bundled HTML/Three.js assets**. These are **not yet a unified, tested distribution pipeline**. See [Architecture](docs/ARCHITECTURE.md) before extending any of them.
 
-[Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md) · [Architecture](docs/ARCHITECTURE.md) · [AI Studio handoff](docs/AI_STUDIO.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+[Design language & minigame brief](DESIGN.md) · [Tech stack & integration contracts](TECHSTACK.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md) · [Architecture](docs/ARCHITECTURE.md) · [AI Studio handoff](docs/AI_STUDIO.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 ## The pitch
 
@@ -100,6 +100,12 @@ docs/
 5. **Then** broaden districts, daily systems, cloud social features and optional monetisation.
 
 See [ROADMAP.md](ROADMAP.md) for measurable acceptance criteria rather than unchecked feature claims.
+
+## Parallel minigame labs (Lovable / Replit)
+
+The first isolated experimental modules are **Vault Heist** and **Town Raid**. They should be authored in a separate sandbox/project and eventually imported into `web/src/minigames/` through a reviewed pull request. See the [visual and gameplay design brief](DESIGN.md) and [versioned TypeScript host contracts](TECHSTACK.md). The lab must never write the canonical player economy, forge multiplayer opponents or ship a second authoritative Blockbound app shell.
+
+**Current status:** these contracts are *specifications*, not already wired modules; lab project creation/hosting and live integration are tracked independently. The primary target remains React/TypeScript/R3F and Google AI Studio Web App mode. A public repo is not needed for planning: the owner can pass the documents to agents directly or connect Lovable's GitHub integration once access has been reviewed.
 
 ## Contributions and rights
 
