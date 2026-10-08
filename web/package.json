@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run test:rules && tsc && vite build",
     "preview": "vite preview",
     "cap:sync": "cap sync android",
     "test:rules": "node --test tests/rollRules.test.mjs",
