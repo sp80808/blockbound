@@ -3,6 +3,7 @@ import {
   affordableAutoMultiplier,
   boardPath,
   nextMultiplier,
+  rollPair,
   tileReward,
   type EncounterKind
 } from '../game/rollRules';
@@ -233,8 +234,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     // Commit dice result and energy cost exactly once, before visual presentation.
-    const die1 = Math.floor(Math.random() * 6) + 1;
-    const die2 = Math.floor(Math.random() * 6) + 1;
+    const { die1, die2 } = rollPair(Math.random);
     const roll: RollResult = {
       id: state.totalRolls + 1,
       die1, die2,
