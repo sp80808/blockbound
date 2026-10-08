@@ -7,7 +7,7 @@ import {
   tileReward,
   type EncounterKind
 } from '../game/rollRules';
-import { readProgress, writeProgress, type ProgressData } from '../game/saveState';
+import { readProgress, writeProgress, REGEN_INTERVAL_MS, type ProgressData } from '../game/saveState';
 
 export interface Building {
   id: string;
@@ -117,6 +117,7 @@ export interface GameState {
   repairBuilding: (plotIdx: number) => void;
   openModal: (modal: 'upgrade' | 'streak') => void;
   claimStreakReward: () => void;
+  refreshEnergy: (now?: number) => void;
   closeModal: () => void;
   showToast: (msg: string) => void;
 }
@@ -173,6 +174,7 @@ function browserStorage(): Storage | undefined {
 const initialSave = readProgress(browserStorage());
 const restored = initialSave?.data;
 let energyClock = initialSave?.lastEnergyAt ?? Date.now();
+let applyingRegen = false;
 
 export const useGameStore = create<GameState>((set, get) => ({
   coins: restored?.coins ?? 35000,
@@ -206,6 +208,23 @@ export const useGameStore = create<GameState>((set, get) => ({
   autoRollsRemaining: 0,
   autoEnergyBudget: 0,
   autoEnergySpent: 0,
+
+  refreshEnergy: (now = Date.now()) => {
+    const current = get();
+    if (current.energy >= current.maxEnergy) {
+      energyClock = now;
+      return;
+    }
+    const ticks = Math.floor(Math.max(0, now - energyClock) / REGEN_INTERVAL_MS);
+    if (ticks < 1) return;
+    const energy = Math.min(current.maxEnergy, current.energy + ticks);
+    energyClock = energy >= current.maxEnergy ? now : energyClock + ticks * REGEN_INTERVAL_MS;
+    // Energy added by elapsed-time regeneration retains its fractional clock
+    // rather than starting another 45-second period on every tick.
+    applyingRegen = true;
+    try { set({ energy }); }
+    finally { applyingRegen = false; }
+  },
 
   cycleMultiplier: () => {
     const { multiplier, energy, autoRolling } = get();
@@ -486,7 +505,7 @@ useGameStore.subscribe(state => {
   // Track the actual moment energy changed rather than resetting the
   // regeneration clock on harmless UI changes such as opening a dialog.
   if (previousEnergy !== state.energy) {
-    energyClock = Date.now();
+    if (!applyingRegen) energyClock = Date.now();
     previousEnergy = state.energy;
   }
   if (state.isRolling) return;
