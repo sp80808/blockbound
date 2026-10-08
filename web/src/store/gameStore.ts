@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import {
+  loadFromStorage, refillEnergy, refreshStreak, saveToStorage,
+  type ProgressSnapshot
+} from '../game/gameSave';
+import {
   affordableAutoMultiplier,
   boardPath,
   nextMultiplier,
@@ -76,6 +80,7 @@ export interface GameState {
   shields: number;
   maxShields: number;
   currentTile: number;
+  visualTile: number;
   multiplier: number;
   isRolling: boolean;
   isTurbo: boolean;
@@ -100,6 +105,10 @@ export interface GameState {
   autoRollsRemaining: number;
   autoEnergyBudget: number;
   autoEnergySpent: number;
+  energyUpdatedAt: number;
+  hydrated: boolean;
+  hydrateGame: () => void;
+  tickRecovery: (now?: number) => void;
 
   rollDice: (fromAuto?: boolean) => void;
   cycleMultiplier: () => void;
@@ -146,6 +155,23 @@ function endAutoRoll(get: () => GameState, set: (data: Partial<GameState>) => vo
   }
 }
 
+function progressOf(s: GameState): ProgressSnapshot {
+  return {
+    coins: s.coins, materials: s.materials, energy: s.energy, maxEnergy: s.maxEnergy,
+    shields: s.shields, maxShields: s.maxShields,
+    currentTile: s.currentTile, multiplier: s.multiplier, currentDistrict: s.currentDistrict,
+    districts: s.districts.map(d => ({
+      id: d.id, buildings: d.buildings.map(b => ({ id: b.id, tier: b.tier, damaged: b.damaged }))
+    })),
+    dailyStreak: s.dailyStreak, lastLoginDate: s.lastLoginDate,
+    streakClaimedToday: s.streakClaimedToday,
+    totalRolls: s.totalRolls, momentum: s.momentum, lastRoll: s.lastRoll,
+    pendingEncounter: s.pendingEncounter, pendingReward: s.pendingReward,
+    autoOkay: s.autoOkay, autoAdjustMultiplier: s.autoAdjustMultiplier,
+    autoBatchSize: s.autoBatchSize, isTurbo: s.isTurbo, energyUpdatedAt: s.energyUpdatedAt
+  };
+}
+
 const initialDistricts: District[] = [
   {
     id: 0,
@@ -169,6 +195,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   shields: 2,
   maxShields: 3,
   currentTile: 0,
+  visualTile: 0,
   multiplier: 1,
   isRolling: false,
   isTurbo: false,
@@ -193,6 +220,50 @@ export const useGameStore = create<GameState>((set, get) => ({
   autoRollsRemaining: 0,
   autoEnergyBudget: 0,
   autoEnergySpent: 0,
+  energyUpdatedAt: Date.now(),
+  hydrated: false,
+
+  hydrateGame: () => {
+    if (get().hydrated) return;
+    const restored = loadFromStorage(progressOf(get()));
+    if (!restored) {
+      set({ hydrated: true });
+      return;
+    }
+    // Preserve the curated building names, prices and display properties in source.
+    const districts = initialDistricts.map(d => ({
+      ...d,
+      buildings: d.buildings.map(b => {
+        const saved = restored.districts.find(s => s.id === d.id)?.buildings.find(s => s.id === b.id);
+        return saved ? { ...b, tier: saved.tier, damaged: saved.damaged } : b;
+      })
+    }));
+    set({
+      ...restored, districts, visualTile: restored.currentTile,
+      isRolling: false, cameraMode: 'OVERVIEW', dicePopup: null,
+      autoRolling: false, autoRollsRemaining: 0, autoEnergyBudget: 0, autoEnergySpent: 0,
+      activeModal: restored.pendingEncounter ? 'encounter' : restored.pendingReward ? 'reward' : null,
+      toast: null, hydrated: true
+    });
+  },
+
+  tickRecovery: (now = Date.now()) => {
+    const s = get();
+    if (!s.hydrated) return;
+    const filled = refillEnergy(s.energy, s.maxEnergy, s.energyUpdatedAt, now);
+    const day = refreshStreak(progressOf(s), now);
+    const energyChange = filled.energy !== s.energy;
+    const dayChange = day.lastLoginDate !== s.lastLoginDate;
+    if (energyChange || dayChange) {
+      set({
+        energy: filled.energy,
+        energyUpdatedAt: filled.energyUpdatedAt,
+        dailyStreak: day.dailyStreak,
+        lastLoginDate: day.lastLoginDate,
+        streakClaimedToday: day.streakClaimedToday
+      });
+    }
+  },
 
   cycleMultiplier: () => {
     const { multiplier, energy, autoRolling } = get();
@@ -217,7 +288,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   startAutoRoll: () => {
     const state = get();
-    if (state.isRolling || state.autoRolling || state.activeModal || state.pendingEncounter || state.pendingReward) return;
+    if (!state.hydrated || state.isRolling || state.autoRolling || state.activeModal || state.pendingEncounter || state.pendingReward) return;
     const cost = affordableAutoMultiplier(state.multiplier, state.energy, state.autoAdjustMultiplier);
     if (cost === null) {
       get().showToast('⚡ Not enough dice energy to start Auto Roll');
@@ -236,6 +307,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   stopAutoRoll: () => endAutoRoll(get, set),
 
   claimStreakReward: () => {
+    get().tickRecovery();
     const s = get();
     if (s.streakClaimedToday || s.isRolling || s.autoRolling) return;
     const reward = STREAK_REWARDS[s.dailyStreak - 1];
@@ -246,6 +318,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       energy: Math.min(s.maxEnergy, s.energy + reward.energy),
       shields: Math.min(s.maxShields, s.shields + (reward.shield ?? 0)),
       streakClaimedToday: true,
+      energyUpdatedAt: s.energy + reward.energy >= s.maxEnergy ? Date.now() : s.energyUpdatedAt,
       activeModal: null,
       toast: '🔥 DAY ' + s.dailyStreak + ' CLAIMED! +' + reward.coins.toLocaleString() + ' 🪙'
     });
@@ -273,113 +346,104 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   rollDice: (fromAuto = false) => {
-    const state = get();
-    if (state.isRolling || state.activeModal || state.pendingEncounter || state.pendingReward) return;
-    if (fromAuto && (!state.autoRolling || state.autoRollsRemaining <= 0)) return;
-    if (!fromAuto && state.autoRolling) return;
+    const s = get();
+    if (!s.hydrated || s.isRolling || s.activeModal || s.pendingEncounter || s.pendingReward) return;
+    if (fromAuto && (!s.autoRolling || s.autoRollsRemaining <= 0)) return;
+    if (!fromAuto && s.autoRolling) return;
 
-    const availableBudget = fromAuto ? Math.min(state.energy, state.autoEnergyBudget - state.autoEnergySpent) : state.energy;
+    const available = fromAuto ? Math.min(s.energy, s.autoEnergyBudget - s.autoEnergySpent) : s.energy;
     const cost = fromAuto
-      ? affordableAutoMultiplier(state.multiplier, availableBudget, state.autoAdjustMultiplier)
-      : (state.energy >= state.multiplier ? state.multiplier : null);
-    if (cost === null || (fromAuto && state.autoEnergySpent + cost > state.autoEnergyBudget)) {
+      ? affordableAutoMultiplier(s.multiplier, available, s.autoAdjustMultiplier)
+      : (s.energy >= s.multiplier ? s.multiplier : null);
+    if (cost === null || (fromAuto && s.autoEnergySpent + cost > s.autoEnergyBudget)) {
       if (fromAuto) get().stopAutoRoll();
       else get().showToast('⚡ Choose a smaller dice multiplier');
       return;
     }
 
-    // Commit dice result and energy cost exactly once, before visual presentation.
-    const { die1, die2 } = rollPair(Math.random);
-    const roll: RollResult = {
-      id: state.totalRolls + 1,
-      die1, die2,
-      total: die1 + die2,
-      multiplier: cost,
-      doubles: die1 === die2
-    };
-    const path = boardPath(state.currentTile, roll.total);
+    // Critical invariant: settle authoritative resources, position, rolls and
+    // pending encounters in ONE state transition. Animation never pays rewards.
+    const { die1, die2, total, doubles } = rollPair(Math.random);
+    const id = s.totalRolls + 1;
+    const roll: RollResult = { id, die1, die2, total, multiplier: cost, doubles };
+    const path = boardPath(s.currentTile, total);
+    const destination = path[path.length - 1];
+    const landing = tileReward(destination, cost, die1, die2);
+    const milestone = id % 5 === 0;
+    const materialGain = landing.materials + (milestone ? 3 : 0);
+    const newEnergy = Math.min(s.maxEnergy, s.energy - cost + landing.energy + (doubles ? 10 : 0));
+
+    let encounter: Encounter | null = null;
+    if (landing.encounter) {
+      const base = landing.encounter === 'raid' ? [6000, 9000, 12000] : [4000, 15000, 7500];
+      const labels = landing.encounter === 'raid'
+        ? ['Workshop', 'Market', 'Tower']
+        : ['Copper Vault', 'Golden Vault', 'Crystal Vault'];
+      encounter = {
+        id, kind: landing.encounter, multiplier: cost,
+        options: labels.map((label, i) => ({ label, coins: base[i] * cost }))
+      };
+    }
+
+    const message = landing.label + (
+      landing.coins ? ' +' + landing.coins.toLocaleString() + ' 🪙' :
+      materialGain ? ' +' + materialGain + ' 🧱' :
+      landing.energy ? ' +' + landing.energy + ' ⚡' :
+      landing.shields ? ' +1 🛡️' : ''
+    ) + (milestone ? ' · Build momentum +3 🧱!' : '');
+    const notice = !encounter && !s.autoOkay ? { title: landing.label, detail: message } : null;
+    const remaining = fromAuto ? s.autoRollsRemaining - 1 : 0;
+    const resumeAuto = fromAuto && remaining > 0 && !encounter;
+    const now = Date.now();
+    const anchor = s.energy === s.maxEnergy ? now : s.energyUpdatedAt;
+
     set({
-      isRolling: true,
-      energy: state.energy - cost,
-      lastRoll: roll,
-      cameraMode: 'DICE_FOCUS',
-      dicePopup: null,
-      toast: null,
-      ...(fromAuto ? {
-        autoRollsRemaining: state.autoRollsRemaining - 1,
-        autoEnergySpent: state.autoEnergySpent + cost,
-        multiplier: cost
-      } : {})
+      isRolling: true, lastRoll: roll,
+      cameraMode: 'DICE_FOCUS', dicePopup: null, toast: null,
+      currentTile: destination, visualTile: s.currentTile,
+      coins: s.coins + landing.coins,
+      materials: s.materials + materialGain,
+      energy: newEnergy,
+      energyUpdatedAt: newEnergy === s.maxEnergy ? now : anchor,
+      shields: Math.min(s.maxShields, s.shields + landing.shields),
+      totalRolls: id, momentum: id % 5,
+      pendingEncounter: encounter, pendingReward: notice, activeModal: null,
+      autoRolling: resumeAuto, autoRollsRemaining: resumeAuto ? remaining : 0,
+      autoEnergySpent: fromAuto ? s.autoEnergySpent + cost : s.autoEnergySpent,
+      // Record the actual automatic stake only if adaptive mode changed it.
+      multiplier: fromAuto ? cost : s.multiplier
     });
 
-    const motionDelay = state.isTurbo ? 300 : 650;
-    const stepDelay = state.isTurbo ? 55 : 115;
+    const motionDelay = s.isTurbo ? 300 : 650;
+    const stepDelay = s.isTurbo ? 55 : 115;
 
-    // Move visually one board tile per step, then resolve the landing once.
     setTimeout(() => {
-      set({ cameraMode: 'TOKEN_FOLLOW', dicePopup: { d1: die1, d2: die2, total: roll.total, isDoubles: roll.doubles } });
-      function animateStep(stepIndex: number): void {
-        if (stepIndex < path.length) {
-          set({ currentTile: path[stepIndex] });
-          setTimeout(() => animateStep(stepIndex + 1), stepDelay);
+      if (get().lastRoll?.id !== id) return;
+      set({ cameraMode: 'TOKEN_FOLLOW',
+        dicePopup: { d1: die1, d2: die2, total, isDoubles: doubles } });
+
+      function animateStep(index: number): void {
+        if (get().lastRoll?.id !== id) return;
+        if (index < path.length) {
+          set({ visualTile: path[index] });
+          setTimeout(() => animateStep(index + 1), stepDelay);
           return;
         }
-
+        // Rewards were committed and saved before the very first animation frame.
+        // Closing the tab while animating restores a finished roll, never a half-roll.
         const latest = get();
-        const landing = tileReward(path[path.length - 1], roll.multiplier, die1, die2);
-        const newTotal = latest.totalRolls + 1;
-        const milestone = newTotal % 5 === 0;
-        const materialsGain = landing.materials + (milestone ? 3 : 0);
-        const bonusEnergy = roll.doubles ? 10 : 0;
-        const newCoins = latest.coins + landing.coins;
-        const message = landing.label + (
-          landing.coins ? ' +' + landing.coins.toLocaleString() + ' 🪙' :
-          materialsGain ? ' +' + materialsGain + ' 🧱' :
-          landing.energy ? ' +' + landing.energy + ' ⚡' :
-          landing.shields ? ' +1 🛡️' : ''
-        ) + (milestone ? ' · Build momentum +3 🧱!' : '');
-
-        let encounter: Encounter | null = null;
-        if (landing.encounter) {
-          const base = landing.encounter === 'raid' ? [6000, 9000, 12000] : [4000, 15000, 7500];
-          const labels = landing.encounter === 'raid'
-            ? ['Workshop', 'Market', 'Tower']
-            : ['Copper Vault', 'Golden Vault', 'Crystal Vault'];
-          encounter = {
-            id: roll.id,
-            kind: landing.encounter,
-            multiplier: roll.multiplier,
-            options: labels.map((label, i) => ({ label, coins: base[i] * roll.multiplier }))
-          };
-        }
-
-        // A new event pauses auto-roll for a genuine player choice, even with Auto-OK enabled.
-        const rewardNotice = !landing.encounter && !latest.autoOkay
-          ? { title: landing.label, detail: message }
-          : null;
-        const remaining = latest.autoRollsRemaining;
-        const awaitingAcknowledgement = latest.autoRolling && remaining > 0 && !!rewardNotice;
-        const autoContinues = latest.autoRolling && remaining > 0 && !encounter && !rewardNotice;
-        const keepAutoBatch = autoContinues || awaitingAcknowledgement;
         set({
-          isRolling: false,
-          cameraMode: 'OVERVIEW',
-          dicePopup: null,
-          coins: newCoins,
-          materials: latest.materials + materialsGain,
-          energy: Math.min(latest.maxEnergy, latest.energy + landing.energy + bonusEnergy),
-          shields: Math.min(latest.maxShields, latest.shields + landing.shields),
-          totalRolls: newTotal,
-          momentum: newTotal % 5,
-          toast: null,
-          pendingEncounter: encounter,
-          pendingReward: rewardNotice,
-          activeModal: encounter ? 'encounter' : rewardNotice ? 'reward' : null,
-          autoRolling: keepAutoBatch,
-          ...(keepAutoBatch ? {} : { autoRollsRemaining: 0 })
+          isRolling: false, visualTile: destination,
+          cameraMode: 'OVERVIEW', dicePopup: null,
+          activeModal: latest.pendingEncounter ? 'encounter' :
+            latest.pendingReward ? 'reward' : null
         });
         get().showToast(message);
-        if (autoContinues) queueAutoRoll(get, latest.isTurbo ? 230 : 600);
+        const completed = get();
+        if (completed.autoRolling && completed.autoRollsRemaining > 0 &&
+            !completed.pendingEncounter && !completed.pendingReward) {
+          queueAutoRoll(get, completed.isTurbo ? 230 : 600);
+        }
       }
       animateStep(0);
     }, motionDelay);
@@ -445,3 +509,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   }
 }));
+
+
+// Installed once per module: only whitelisted gameplay data is serialised, not UI,
+// timers or a paused auto batch. Failed browser storage never crashes gameplay.
+let lastSave = '';
+useGameStore.subscribe(state => {
+  if (!state.hydrated) return;
+  const progress = progressOf(state);
+  const encoded = JSON.stringify(progress);
+  if (encoded !== lastSave) {
+    lastSave = encoded;
+    saveToStorage(progress);
+  }
+});
