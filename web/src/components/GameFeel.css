@@ -1,0 +1,275 @@
+/* Blockbound interface — a compact, portrait-first game composition.
+   This layout works in a desktop browser without stretching controls edge-to-edge. */
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #080f20; }
+button { font-family: inherit; }
+.bb-shell {
+  position: relative; isolation: isolate;
+  width: 100%; max-width: 720px;
+  height: 100vh; height: 100dvh;
+  margin: 0 auto; overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(41, 95, 111, .36), transparent 48%),
+    radial-gradient(circle at 78% 18%, rgba(52, 51, 124, .34), transparent 36%),
+    linear-gradient(160deg, #14213d 0%, #111c35 43%, #091328 100%);
+  box-shadow: 0 12px 90px #000c, 0 0 0 1px #ffffff15;
+}
+.bb-shell::before {
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background-image: radial-gradient(#b9e0ff3c .7px, transparent .9px);
+  background-size: 26px 26px; opacity: .30;
+  mask-image: linear-gradient(#000 0, transparent 63%);
+}
+.bb-world {
+  position: absolute;
+  top: calc(max(12px, env(safe-area-inset-top)) + 112px);
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 206px);
+  left: 0; right: 0; min-height: 1px;
+  overflow: hidden; z-index: 1;
+  touch-action: none;
+}
+.bb-hud {
+  position:absolute; inset:0; z-index: 5;
+  pointer-events:none;
+  display:flex; flex-direction:column; justify-content:space-between;
+  padding:
+    max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+}
+.bb-top { pointer-events:auto; display:flex; flex-direction:column; gap:8px; }
+.bb-resource-row {
+  display:flex; align-items:center; gap:7px; justify-content:space-between;
+}
+.bb-resource {
+  display:flex; align-items:center; justify-content:center;
+  min-height:39px; flex: 0 1 auto; white-space:nowrap;
+  border-radius:14px; padding:7px 10px;
+  background:linear-gradient(180deg,rgba(35,53,83,.96),rgba(17,31,58,.95));
+  border:1px solid #a4c8ee35; box-shadow:0 4px 12px #0002, inset 0 1px #ffffff1c;
+  font-size:14px; font-weight:850; font-variant-numeric:tabular-nums;
+}
+.bb-build {
+  white-space:nowrap; background:linear-gradient(135deg,#35ce91,#0d9577);
+  box-shadow: 0 4px 0 #086149, 0 9px 23px #0b85673b;
+  border-color:#7df7bd8a !important; color:#faffff;
+  min-width:93px;
+}
+.bb-district {
+  border-radius:17px; padding:10px 12px 11px;
+  background:linear-gradient(120deg,rgba(14,27,54,.97),rgba(29,49,76,.91));
+  border:1px solid #9dbfe344;
+  box-shadow:0 8px 22px #040a1f4f, inset 0 1px #ffffff14;
+}
+.bb-district-row { display:flex; align-items:center; gap:8px; justify-content:space-between; }
+.bb-district-title { color:#fff; font-size:14px; font-weight:900; line-height:1.2; }
+.bb-district-caption { color:#a6c7de; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+.bb-progress-track {
+  height:7px; border-radius:20px; background:#0c1831;
+  border:1px solid #ffffff14; overflow:hidden;
+}
+.bb-progress-fill {
+  height:100%; border-radius:inherit;
+  background:linear-gradient(90deg,#20cb9e,#83eb99,#f2c96f);
+  box-shadow:0 0 12px #78eb9c65;
+  transition:width .3s ease;
+}
+.bb-toast {
+  align-self:center; margin-top:1px; max-width:94%;
+  background:rgba(33,45,90,.96);
+  border:1.5px solid #ffc46e; border-radius:13px;
+  box-shadow:0 10px 27px #0006;
+  padding:9px 14px; color:#ffe4a4; text-align:center;
+  font-size:12px; font-weight:850; animation:bb-enter .26s cubic-bezier(.2, .9, .2, 1.2);
+}
+.bb-controls {
+  pointer-events:auto; border-radius:22px;
+  padding:12px 12px 11px; display:flex; flex-direction:column; gap:9px;
+  background:linear-gradient(180deg,rgba(30,48,81,.98),rgba(14,25,52,.99));
+  border:1px solid #95b9ec55;
+  box-shadow:0 10px 36px #0008, inset 0 1px #ffffff1c;
+}
+.bb-activity { display:flex; align-items:center; gap:8px; min-width:0; }
+.bb-energy-summary { display:flex; flex-direction:column; min-width:120px; }
+.bb-energy-title { color:#fff5c5; font-size:12px; font-weight:850; }
+.bb-energy-track { height:5px; margin-top:5px; border-radius:12px; overflow:hidden; background:#07142a; }
+.bb-energy-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,#f6b44c,#fbe56c); transition:width .3s ease; }
+.bb-momentum { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.bb-momentum-label {
+  display:flex; justify-content:space-between; gap:6px;
+  color:#bad2e4; font-size:10px; font-weight:800; white-space:nowrap;
+}
+.bb-roll-row { display:flex; align-items:stretch; gap:8px; min-width:0; }
+.bb-roll-button {
+  flex:1; min-width:0; min-height:63px;
+  display:flex; justify-content:center; align-items:center; flex-direction:column;
+  color:#fff; font-size:24px; line-height:1.08; letter-spacing:.035em;
+  background:linear-gradient(#ff7c93 0%,#f83f6b 45%,#d92053 100%);
+  border:2px solid #ffb8c2 !important; border-bottom:4px solid #a71745 !important;
+  box-shadow:0 5px 0 #731837,0 9px 24px #ec306858;
+  text-shadow:0 1px 2px #68243c;
+}
+.bb-roll-button:disabled { filter:saturate(.68); }
+.bb-multiplier { width:64px; flex:none; background:linear-gradient(160deg,#44336c,#302855); color:#ffe188; border-color:#dbb959 !important; }
+.bb-auto-main {
+  width:86px; flex:none;
+  background:linear-gradient(#6466e4,#4134ac);
+  color:#fff; border-color:#a4adff !important;
+  box-shadow:0 4px 0 #302675;
+}
+.bb-auto-main[data-running="true"] { background:linear-gradient(#e25464,#b82643); border-color:#ffb4ba !important; box-shadow:0 4px 0 #76192c; }
+.bb-secondary-row { display:flex; align-items:center; gap:7px; justify-content:space-between; min-width:0; }
+.bb-segmented { display:flex; gap:3px; padding:3px; border-radius:12px; background:#0a1530; border:1px solid #ffffff25; }
+.bb-segment { min-width:45px; min-height:36px !important; padding:5px 8px; color:#b9cced; border:0 !important; background:transparent; font-size:11px; }
+.bb-segment[aria-pressed="true"] { background:#5554ad; color:#fff; box-shadow:inset 0 1px #ffffff40; }
+.bb-secondary-action {
+  min-height:42px !important; padding:7px 10px;
+  background:#263857; color:#dcecff; border-color:#8aabc24a !important;
+  font-size:11px;
+}
+.bb-secondary-action[aria-pressed="true"] { color:#94ffd2; border-color:#64dcb58b !important; background:#1e5152; }
+.bb-auto-note { font-size:10px; font-weight:650; color:#b6cce2; line-height:1.25; }
+.bb-options {
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  padding:9px 0 0; border-top:1px solid #ffffff1d;
+}
+.bb-prompt { color:#b6cce2; font-size:11px; font-weight:700; }
+.bb-control {
+  cursor:pointer; border-radius:13px; border:1px solid #ffffff35;
+  font-weight:850; font-family:inherit; user-select:none; -webkit-tap-highlight-color:transparent;
+  transition: transform 120ms ease, box-shadow 140ms ease, opacity 150ms ease;
+  touch-action:manipulation;
+}
+.bb-control:active:not(:disabled) { transform:translateY(2px) scale(.975); }
+.bb-control:focus-visible { outline:3px solid #fef08a; outline-offset:2px; }
+.bb-control:disabled { opacity:.48; cursor:not-allowed; }
+.bb-micro { font-size:10px; color:#dbddf9; font-weight:750; }
+.bb-pill { padding:5px 9px; background:#f2c65a23; border:1px solid #f2c65a60; color:#ffe38d; border-radius:999px; font-size:11px; font-weight:800; }
+.bb-roll-chip {
+  position:absolute; bottom:calc(max(12px,env(safe-area-inset-bottom)) + 201px);
+  left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; justify-content:center;
+  gap:6px; white-space:nowrap; border:1px solid #e9ce8a7d;
+  padding:7px 12px; border-radius:999px;
+  background:rgba(20,35,61,.95); box-shadow:0 7px 24px #0006;
+  font-size:12px; font-weight:850; color:#fff; pointer-events:none;
+}
+@keyframes bb-enter {
+  from { opacity:0; transform:translateY(-8px) scale(.96); }
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+@keyframes bb-pop {
+  0% { transform:scale(.92); filter:brightness(1.2); }
+  55% { transform:scale(1.1); filter:brightness(1.32); }
+  100% { transform:scale(1); filter:brightness(1); }
+}
+.bb-resource[data-flash="true"] { animation:bb-pop .32s ease-out; }
+@media (min-width:780px) {
+  .bb-shell { border-radius:22px; height:calc(100dvh - 28px); margin:14px auto; }
+  .bb-resource { font-size:15px; }
+}
+@media (max-width:390px) {
+  .bb-resource-row { gap:4px; }
+  .bb-resource { padding:7px 8px; font-size:12px; }
+  .bb-build { min-width:75px; font-size:11px; }
+  .bb-controls { padding:9px 9px 8px; gap:7px; }
+  .bb-multiplier { width:55px; }
+  .bb-segment { min-width:44px; padding:5px 8px; }
+  .bb-secondary-action { padding:7px 9px; }
+}
+@media (max-height:740px) {
+  .bb-world { top:calc(max(9px,env(safe-area-inset-top)) + 99px); bottom:calc(max(9px,env(safe-area-inset-bottom)) + 186px); }
+  .bb-controls { padding:8px; gap:6px; }
+  .bb-roll-button { min-height:54px; font-size:21px; }
+  .bb-auto-main, .bb-multiplier { min-height:54px; }
+  .bb-district { padding:7px 10px 8px; }
+  .bb-roll-chip { bottom:calc(max(9px,env(safe-area-inset-bottom)) + 182px); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .bb-control,.bb-progress-fill,.bb-energy-fill,.bb-resource,.bb-toast {
+    animation:none !important; transition:none !important;
+  }
+}
+
+/* Multifunction roll input. The single prominent action carries manual roll and auto-roll.
+   Do not create separate autoplay controls in the default dock. */
+.bb-settings-button {
+  width:52px; min-width:48px; min-height:63px; flex:none;
+  background:linear-gradient(165deg,#364d76,#253655);
+  color:#e6efff; border-color:#829dc56e !important;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:2px;
+}
+.bb-roll-button { position:relative; overflow:hidden; touch-action:none; }
+.bb-roll-button[data-auto="true"] {
+  background:linear-gradient(155deg,#f16a6d,#a82551);
+  border-color:#ffc4a1 !important;
+  box-shadow:0 5px 0 #672044,0 9px 24px #f56a6250;
+}
+.bb-roll-button[data-holding="true"] { filter:brightness(1.1); }
+.bb-hold-progress {
+  position:absolute; left:0; bottom:0; height:5px; width:100%;
+  background:#ffe88b; transform-origin:left; animation:bb-hold-fill 540ms linear forwards;
+  pointer-events:none;
+}
+@keyframes bb-hold-fill {
+  from { transform:scaleX(0); } to { transform:scaleX(1); }
+}
+.bb-options-sheet {
+  position:absolute; left:max(12px,env(safe-area-inset-left));
+  right:max(12px,env(safe-area-inset-right));
+  bottom:calc(max(12px,env(safe-area-inset-bottom)) + 121px);
+  z-index:7; pointer-events:auto;
+  background:rgba(23,35,67,.98); border:1px solid #94a3b8a3;
+  border-radius:17px; box-shadow:0 12px 34px #0008;
+  padding:12px; display:flex; flex-direction:column; gap:8px;
+  max-height:min(380px,56dvh); overflow-y:auto; overscroll-behavior:contain;
+}
+.bb-options-line {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px; color:#e0ebf7; font-size:12px; font-weight:800;
+}
+.bb-options-line .bb-secondary-action { min-width:100px; }
+.bb-keyboard-auto {
+  background:linear-gradient(#564fbd,#37318a);
+  border-color:#aaa4fd !important; color:white; min-height:48px !important;
+}
+.bb-streak { min-width:48px; min-height:46px; background:linear-gradient(#d57533,#ad471d); color:#fff3d2; position:relative; padding:6px 7px; }
+.bb-streak-dot { position:absolute; right:2px; top:2px; width:7px; height:7px; border-radius:50%; background:#d8ff91; box-shadow:0 0 7px #9af97f; }
+.bb-streak-scrim { position:absolute; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; padding:16px; background:#020717d9; pointer-events:auto; }
+.bb-streak-dialog {
+  width:100%; max-width:405px; max-height:85dvh; overflow-y:auto;
+  border:2px solid #fb923c; border-radius:23px; padding:16px;
+  color:white; background:#142238; box-shadow:0 12px 38px #000a;
+}
+.bb-streak-heading { display:flex; justify-content:space-between; align-items:center; gap:7px; margin-bottom:14px; }
+.bb-streak-heading strong { color:#ffc08c; font-size:20px; }
+.bb-streak-rewards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-bottom:14px; }
+.bb-streak-reward { background:#283a57; border:1px solid #5a7293; padding:7px 3px; border-radius:12px; min-height:79px; text-align:center; }
+.bb-streak-reward[data-today="true"] { background:#3c3270; border-color:#f6c35c; }
+.bb-streak-reward[data-claimed="true"] { background:#185349; border-color:#26b58b; }
+.bb-streak-reward .bb-micro { overflow-wrap:anywhere; }
+.bb-resource-row { flex-wrap:nowrap; }
+.bb-resource { min-width:0; }
+.bb-build { min-width:80px; padding:6px 7px; }
+.bb-controls { gap:8px; }
+.bb-world { bottom:calc(max(12px,env(safe-area-inset-bottom)) + 121px); }
+.bb-roll-chip { bottom:calc(max(12px,env(safe-area-inset-bottom)) + 136px); }
+.bb-secondary-action { min-height:48px !important; }
+@media (max-width:390px) {
+  .bb-resource { font-size:11px; padding:6px; }
+  .bb-streak { min-width:44px; min-height:46px; }
+  .bb-build { min-width:72px; }
+}
+@media (max-height:740px) {
+  .bb-world { bottom:calc(max(9px,env(safe-area-inset-bottom)) + 112px); }
+  .bb-roll-chip { bottom:calc(max(9px,env(safe-area-inset-bottom)) + 126px); }
+  .bb-options-sheet { bottom:calc(max(9px,env(safe-area-inset-bottom)) + 116px); }
+}
+@media (prefers-reduced-motion:reduce) {
+ .bb-hold-progress { animation-duration:540ms; }
+}
