@@ -101,7 +101,7 @@ function MiniTree({ x, z, scale }: { x: number; z: number; scale: number }) {
 }
 
 function VoxelBoard() {
-  const currentTile = useGameStore(state => state.currentTile);
+  const currentTile = useGameStore(state => state.visualTile);
   const isRolling = useGameStore(state => state.isRolling);
   return (
     <group>
@@ -160,7 +160,7 @@ function VoxelBoard() {
 }
 
 function TokenCharacter() {
-  const currentTile = useGameStore(s => s.currentTile);
+  const currentTile = useGameStore(s => s.visualTile);
   const targetPos = TILE_POSITIONS[currentTile] || [0, 0, 0];
   const groupRef = useRef<THREE.Group>(null);
 
@@ -415,7 +415,7 @@ function PhysicalDice() {
 // Orbit controls are disabled only during the brief scripted focus.
 function CinematicCamera() {
   const mode = useGameStore(s => s.cameraMode);
-  const tile = useGameStore(s => s.currentTile);
+  const tile = useGameStore(s => s.visualTile);
   const { camera, size } = useThree();
   const destination = useRef(new THREE.Vector3(0, 0, 0));
   useEffect(() => {
