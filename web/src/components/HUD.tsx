@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
-import { allowedMultipliers } from '../game/rollRules';
+import { ArrowRight, Blocks, Check, Coins, Dice5, Flame, Gift, Hammer, Settings2, Shield, Sparkles, Square, Trophy, Volume2, VolumeX, Zap } from 'lucide-react';
+import { allowedMultipliers, buildingUpgradeCost } from '../game/rollRules';
 import { claimableQuests } from '../game/quests';
 import { ENERGY_REFILL_MS } from '../game/gameSave';
 import { STREAK_REWARDS, useGameStore } from '../store/gameStore';
@@ -104,6 +105,13 @@ export function HUD() {
   const completed = district?.buildings.reduce((sum, b) => sum + b.tier, 0) ?? 0;
   const total = (district?.buildings.length ?? 0) * 4;
   const progress = total > 0 ? (completed / total) * 100 : 0;
+  const buildOptions = (district?.buildings ?? [])
+    .filter(b => b.tier < 4 && !b.damaged)
+    .map(building => ({ building, cost: buildingUpgradeCost(building) }))
+    .sort((a, b) => a.cost.coins - b.cost.coins);
+  const nextBuild = buildOptions.find(({ cost }) => coins >= cost.coins && materials >= cost.materials) ?? buildOptions[0];
+  const buildReady = !!nextBuild && coins >= nextBuild.cost.coins && materials >= nextBuild.cost.materials;
+  const nextMilestone = Math.floor(totalRolls / 5 + 1) * 5;
   const claimableCount = claimableQuests(
     { totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit },
     claimedQuests
@@ -121,38 +129,35 @@ export function HUD() {
         <div className="bb-resource-row">
           <div className="bb-resource" key={'coins-' + coins} data-flash="true"
             style={{ color: '#ffe07f' }} aria-label={coins.toLocaleString() + ' coins'}>
-            🪙 {coins.toLocaleString()}
+            <Coins size={21} aria-hidden="true" /><span><small>COINS</small>{coins.toLocaleString()}</span>
           </div>
           <div className="bb-resource" key={'materials-' + materials} data-flash="true"
             style={{ color: '#ffc0d9' }} aria-label={materials + ' building blocks'}>
-            🧱 {materials.toLocaleString()}
+            <Blocks size={21} aria-hidden="true" /><span><small>BLOCKS</small>{materials.toLocaleString()}</span>
           </div>
           <div className="bb-resource" style={{ color: '#c8efff' }}
             aria-label={shields + ' of ' + maxShields + ' shields'}>
-            {Array.from({ length: maxShields }, (_, i) =>
-              <span key={i} aria-hidden="true" style={{ opacity: i < shields ? 1 : 0.28 }}>🛡️</span>)}
+            <Shield size={20} aria-hidden="true" /><span><small>SHIELDS</small>{shields}<em>/{maxShields}</em></span>
           </div>
           <button className="bb-control bb-streak" onClick={() => openModal('streak')}
             aria-label={'Daily login reward, day ' + dailyStreak}>
-            🔥 {dailyStreak}
+            <Gift size={21} aria-hidden="true" /><span className="bb-micro">DAY {dailyStreak}</span>
             {!streakClaimedToday && <span className="bb-streak-dot" aria-label="Reward available" />}
           </button>
-          <button className="bb-control bb-build" onClick={() => openModal('upgrade')}
-            title="Upgrade or repair buildings">🔨 BUILD</button>
         </div>
 
         <div className="bb-district">
           <div className="bb-district-row">
             <div style={{ minWidth: 0 }}>
-              <div className="bb-district-caption">BLOCKBOUND · DISTRICT {currentDistrict + 1}</div>
-              <div className="bb-district-title">🏡 {district?.name ?? 'My District'}</div>
+              <div className="bb-district-caption">BLOCKBOUND <span> / </span> DISTRICT {String(currentDistrict + 1).padStart(2, '0')}</div>
+              <div className="bb-district-title">{district?.name ?? 'My District'}</div>
             </div>
             <span className="bb-pill" aria-label={'Building progress ' + completed + ' out of ' + total}>
-              ⭐ {completed}/{total}
+              <Sparkles size={13} aria-hidden="true" /> {completed}/{total}
             </span>
             <button className="bb-control bb-quest-btn" onClick={() => openModal('quests')}
               aria-label={'Quests' + (claimableCount > 0 ? ', ' + claimableCount + ' rewards ready to claim' : '')}>
-              📜 QUESTS
+              <Trophy size={18} aria-hidden="true" /><span>GOALS</span>
               {claimableCount > 0 && <span className="bb-streak-dot" aria-label={claimableCount + ' quest rewards available'} />}
             </button>
           </div>
@@ -172,7 +177,7 @@ export function HUD() {
 
       {showRollSummary && lastRoll && (
         <div className="bb-roll-chip" role="status" aria-live="polite">
-          🎲 {lastRoll.die1} + {lastRoll.die2} = {lastRoll.total}
+          <Dice5 size={17} aria-hidden="true" /> {lastRoll.die1} + {lastRoll.die2} = {lastRoll.total}
           <span style={{ color: '#fce787' }}> ×{lastRoll.multiplier}</span>
           {lastRoll.doubles && <span style={{ color: '#86efac' }}>✦ DOUBLES!</span>}
           {doublesStreak >= 2 && <span style={{ color: '#f0abfc' }}>🔥×{doublesStreak}</span>}
@@ -196,7 +201,7 @@ export function HUD() {
           <div className="bb-options-line">
             <span>Sound &amp; buzz</span>
             <button className="bb-control bb-secondary-action" aria-pressed={soundEnabled}
-              onClick={toggleSound}>{soundEnabled ? '🔊 ON' : '🔇 OFF'}</button>
+              onClick={toggleSound}>{soundEnabled ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />} {soundEnabled ? 'ON' : 'OFF'}</button>
           </div>
           <div className="bb-options-line">
             <span>Roll speed</span>
@@ -229,7 +234,7 @@ export function HUD() {
           <div className="bb-streak-dialog" role="dialog" aria-modal="true"
             aria-label="Daily login streak rewards" onClick={e => e.stopPropagation()}>
             <div className="bb-streak-heading">
-              <div><strong>🔥 Daily Rewards</strong>
+              <div><strong><Flame size={22} aria-hidden="true" /> Daily Rewards</strong>
                 <div className="bb-auto-note">Claim once each day to build your streak.</div>
               </div>
               <button className="bb-control bb-secondary-action" onClick={closeModal}
@@ -256,9 +261,24 @@ export function HUD() {
       )}
 
       <footer className="bb-controls" aria-label="Dice roll controls">
+        <button className="bb-control bb-build-goal" data-ready={buildReady}
+          onClick={() => openModal('upgrade')} aria-label={nextBuild ?
+            (buildReady ? 'Build ready: ' : 'Next build: ') + nextBuild.building.name + '. Open build menu' : 'Open district build menu'}>
+          <span className="bb-goal-icon"><Hammer size={23} aria-hidden="true" /></span>
+          <span className="bb-goal-copy">
+            <small>{buildReady ? 'READY TO BUILD' : nextBuild ? 'YOUR NEXT BUILD' : 'DISTRICT WORKSHOP'}</small>
+            <strong>{nextBuild?.building.name ?? 'Keep your town growing'}
+              {nextBuild && <span> · Tier {nextBuild.building.tier + 1}</span>}</strong>
+            <span className="bb-goal-cost">{nextBuild ? <>
+              <Coins size={12} aria-hidden="true" /> {Math.min(coins, nextBuild.cost.coins).toLocaleString()}/{nextBuild.cost.coins.toLocaleString()}
+              <Blocks size={12} aria-hidden="true" /> {Math.min(materials, nextBuild.cost.materials)}/{nextBuild.cost.materials}
+            </> : 'View buildings & district rewards'}</span>
+          </span>
+          <span className="bb-goal-arrow">{buildReady ? <Check size={21} aria-hidden="true" /> : <ArrowRight size={21} aria-hidden="true" />}</span>
+        </button>
         <div className="bb-activity">
           <div className="bb-energy-summary">
-            <div className="bb-energy-title">⚡ {energy}<span style={{ color: '#a4c5d7' }}>/{maxEnergy}</span> DICE</div>
+            <div className="bb-energy-title"><Zap size={14} aria-hidden="true" /> {energy}<span style={{ color: '#a4c5d7' }}>/{maxEnergy}</span> ENERGY</div>
             <div className="bb-energy-track" role="progressbar" aria-label="Dice energy"
               aria-valuemin={0} aria-valuemax={maxEnergy} aria-valuenow={energy}>
               <div className="bb-energy-fill" style={{ width: (maxEnergy ? 100 * energy / maxEnergy : 0) + '%' }} />
@@ -269,8 +289,9 @@ export function HUD() {
           </div>
           <div className="bb-momentum">
             <div className="bb-momentum-label">
-              <span>🏗️ BUILD STREAK</span><span>{momentum}/5 · +3 🧱</span>
+              <span><Gift size={12} aria-hidden="true" /> {nextMilestone % 10 === 0 ? 'BIG BONUS' : 'BUILD BONUS'}</span><span>{5 - momentum} rolls away</span>
             </div>
+            <span className="bb-milestone-prize">+3 blocks{nextMilestone % 10 === 0 ? ' · +8 energy · +1 shield' : ' · every 5 rolls'}</span>
             <div className="bb-progress-track" role="progressbar"
               aria-label="Rolls until three bonus building blocks"
               aria-valuemin={0} aria-valuemax={5} aria-valuenow={momentum}>
@@ -300,7 +321,8 @@ export function HUD() {
             title={autoRolling ? 'Tap to stop after current roll' : 'Tap once to roll; hold to start Auto Roll'}
             aria-label={autoRolling ? 'Stop Auto Roll after current roll' :
               'Roll two dice for ' + multiplier + ' energy. Hold to auto roll. Options provide accessible auto controls.'}>
-            <span>{autoRolling ? '■ STOP AUTO' : isRolling ? '🎲 ROLLING…' : isHolding ? '⌛ HOLD FOR AUTO' : '🎲 ROLL'}</span>
+            <span className="bb-roll-title">{autoRolling ? <Square size={21} aria-hidden="true" /> : <Dice5 size={26} aria-hidden="true" />}
+              {autoRolling ? 'STOP AUTO' : isRolling ? 'ROLLING…' : isHolding ? 'HOLD FOR AUTO' : 'ROLL DICE'}</span>
             <span className="bb-micro" style={{ color: '#fff1c4', marginTop: 4 }}>
               {autoRolling ? autoRollsRemaining + ' LEFT · ⚡ ' + remainingBudget + ' BUDGET' :
                 '⚡ ' + multiplier + ' · HOLD TO AUTO'}
@@ -311,13 +333,13 @@ export function HUD() {
           <button className="bb-control bb-settings-button" onClick={() => setShowOptions(v => !v)}
             aria-expanded={showOptions} aria-controls="bb-auto-options"
             aria-label={showOptions ? 'Close dice settings' : 'Open dice settings'}>
-            <span style={{ fontSize: 22 }}>⚙</span>
+            <Settings2 size={22} aria-hidden="true" />
             <span style={{ fontSize: 9 }}>MORE</span>
           </button>
         </div>
         <div className="bb-auto-note" style={{ textAlign: 'center' }} aria-live="polite">
           {autoRolling ? 'Auto Roll active · tap ROLL or another control to stop' :
-            'Tap to roll · hold to auto · ' + autoBatchSize + '-roll cap · Space rolls'}
+            '+1 block every roll · Hold to auto (' + autoBatchSize + ' max)'}
         </div>
       </footer>
     </div>

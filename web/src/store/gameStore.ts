@@ -94,6 +94,16 @@ export interface RewardNotice {
   detail: string;
 }
 
+export interface RewardPresentation {
+  id: string;
+  title: string;
+  coins: number;
+  materials: number;
+  energy: number;
+  shields: number;
+  before: { coins: number; materials: number; energy: number; shields: number };
+}
+
 export interface GameState {
   coins: number;
   materials: number;
@@ -118,6 +128,7 @@ export interface GameState {
   dicePopup: { d1: number; d2: number; total: number; isDoubles: boolean } | null;
   pendingEncounter: Encounter | null;
   pendingReward: RewardNotice | null;
+  rewardPresentation: RewardPresentation | null;
   lastRoll: RollResult | null;
   totalRolls: number;
   momentum: number;
@@ -158,6 +169,7 @@ export interface GameState {
   toggleAutoOkay: () => void;
   toggleAutoAdjust: () => void;
   acknowledgeReward: () => void;
+  finishRewardPresentation: (id: string) => void;
   dismissCelebration: () => void;
   toggleSound: () => void;
   claimQuest: (questId: string) => void;
@@ -184,7 +196,7 @@ function queueAutoRoll(get: () => GameState, delayMs = 650): void {
     autoTimer = undefined;
     const state = get();
     if (state.autoRolling && state.autoRollsRemaining > 0 &&
-        !state.isRolling && !state.pendingEncounter && !state.pendingReward &&
+        !state.isRolling && !state.pendingEncounter && !state.pendingReward && !state.rewardPresentation &&
         !state.activeModal) {
       state.rollDice(true);
     }
@@ -246,8 +258,32 @@ export const initialDistricts: District[] = [
       { id: 'c_sugar', name: 'Sugar Windmill', icon: '🍥', tier: 0, baseCost: 18000, baseMats: 5, damaged: false },
       { id: 'c_gumdrop', name: 'Gumdrop Gardens', icon: '🌷', tier: 0, baseCost: 22000, baseMats: 6, damaged: false }
     ]
+  },
+  {
+    id: 2,
+    name: 'Neon Metropolis',
+    subtitle: 'Rooftop glow and midnight markets',
+    buildings: [
+      { id: 'n_spire', name: 'Neon Spire', icon: '🗼', tier: 0, baseCost: 45000, baseMats: 9, damaged: false },
+      { id: 'n_ramen', name: 'Ramen Bar', icon: '🍜', tier: 0, baseCost: 30000, baseMats: 7, damaged: false },
+      { id: 'n_capsule', name: 'Capsule Loft', icon: '🏙️', tier: 0, baseCost: 24000, baseMats: 7, damaged: false },
+      { id: 'n_turbine', name: 'Sky Turbine', icon: '🌀', tier: 0, baseCost: 38000, baseMats: 8, damaged: false },
+      { id: 'n_glow', name: 'Glow Gardens', icon: '🌃', tier: 0, baseCost: 48000, baseMats: 9, damaged: false }
+    ]
   }
 ];
+
+/**
+ * Lowest district id not yet unlocked, or null when all are open.
+ * Unlocks are strictly sequential: max district N to open district N+1.
+ */
+export function nextLockedDistrict(districts: District[], unlockedIds: readonly number[]): number | null {
+  const unlocked = new Set(unlockedIds);
+  for (const d of districts) {
+    if (!unlocked.has(d.id)) return d.id;
+  }
+  return null;
+}
 
 /** Sunny Suburb fully maxed unlocks the harbour. See quests.districtComplete. */
 export function lifetimeOf(s: GameState): LifetimeCounters {
@@ -282,6 +318,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   dicePopup: null,
   pendingEncounter: null,
   pendingReward: null,
+  rewardPresentation: null,
   lastRoll: null,
   totalRolls: 0,
   momentum: 0,
@@ -346,7 +383,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       isRolling: false, isDiceAnimating: false, cameraMode: 'OVERVIEW', dicePopup: null,
       autoRolling: false, autoRollsRemaining: 0, autoEnergyBudget: 0, autoEnergySpent: 0,
       activeModal: restored.pendingEncounter ? 'encounter' : restored.pendingReward ? 'reward' : null,
-      celebration: null, buildPulse: null, landingPulse: null,
+      celebration: null, buildPulse: null, landingPulse: null, rewardPresentation: null,
       toast: null, hydrated: true
     });
   },
@@ -393,7 +430,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   startAutoRoll: () => {
     const state = get();
-    if (!state.hydrated || state.isRolling || state.autoRolling || state.activeModal || state.pendingEncounter || state.pendingReward) return;
+    if (!state.hydrated || state.isRolling || state.autoRolling || state.activeModal || state.pendingEncounter ||
+        state.pendingReward || state.rewardPresentation) return;
     const cost = affordableAutoMultiplier(state.multiplier, state.energy, state.autoAdjustMultiplier);
     if (cost === null) {
       get().showToast('⚡ Not enough dice energy to start Auto Roll');
@@ -414,7 +452,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   claimStreakReward: () => {
     get().tickRecovery();
     const s = get();
-    if (s.streakClaimedToday || s.isRolling || s.autoRolling) return;
+    if (s.streakClaimedToday || s.isRolling || s.autoRolling || s.rewardPresentation) return;
     const reward = STREAK_REWARDS[s.dailyStreak - 1];
     if (!reward) return;
     playCoins();
@@ -426,7 +464,17 @@ export const useGameStore = create<GameState>((set, get) => ({
       streakClaimedToday: true,
       energyUpdatedAt: s.energy + reward.energy >= s.maxEnergy ? Date.now() : s.energyUpdatedAt,
       activeModal: null,
-      toast: '🔥 DAY ' + s.dailyStreak + ' CLAIMED! +' + reward.coins.toLocaleString() + ' 🪙'
+      toast: null,
+      celebration: null,
+      rewardPresentation: {
+        id: 'daily-' + s.lastLoginDate,
+        title: '🔥 Day ' + s.dailyStreak + ' reward',
+        coins: reward.coins,
+        materials: reward.mats,
+        energy: Math.min(reward.energy, s.maxEnergy - s.energy),
+        shields: Math.min(reward.shield ?? 0, s.maxShields - s.shields),
+        before: { coins: s.coins, materials: s.materials, energy: s.energy, shields: s.shields }
+      }
     });
   },
 
@@ -454,7 +502,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   rollDice: (fromAuto = false) => {
     const s = get();
-    if (!s.hydrated || s.isRolling || s.activeModal || s.pendingEncounter || s.pendingReward) return;
+    if (!s.hydrated || s.isRolling || s.activeModal || s.pendingEncounter || s.pendingReward || s.rewardPresentation) return;
     if (fromAuto && (!s.autoRolling || s.autoRollsRemaining <= 0)) return;
     if (!fromAuto && s.autoRolling) return;
 
@@ -488,7 +536,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     const materialGain = landing.materials + progressReward.materials;
     const coinGain = landing.coins + passReward.coins + streakBonus.coins;
     const energyGain = landing.energy + passReward.energy + streakBonus.energy + progressReward.energy + shieldCharge;
+    const energyBeforeGain = s.energy - cost;
     const newEnergy = Math.min(s.maxEnergy, s.energy - cost + energyGain);
+    const newShields = Math.min(s.maxShields,
+      s.shields + landing.shields + streakBonus.shields + progressReward.shields);
 
     let encounter: Encounter | null = null;
     if (landing.encounter) {
@@ -514,7 +565,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (milestone) parts.push('· Build momentum +3 🧱!');
     if (grandMilestone) parts.push('· GRAND milestone +🛡️!');
     const message = parts.join(' ');
-    const notice = !encounter && !s.autoOkay ? { title: landing.label, detail: message } : null;
+    // Legacy restored notices remain supported; new rewards use the transient presenter.
+    const notice = null;
     const celebration = landing.kind === 'jackpot'
       ? { kind: 'jackpot' as const, key: id }
       : newStreak >= 3
@@ -537,7 +589,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       materials: s.materials + materialGain,
       energy: newEnergy,
       energyUpdatedAt: newEnergy === s.maxEnergy ? now : anchor,
-      shields: Math.min(s.maxShields, s.shields + landing.shields + streakBonus.shields + progressReward.shields),
+      shields: newShields,
       totalRolls: id, momentum: id % 5, doublesStreak: newStreak,
       doublesTotal: s.doublesTotal + (doubles ? 1 : 0),
       jackpotsHit: s.jackpotsHit + (landing.kind === 'jackpot' ? 1 : 0),
@@ -622,19 +674,23 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   unlockDistrict: () => {
     const s = get();
-    if (s.isRolling || s.unlockedDistricts.includes(1)) return;
-    const home = s.districts[0];
-    if (!home || !districtComplete(home)) {
-      get().showToast('🔒 Max every Sunny Suburb building to Tier 4 to unlock the harbour');
+    if (s.isRolling) return;
+    const next = nextLockedDistrict(s.districts, s.unlockedDistricts);
+    if (next === null || s.unlockedDistricts.includes(next)) return;
+    const prev = s.districts.find(d => d.id === next - 1);
+    const target = s.districts.find(d => d.id === next);
+    if (!prev || !target || !districtComplete(prev)) {
+      get().showToast('🔒 Max every ' + (prev?.name ?? 'previous district') +
+        ' building to Tier 4 to unlock ' + (target?.name ?? 'the next district'));
       return;
     }
     playFanfare();
     set({
-      unlockedDistricts: [...s.unlockedDistricts, 1],
-      currentDistrict: 1,
+      unlockedDistricts: [...s.unlockedDistricts, next],
+      currentDistrict: next,
       activeModal: null,
       celebration: { kind: 'unlock', key: Date.now() },
-      toast: '🍬 CANDY HARBOUR UNLOCKED! A new district awaits!'
+      toast: '🌃 ' + target.name.toUpperCase() + ' UNLOCKED! A new district awaits!'
     });
   },
 

@@ -6,7 +6,7 @@ import { VaultHeist } from './minigames/heist/VaultHeist';
 import { TownRaid } from './minigames/raid/TownRaid';
 import { districtComplete, questViews } from './game/quests';
 import { matchHotkey } from './game/hotkeys';
-import { useGameStore } from './store/gameStore';
+import { nextLockedDistrict, useGameStore } from './store/gameStore';
 
 const CONFETTI_COLORS = ['#fde047', '#f472b6', '#67e8f9', '#a3e635', '#fb923c', '#c4b5fd'];
 
@@ -83,8 +83,10 @@ export default function App() {
     ),
     [totalRolls, doublesTotal, upgradesBuilt, raidsCompleted, heistsCompleted, jackpotsHit, claimedQuests]
   );
-  const homeComplete = districts[0] ? districtComplete(districts[0]) : false;
-  const harbourLocked = !unlockedDistricts.includes(1);
+  const nextLocked = nextLockedDistrict(districts, unlockedDistricts);
+  const nextDef = nextLocked !== null ? districts.find(d => d.id === nextLocked) : undefined;
+  const prevDef = nextLocked !== null ? districts.find(d => d.id === nextLocked - 1) : undefined;
+  const prevComplete = prevDef ? districtComplete(prevDef) : false;
   const [reducedMotion, setReducedMotion] = useState(false);
 
   // Restore verified local progress before the player can start a new roll.
@@ -216,7 +218,11 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     {unlockedDistricts.length > 1 && (
-                      <button onClick={() => setDistrict(currentDistrict === 0 ? 1 : 0)}
+                      <button onClick={() => {
+                        const order = [...unlockedDistricts].sort((a, b) => a - b);
+                        const next = order[(order.indexOf(currentDistrict) + 1) % order.length] ?? order[0];
+                        setDistrict(next);
+                      }}
                         aria-label="Switch district"
                         style={{ background: '#1e293b', border: '1px solid #6366f1', color: '#fff', borderRadius: 10, minWidth: 44, minHeight: 44, cursor: 'pointer', fontSize: 16 }}>
                         ⇄
@@ -229,14 +235,14 @@ export default function App() {
                   </div>
                   <button onClick={closeModal} aria-label="Close build menu" style={{ background: '#1e293b', border: 'none', color: '#fff', borderRadius: '50%', minWidth: '44px', minHeight: '44px', cursor: 'pointer' }}>✕</button>
                 </div>
-                {harbourLocked && (
-                  <div style={{ background: homeComplete ? '#3b2f0b' : '#1e293b', border: '1px solid #f2c65a60',
+                {nextDef && prevDef && (
+                  <div style={{ background: prevComplete ? '#3b2f0b' : '#1e293b', border: '1px solid #f2c65a60',
                     padding: '10px 12px', borderRadius: '12px', display: 'flex',
                     justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <div style={{ fontSize: '12px', color: '#ffe38d', fontWeight: 700 }}>
-                      🍬 {homeComplete ? 'Candy Harbour is ready!' : 'Max Sunny Suburb to Tier 4 to unlock Candy Harbour'}
+                      {prevComplete ? nextDef.name + ' is ready!' : 'Max ' + prevDef.name + ' to Tier 4 to unlock ' + nextDef.name}
                     </div>
-                    {homeComplete && (
+                    {prevComplete && (
                       <button onClick={unlockDistrict} className="bb-control"
                         style={{ background: '#f59e0b', color: '#422006', border: 'none', padding: '8px 12px',
                           borderRadius: '10px', fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' }}>

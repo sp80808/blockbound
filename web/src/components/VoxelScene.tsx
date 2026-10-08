@@ -226,7 +226,9 @@ function LandingPulse() {
     const mat = matRef.current;
     if (!ring || !mat) return;
     if (reducedMotion()) {
+      anim.current = { t: 1, key: pulse?.key ?? anim.current.key };
       ring.visible = false;
+      mat.opacity = 0;
       return;
     }
     if (pulse && pulse.key !== anim.current.key) {
@@ -464,7 +466,16 @@ const CANDY_COLOURS = [
   { wall: '#e6f6ff', roof: '#38bdf8', trim: '#ffc7e3' }
 ];
 
-const DISTRICT_PALETTES = [BUILDING_COLOURS, CANDY_COLOURS];
+/** Neon Metropolis: dark towers with cyan/magenta emissive-style roofs. */
+const NEON_COLOURS = [
+  { wall: '#2b2f4a', roof: '#22d3ee', trim: '#f0abfc' },
+  { wall: '#3b2b4f', roof: '#e879f9', trim: '#67e8f9' },
+  { wall: '#2f3b57', roof: '#fbbf24', trim: '#22d3ee' },
+  { wall: '#33284f', roof: '#a78bfa', trim: '#f472b6' },
+  { wall: '#273449', roof: '#34d399', trim: '#f0abfc' }
+];
+
+const DISTRICT_PALETTES = [BUILDING_COLOURS, CANDY_COLOURS, NEON_COLOURS];
 
 /** Golden construction glint that flashes over an upgraded plot. */
 function BuildGlint({ plot }: { plot: number }) {
@@ -477,7 +488,9 @@ function BuildGlint({ plot }: { plot: number }) {
     const mat = matRef.current;
     if (!mesh || !mat) return;
     if (reducedMotion()) {
+      anim.current = { t: 1, key: pulse?.key ?? anim.current.key };
       mesh.visible = false;
+      mat.opacity = 0;
       return;
     }
     if (pulse && pulse.plot === plot && pulse.key !== anim.current.key) {
@@ -1000,7 +1013,7 @@ function CinematicCamera() {
     camera.lookAt(destination.current);
     const baseZoom = Math.max(5.5, Math.min(size.width / 33.5, size.height / 24));
     const focusZoom = mode === 'DICE_FOCUS' ? Math.min(baseZoom * 1.6, 28) : Math.min(baseZoom * 1.12, 24);
-    camera.zoom = THREE.MathUtils.damp(camera.zoom, focusZoom, 8, delta);
+    camera.zoom = reducedMotion() ? focusZoom : THREE.MathUtils.damp(camera.zoom, focusZoom, 8, delta);
     camera.updateProjectionMatrix();
   });
   return null;

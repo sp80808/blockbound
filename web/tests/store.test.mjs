@@ -179,32 +179,58 @@ test('quest energy reward caps at max and remains single-claim', () => {
   assert.deepEqual([...state().claimedQuests], ['q_lucky_pair']);
 });
 
-test('district unlock requires a maxed suburb and switching is gated', () => {
+test('district unlocks run strictly sequential suburb, harbour, neon', () => {
   state().unlockDistrict();
   assert.deepEqual([...state().unlockedDistricts], [0]);
   assert.ok(state().toast.includes('Max every Sunny Suburb'));
 
-  const maxed = structuredClone(initialDistricts).map(d => ({
+  // Only the suburb maxed: the harbour opens, neon stays shut.
+  const maxedSuburb = structuredClone(initialDistricts).map(d => ({
     ...d,
-    buildings: d.buildings.map(b => ({ ...b, tier: 4 }))
+    buildings: d.id === 0 ? d.buildings.map(b => ({ ...b, tier: 4 })) : d.buildings
   }));
-  resetStore({ districts: maxed });
+  resetStore({ districts: maxedSuburb });
   state().unlockDistrict();
   let s = state();
   assert.deepEqual([...s.unlockedDistricts], [0, 1]);
   assert.equal(s.currentDistrict, 1);
   assert.equal(s.celebration.kind, 'unlock');
 
-  state().unlockDistrict(); // already open: inert
+  state().unlockDistrict(); // harbour not maxed: inert
   assert.deepEqual([...state().unlockedDistricts], [0, 1]);
+
+  // Harbour maxed too: Neon Metropolis opens and takes focus.
+  const maxedTwo = structuredClone(initialDistricts).map(d => ({
+    ...d,
+    buildings: d.id <= 1 ? d.buildings.map(b => ({ ...b, tier: 4 })) : d.buildings
+  }));
+  resetStore({ districts: maxedTwo, unlockedDistricts: [0, 1], currentDistrict: 1 });
+  state().unlockDistrict();
+  s = state();
+  assert.deepEqual([...s.unlockedDistricts], [0, 1, 2]);
+  assert.equal(s.currentDistrict, 2);
+  assert.ok(s.toast.includes('NEON METROPOLIS'));
+
+  state().unlockDistrict(); // everything open: inert
+  assert.deepEqual([...state().unlockedDistricts], [0, 1, 2]);
 
   state().setDistrict(0);
   assert.equal(state().currentDistrict, 0);
+  state().setDistrict(2);
+  assert.equal(state().currentDistrict, 2);
   state().setDistrict(7); // unknown district
-  assert.equal(state().currentDistrict, 0);
+  assert.equal(state().currentDistrict, 2);
   useGameStore.setState({ isRolling: true });
   state().setDistrict(1); // rolling locks the map
-  assert.equal(state().currentDistrict, 0);
+  assert.equal(state().currentDistrict, 2);
+});
+
+test('nextLockedDistrict walks districts in order', async () => {
+  const { nextLockedDistrict } = await import('../src/store/gameStore.ts');
+  assert.equal(nextLockedDistrict(initialDistricts, [0]), 1);
+  assert.equal(nextLockedDistrict(initialDistricts, [0, 1]), 2);
+  assert.equal(nextLockedDistrict(initialDistricts, [0, 1, 2]), null);
+  assert.equal(nextLockedDistrict(initialDistricts, []), 0);
 });
 
 test('encounter picks validate counts and pay committed rewards once', () => {
