@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -58,12 +58,17 @@ function TokenCharacter() {
   const targetPos = TILE_POSITIONS[currentTile] || [0, 0, 0];
   const groupRef = useRef<THREE.Group>(null);
 
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, targetPos[0], 0.15);
-      groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, targetPos[2], 0.15);
-      groupRef.current.position.y = 0.4;
-    }
+  useFrame(({ clock }, delta) => {
+    const token = groupRef.current;
+    if (!token) return;
+    const dx = targetPos[0] - token.position.x;
+    const dz = targetPos[2] - token.position.z;
+    const distance = Math.hypot(dx, dz);
+    const easing = 1 - Math.exp(-13 * delta);
+    token.position.x = THREE.MathUtils.lerp(token.position.x, targetPos[0], easing);
+    token.position.z = THREE.MathUtils.lerp(token.position.z, targetPos[2], easing);
+    // Tiny tactile hop per tile. Never influences the logical board position.
+    token.position.y = 0.4 + (distance > 0.08 ? Math.abs(Math.sin(clock.elapsedTime * 18)) * 0.4 : 0);
   });
 
   return (
@@ -139,39 +144,91 @@ function Buildings() {
   );
 }
 
-function PhysicalDice() {
-  const isRolling = useGameStore(s => s.isRolling);
-  const die1Ref = useRef<THREE.Mesh>(null);
-  const die2Ref = useRef<THREE.Mesh>(null);
+// Six consistent face numbers. Opposite faces total seven.
+const DIE_FACES: Array<{
+  value: number;
+  position: [number, number, number];
+  rotation: [number, number, number];
+}> = [
+  { value: 1, position: [0, 0, 0.755], rotation: [0, 0, 0] },
+  { value: 6, position: [0, 0, -0.755], rotation: [0, Math.PI, 0] },
+  { value: 2, position: [0, 0.755, 0], rotation: [-Math.PI / 2, 0, 0] },
+  { value: 5, position: [0, -0.755, 0], rotation: [Math.PI / 2, 0, 0] },
+  { value: 3, position: [0.755, 0, 0], rotation: [0, Math.PI / 2, 0] },
+  { value: 4, position: [-0.755, 0, 0], rotation: [0, -Math.PI / 2, 0] }
+];
 
-  useFrame((_, delta) => {
+const PIPS: Record<number, Array<[number, number]>> = {
+  1: [[0, 0]],
+  2: [[-0.33, 0.33], [0.33, -0.33]],
+  3: [[-0.33, 0.33], [0, 0], [0.33, -0.33]],
+  4: [[-0.33, 0.33], [0.33, 0.33], [-0.33, -0.33], [0.33, -0.33]],
+  5: [[-0.33, 0.33], [0.33, 0.33], [0, 0], [-0.33, -0.33], [0.33, -0.33]],
+  6: [[-0.33, 0.38], [0.33, 0.38], [-0.33, 0], [0.33, 0], [-0.33, -0.38], [0.33, -0.38]]
+};
+
+const FACE_NORMALS: Record<number, THREE.Vector3> = {
+  1: new THREE.Vector3(0, 0, 1),
+  2: new THREE.Vector3(0, 1, 0),
+  3: new THREE.Vector3(1, 0, 0),
+  4: new THREE.Vector3(-1, 0, 0),
+  5: new THREE.Vector3(0, -1, 0),
+  6: new THREE.Vector3(0, 0, -1)
+};
+const UP = new THREE.Vector3(0, 1, 0);
+
+function DieFace({ face }: { face: typeof DIE_FACES[number] }) {
+  return (
+    <group position={face.position} rotation={face.rotation}>
+      {(PIPS[face.value] || []).map(([x, y], i) => (
+        <mesh key={i} position={[x, y, 0.018]}>
+          <sphereGeometry args={[0.113, 10, 8]} />
+          <meshStandardMaterial color="#172033" roughness={0.45} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function DieBody({ value, isRolling, index }: { value: number; isRolling: boolean; index: number }) {
+  const diceRef = useRef<THREE.Group>(null);
+  const targetQuaternion = useMemo(
+    () => new THREE.Quaternion().setFromUnitVectors(FACE_NORMALS[value] || FACE_NORMALS[1], UP),
+    [value]
+  );
+
+  useFrame(({ clock }, delta) => {
+    const die = diceRef.current;
+    if (!die) return;
     if (isRolling) {
-      if (die1Ref.current) {
-        die1Ref.current.rotation.x += delta * 12;
-        die1Ref.current.rotation.y += delta * 15;
-        die1Ref.current.position.y = 2.5 + Math.sin(Date.now() * 0.01) * 0.8;
-      }
-      if (die2Ref.current) {
-        die2Ref.current.rotation.y += delta * 14;
-        die2Ref.current.rotation.z += delta * 10;
-        die2Ref.current.position.y = 2.5 + Math.cos(Date.now() * 0.01) * 0.8;
-      }
+      die.rotation.x += delta * (11 + index);
+      die.rotation.y += delta * (14 + index * 2);
+      die.rotation.z += delta * 7;
+      die.position.y = 1.1 + Math.abs(Math.sin(clock.elapsedTime * 10 + index)) * 1.7;
     } else {
-      if (die1Ref.current) die1Ref.current.position.y = 1.0;
-      if (die2Ref.current) die2Ref.current.position.y = 1.0;
+      die.quaternion.slerp(targetQuaternion, 1 - Math.exp(-11 * delta));
+      die.position.y = THREE.MathUtils.damp(die.position.y, 1.0, 9, delta);
     }
   });
 
   return (
+    <group ref={diceRef} position={[index === 0 ? -1.4 : 1.4, 1, 0]}>
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[1.5, 1.5, 1.5]} />
+        <meshStandardMaterial color="#fff9e5" roughness={0.36} metalness={0.05} />
+      </mesh>
+      {DIE_FACES.map(face => <DieFace key={face.value} face={face} />)}
+    </group>
+  );
+}
+
+function PhysicalDice() {
+  const isRolling = useGameStore(s => s.isRolling);
+  const lastRoll = useGameStore(s => s.lastRoll);
+  return (
     <group>
-      <mesh ref={die1Ref} position={[-1.4, 1.0, 0]} castShadow>
-        <boxGeometry args={[1.5, 1.5, 1.5]} />
-        <meshLambertMaterial color={0xfffbeb} />
-      </mesh>
-      <mesh ref={die2Ref} position={[1.4, 1.0, 0]} castShadow>
-        <boxGeometry args={[1.5, 1.5, 1.5]} />
-        <meshLambertMaterial color={0xfffbeb} />
-      </mesh>
+      <DieBody index={0} value={lastRoll?.die1 ?? 3} isRolling={isRolling} />
+      <DieBody index={1} value={lastRoll?.die2 ?? 4} isRolling={isRolling} />
     </group>
   );
 }
