@@ -1,0 +1,6 @@
+{
+  "appId": "com.aistudio.blockbound.dicedistricts",
+  "appName": "Blockbound",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

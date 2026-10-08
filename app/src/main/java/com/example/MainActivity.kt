@@ -1,27 +1,22 @@
 package com.example
 
+import android.annotation.SuppressLint
 import android.os.Bundle
+import android.view.ViewGroup
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.blockbound.game.GameViewModel
-import com.example.blockbound.ui.MainGameScreen
-import com.example.blockbound.ui.SplashScreen
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -36,28 +31,40 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun BlockboundApp(viewModel: GameViewModel = viewModel()) {
-    var showSplash by remember { mutableStateOf(true) }
-
+fun BlockboundApp() {
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFF0F172A)
+        color = Color(0xFF0B0F19)
     ) {
-        AnimatedContent(
-            targetState = showSplash,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(500)) togetherWith fadeOut(animationSpec = tween(500))
-            },
-            label = "splash_transition"
-        ) { isSplash ->
-            if (isSplash) {
-                SplashScreen(
-                    onSplashFinished = { showSplash = false }
-                )
-            } else {
-                MainGameScreen(viewModel = viewModel)
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { context ->
+                    WebView(context).apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                        settings.apply {
+                            javaScriptEnabled = true
+                            domStorageEnabled = true
+                            databaseEnabled = true
+                            allowFileAccess = true
+                            allowContentAccess = true
+                            mediaPlaybackRequiresUserGesture = false
+                            cacheMode = WebSettings.LOAD_DEFAULT
+                            setSupportZoom(false)
+                            builtInZoomControls = false
+                            displayZoomControls = false
+                        }
+                        webViewClient = WebViewClient()
+                        webChromeClient = WebChromeClient()
+                        loadUrl("file:///android_asset/www/index.html")
+                    }
+                }
+            )
         }
     }
 }

@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Blockbound: Dice Districts</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0b0f19;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #fff;
+    }
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    /* Splash Screen */
+    #splash-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 100;
+      background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 70%, #030712 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+    }
+    #splash-screen.hidden {
+      transform: translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .splash-dice-box {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 24px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #fde68a, #f59e0b, #d97706);
+      box-shadow: 0 12px 30px rgba(245, 158, 11, 0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 40px;
+      animation: diceFloat 3s ease-in-out infinite;
+    }
+    @keyframes diceFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(10deg); }
+    }
+    .splash-title {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #fde047;
+      text-shadow: 0 4px 16px rgba(253, 224, 71, 0.4);
+    }
+    .splash-subtitle {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: #e2e8f0;
+      margin-top: 4px;
+      margin-bottom: 32px;
+    }
+    .splash-bar-wrap {
+      width: 75%;
+      max-width: 280px;
+      background: #1e293b;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .splash-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #f59e0b, #10b981);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .splash-tip {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* Main HUD */
+    #hud-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px) 16px;
+    }
+    .hud-interactive {
+      pointer-events: auto;
+    }
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .resource-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+    .pill {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 800;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .pill-coins { color: #fbbf24; }
+    .pill-materials { color: #f472b6; }
+    .shields-box {
+      background: rgba(8, 47, 73, 0.9);
+      border: 1px solid #0284c7;
+      border-radius: 14px;
+      padding: 6px 10px;
+      display: flex;
+      gap: 4px;
+    }
+    .shield-icon { font-size: 14px; filter: grayscale(100%); opacity: 0.4; }
+    .shield-icon.active { filter: none; opacity: 1; }
+    .menu-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    /* District Card */
+    .district-card {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+    }
+    .district-info h4 {
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .district-info .progress-wrap {
+      width: 140px;
+      height: 6px;
+      background: #334155;
+      border-radius: 3px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+    .district-info .progress-bar {
+      height: 100%;
+      background: #10b981;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .build-btn {
+      background: #10b981;
+      border: none;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+      cursor: pointer;
+    }
+
+    /* Toast Notification Banner */
+    #banner-toast {
+      background: #312e81;
+      border: 1.5px solid #fbbf24;
+      border-radius: 12px;
+      padding: 8px 14px;
+      text-align: center;
+      color: #fde68a;
+      font-size: 13px;
+      font-weight: 900;
+      margin-top: 6px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      display: none;
+      animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes popIn {
+      from { transform: translateY(-10px) scale(0.95); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    /* Bottom Roll Section */
+    .bottom-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .energy-bar-wrap {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0 8px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #facc15;
+    }
+    .controls-row {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .bet-btn, .turbo-btn {
+      width: 54px;
+      height: 56px;
+      border-radius: 16px;
+      background: #1e1b4b;
+      border: 2px solid #fbbf24;
+      color: #fbbf24;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 900;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .bet-btn span:first-child { font-size: 9px; color: #94a3b8; }
+    .bet-btn span:last-child { font-size: 16px; }
+    .turbo-btn { border-color: #64748b; color: #94a3b8; }
+    .turbo-btn.active { border-color: #10b981; color: #34d399; background: #064e3b; }
+    .turbo-btn span:first-child { font-size: 16px; }
+    .turbo-btn span:last-child { font-size: 9px; }
+
+    .roll-btn {
+      flex: 1;
+      height: 64px;
+      background: linear-gradient(135deg, #f43f5e, #e11d48, #be123c);
+      border: none;
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(225, 29, 72, 0.45);
+      color: white;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .roll-btn:active { transform: scale(0.97); }
+    .roll-btn:disabled {
+      background: #475569;
+      box-shadow: none;
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .energy-chip {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 8px;
+      border-radius: 10px;
+      font-size: 13px;
+      color: #facc15;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 50;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      width: 100%;
+      max-width: 360px;
+      background: #0f172a;
+      border: 2px solid #6366f1;
+      border-radius: 24px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h3 { font-size: 18px; font-weight: 900; }
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    /* Building items */
+    .b-item {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .b-item.damaged {
+      background: #450a0a;
+      border: 1px solid #ef4444;
+    }
+    .b-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .b-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: #334155;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 22px;
+    }
+    .b-details h5 { font-size: 14px; font-weight: 800; }
+    .b-details p { font-size: 11px; color: #94a3b8; }
+    .up-btn {
+      background: #10b981;
+      border: none;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .up-btn:disabled { background: #334155; opacity: 0.5; }
+    .repair-btn {
+      background: #ef4444;
+      border: none;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    /* Raid / Heist grids */
+    .raid-grid {
+      display: flex;
+      gap: 8px;
+    }
+    .raid-target-card {
+      flex: 1;
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 16px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.2s;
+    }
+    .raid-target-card:hover { border-color: #fbbf24; transform: scale(1.04); }
+    .raid-target-card .icon { font-size: 32px; }
+
+    .heist-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .heist-safe {
+      height: 72px;
+      background: #334155;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .heist-safe.opened {
+      background: #1e293b;
+      border: 1px solid #8b5cf6;
+      font-size: 11px;
+      color: #fbbf24;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <!-- Splash Screen -->
+  <div id="splash-screen">
+    <div class="splash-dice-box">🎲</div>
+    <div class="splash-title">BLOCKBOUND</div>
+    <div class="splash-subtitle">DICE DISTRICTS</div>
+    <div class="splash-bar-wrap">
+      <div id="splash-progress" class="splash-bar-fill"></div>
+    </div>
+    <div id="splash-tip" class="splash-tip">Carving 3D voxel foundation blocks...</div>
+  </div>
+
+  <!-- Main Game HUD -->
+  <div id="hud-layer">
+    <!-- Top Bar -->
+    <div class="top-bar hud-interactive">
+      <div class="resource-row">
+        <div class="pill pill-coins">
+          <span>🪙</span>
+          <span id="hud-coins">35,000</span>
+        </div>
+        <div class="pill pill-materials">
+          <span>🧱</span>
+          <span id="hud-materials">16</span>
+        </div>
+        <div class="shields-box" id="hud-shields">
+          <span class="shield-icon active">🛡️</span>
+          <span class="shield-icon active">🛡️</span>
+          <span class="shield-icon">🛡️</span>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button class="menu-btn" onclick="openModal('quests-modal')">📋</button>
+          <button class="menu-btn" onclick="openModal('settings-modal')">⚙️</button>
+        </div>
+      </div>
+
+      <!-- District Milestone Bar -->
+      <div class="district-card" onclick="openModal('upgrade-modal')">
+        <div class="district-info">
+          <h4><span id="hud-district-name">Sunny Suburb</span> <span id="hud-district-stars" style="color:#fbbf24;">⭐ 3/20</span></h4>
+          <div class="progress-wrap">
+            <div id="hud-district-progress" class="progress-bar" style="width: 15%;"></div>
+          </div>
+        </div>
+        <button class="build-btn">🔨 BUILD</button>
+      </div>
+
+      <!-- Action Toast Banner -->
+      <div id="banner-toast">🏁 LANDED ON GO! +30,000 COINS!</div>
+    </div>
+
+    <!-- Bottom Controls -->
+    <div class="bottom-section hud-interactive">
+      <div class="energy-bar-wrap">
+        <span>⚡ DICE ENERGY: <span id="hud-energy">35/50</span></span>
+        <span id="hud-energy-timer">+1 in 00:45</span>
+      </div>
+      <div class="controls-row">
+        <div class="bet-btn" onclick="cycleMultiplier()">
+          <span>BET</span>
+          <span id="hud-multiplier">1X</span>
+        </div>
+        <button id="roll-button" class="roll-btn" onclick="onRollClicked()">
+          <span>ROLL</span>
+          <div class="energy-chip" id="hud-roll-cost">⚡ -1</div>
+        </button>
+        <div id="turbo-toggle" class="turbo-btn" onclick="toggleTurbo()">
+          <span>⚡</span>
+          <span>FAST</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Town Upgrade Modal -->
+  <div id="upgrade-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h3 id="upgrade-modal-title">Sunny Suburb</h3>
+          <p style="font-size:12px; color:#94a3b8;" id="upgrade-modal-sub">Construct and upgrade your voxel town</p>
+        </div>
+        <button class="close-btn" onclick="closeModal('upgrade-modal')">✕</button>
+      </div>
+      <div id="buildings-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- Raid Modal -->
+  <div id="raid-modal" class="modal-overlay">
+    <div class="modal-box" style="border-color:#ef4444;">
+      <div class="modal-header">
+        <div>
+          <h3 style="color:#f87171;">⚔️ TOWN RAID</h3>
+          <p style="font-size:12px; color:#94a3b8;" id="raid-opponent-title">Target Captain Voxel's Town!</p>
+        </div>
+      </div>
+      <p style="font-size:13px; color:#cbd5e1; text-align:center;">Select an opponent building to launch your catapult!</p>
+      <div class="raid-grid" id="raid-targets-wrap"></div>
+      <div id="raid-outcome-box" style="display:none; text-align:center; padding:12px; border-radius:12px;"></div>
+    </div>
+  </div>
+
+  <!-- Heist Modal -->
+  <div id="heist-modal" class="modal-overlay">
+    <div class="modal-box" style="border-color:#8b5cf6;">
+      <div class="modal-header">
+        <div>
+          <h3 style="color:#a78bfa;">🗝️ VAULT HEIST</h3>
+          <p style="font-size:12px; color:#94a3b8;">Pick 3 high-tech safes to loot!</p>
+        </div>
+      </div>
+      <div class="heist-grid" id="heist-safes-wrap"></div>
+      <div id="heist-result-box" style="text-align:center; font-weight:800; font-size:14px; color:#fde047;"></div>
+      <button id="heist-claim-btn" class="build-btn" style="display:none; width:100%; justify-content:center; padding:12px;" onclick="claimHeist()">COLLECT LOOT</button>
+    </div>
+  </div>
+
+  <!-- Quests Modal -->
+  <div id="quests-modal" class="modal-overlay">
+    <div class="modal-box" style="border-color:#38bdf8;">
+      <div class="modal-header">
+        <h3>📋 Daily Missions</h3>
+        <button class="close-btn" onclick="closeModal('quests-modal')">✕</button>
+      </div>
+      <div id="quests-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="modal-box" style="border-color:#64748b;">
+      <div class="modal-header">
+        <h3>⚙️ Game Settings</h3>
+        <button class="close-btn" onclick="closeModal('settings-modal')">✕</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:12px; border-radius:12px;">
+        <span>🔊 Sound Effects</span>
+        <input type="checkbox" id="sound-toggle" checked style="width:20px; height:20px;" onchange="toggleSound(this.checked)" />
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:12px; border-radius:12px;">
+        <span>📳 Haptics</span>
+        <input type="checkbox" id="haptics-toggle" checked style="width:20px; height:20px;" onchange="toggleHaptics(this.checked)" />
+      </div>
+      <button style="background:#7f1d1d; color:#fca5a5; border:none; padding:12px; border-radius:12px; font-weight:800; cursor:pointer;" onclick="resetSave()">RESET PROGRESS</button>
+    </div>
+  </div>
+
+  <!-- Three.js (Bundled locally) -->
+  <script src="three.min.js"></script>
+
+  <script>
+    /* =========================================================================
+       AUDIO & HAPTICS (Web Audio API Synthesizer)
+       ========================================================================= */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.hapticsEnabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      }
+      vibrate(ms) {
+        if (this.hapticsEnabled && navigator.vibrate) {
+          try { navigator.vibrate(ms); } catch (e) {}
+        }
+      }
+      playTone(freq, duration, type = "sine", decay = true) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+          if (decay) {
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+          }
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+      playRattle() {
+        this.vibrate(20);
+        this.playTone(320, 0.08, "triangle");
+      }
+      playHop(pitch = 1.0) {
+        this.vibrate(15);
+        this.playTone(520 * pitch, 0.06, "sine");
+      }
+      playCoin() {
+        this.vibrate(25);
+        const notes = [784, 988, 1175, 1568];
+        notes.forEach((n, i) => {
+          setTimeout(() => this.playTone(n, 0.12, "sine"), i * 45);
+        });
+      }
+      playBlockSnap() {
+        this.vibrate(35);
+        this.playTone(180, 0.15, "square");
+      }
+      playShield() {
+        this.vibrate(40);
+        this.playTone(920, 0.25, "triangle");
+      }
+      playBoom() {
+        this.vibrate(60);
+        this.playTone(90, 0.35, "sawtooth");
+      }
+      playFanfare() {
+        this.vibrate(50);
+        [523, 659, 784, 1046].forEach((n, i) => {
+          setTimeout(() => this.playTone(n, 0.2, "sine"), i * 60);
+        });
+      }
+    }
+    const sound = new SoundEngine();
+
+    /* =========================================================================
+       GAME STATE & PERSISTENCE
+       ========================================================================= */
+    const DISTRICTS = [
+      {
+        id: 0,
+        name: "Sunny Suburb",
+        subtitle: "Country village with charming cottages",
+        buildings: [
+          { id: "b_townhall", name: "Town Hall", icon: "🏛️", tier: 1, baseCost: 10000, baseMats: 4, damaged: false },
+          { id: "b_bakery", name: "Artisan Bakery", icon: "🥖", tier: 1, baseCost: 6000, baseMats: 2, damaged: false },
+          { id: "b_cottage", name: "Oak Cottage", icon: "🏡", tier: 1, baseCost: 4500, baseMats: 2, damaged: false },
+          { id: "b_windmill", name: "Windmill", icon: "🌾", tier: 0, baseCost: 8000, baseMats: 3, damaged: false },
+          { id: "b_park", name: "Central Park", icon: "⛲", tier: 0, baseCost: 9000, baseMats: 3, damaged: false }
+        ]
+      },
+      {
+        id: 1,
+        name: "Candy Harbour",
+        subtitle: "Pastel docks and marshmallow piers",
+        buildings: [
+          { id: "b_sugar_light", name: "Sugar Lighthouse", icon: "🗼", tier: 0, baseCost: 20000, baseMats: 6, damaged: false },
+          { id: "b_ice_cream", name: "Ice Cream Emporium", icon: "🍨", tier: 0, baseCost: 16000, baseMats: 5, damaged: false },
+          { id: "b_candy_dock", name: "Pastel Docks", icon: "⛵", tier: 0, baseCost: 14000, baseMats: 4, damaged: false },
+          { id: "b_crane", name: "Gumball Crane", icon: "🏗️", tier: 0, baseCost: 18000, baseMats: 5, damaged: false },
+          { id: "b_gingerbread", name: "Gingerbread Palace", icon: "🏰", tier: 0, baseCost: 25000, baseMats: 8, damaged: false }
+        ]
+      }
+    ];
+
+    const TILE_TYPES = [
+      { type: "GO", label: "START / GO", color: 0x10b981 },
+      { type: "COIN", label: "Gold Pouch", color: 0xf59e0b },
+      { type: "MATS", label: "Voxel Blocks", color: 0xec4899 },
+      { type: "COIN", label: "Gold Chest", color: 0xf59e0b },
+      { type: "SHIELD", label: "Aegis Shield", color: 0x06b6d4 },
+      { type: "COIN", label: "Gold Pouch", color: 0xf59e0b },
+      { type: "RAID", label: "Town Raid", color: 0xef4444 },
+      { type: "ENERGY", label: "Dice Energy", color: 0xeab308 },
+      { type: "HEIST", label: "Vault Heist", color: 0x8b5cf6 },
+      { type: "COIN", label: "Gold Chest", color: 0xf59e0b },
+      { type: "MYSTERY", label: "Mystery Vault", color: 0xf97316 },
+      { type: "MATS", label: "Voxel Blocks", color: 0xec4899 },
+      { type: "COIN", label: "Gold Vault", color: 0xf59e0b },
+      { type: "SHIELD", label: "Aegis Shield", color: 0x06b6d4 },
+      { type: "COIN", label: "Gold Pouch", color: 0xf59e0b },
+      { type: "BONUS", label: "Milestone Star", color: 0x6366f1 },
+      { type: "JACKPOT", label: "Mega Jackpot", color: 0xd946ef },
+      { type: "COIN", label: "Gold Chest", color: 0xf59e0b },
+      { type: "RAID", label: "Town Raid", color: 0xef4444 },
+      { type: "MATS", label: "Voxel Blocks", color: 0xec4899 },
+      { type: "COIN", label: "Gold Pouch", color: 0xf59e0b },
+      { type: "ENERGY", label: "Dice Energy", color: 0xeab308 },
+      { type: "HEIST", label: "Vault Heist", color: 0x8b5cf6 },
+      { type: "COIN", label: "Gold Vault", color: 0xf59e0b },
+      { type: "MYSTERY", label: "Mystery Vault", color: 0xf97316 },
+      { type: "COIN", label: "Gold Chest", color: 0xf59e0b },
+      { type: "SHIELD", label: "Aegis Shield", color: 0x06b6d4 },
+      { type: "MATS", label: "Voxel Blocks", color: 0xec4899 },
+      { type: "COIN", label: "Gold Pouch", color: 0xf59e0b },
+      { type: "RAID", label: "Town Raid", color: 0xef4444 },
+      { type: "BONUS", label: "Milestone Star", color: 0x6366f1 },
+      { type: "COIN", label: "Gold Vault", color: 0xf59e0b }
+    ];
+
+    let gameState = {
+      coins: 35000,
+      materials: 16,
+      energy: 35,
+      maxEnergy: 50,
+      shields: 2,
+      maxShields: 3,
+      currentTile: 0,
+      multiplier: 1,
+      isRolling: false,
+      isTurbo: false,
+      currentDistrict: 0,
+      districts: JSON.parse(JSON.stringify(DISTRICTS)),
+      quests: [
+        { id: "q_rolls", title: "Roll Dice 15 times", target: 15, current: 0, rewardEnergy: 10, claimed: false },
+        { id: "q_build", title: "Upgrade Town 2 times", target: 2, current: 0, rewardEnergy: 12, claimed: false },
+        { id: "q_raid", title: "Complete 1 Town Raid", target: 1, current: 0, rewardEnergy: 15, claimed: false }
+      ]
+    };
+
+    function loadSave() {
+      try {
+        const saved = localStorage.getItem("blockbound_save_v1");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          gameState = { ...gameState, ...parsed };
+        }
+      } catch (e) {}
+    }
+    function saveState() {
+      try {
+        localStorage.setItem("blockbound_save_v1", JSON.stringify(gameState));
+      } catch (e) {}
+    }
+    function resetSave() {
+      localStorage.removeItem("blockbound_save_v1");
+      location.reload();
+    }
+    loadSave();
+
+    /* =========================================================================
+       THREE.JS 3D VOXEL ENGINE SETUP
+       ========================================================================= */
+    const container = document.getElementById("canvas-container");
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f172a);
+    scene.fog = new THREE.FogExp2(0x0f172a, 0.022);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(22, 28, 22);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // Lights
+    const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x1e1b4b, 0.7);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfffaed, 1.2);
+    dirLight.position.set(16, 32, 16);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    dirLight.shadow.camera.near = 0.5;
+    dirLight.shadow.camera.far = 70;
+    const d = 16;
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+    scene.add(dirLight);
+
+    // Board Geometry & Tiles (32 perimeter spots around 9x9 grid)
+    const TILE_POSITIONS = [];
+    const boardGroup = new THREE.Group();
+    scene.add(boardGroup);
+
+    // Calculate 32 perimeter coordinates (centered at 0,0)
+    const boardStep = 2.4;
+    const halfBoard = 4 * boardStep;
+
+    for (let i = 0; i < 32; i++) {
+      let x = 0, z = 0;
+      if (i >= 0 && i <= 8) {
+        x = -halfBoard + i * boardStep;
+        z = -halfBoard;
+      } else if (i > 8 && i <= 16) {
+        x = halfBoard;
+        z = -halfBoard + (i - 8) * boardStep;
+      } else if (i > 16 && i <= 24) {
+        x = halfBoard - (i - 16) * boardStep;
+        z = halfBoard;
+      } else {
+        x = -halfBoard;
+        z = halfBoard - (i - 24) * boardStep;
+      }
+      TILE_POSITIONS.push({ x, z });
+    }
+
+    const tileMeshes = [];
+    const tileBoxGeo = new THREE.BoxGeometry(2.1, 0.5, 2.1);
+    const studGeo = new THREE.BoxGeometry(0.4, 0.2, 0.4);
+
+    TILE_POSITIONS.forEach((pos, idx) => {
+      const tInfo = TILE_TYPES[idx];
+      const mat = new THREE.MeshLambertMaterial({ color: tInfo.color });
+      const tile = new THREE.Mesh(tileBoxGeo, mat);
+      tile.position.set(pos.x, 0, pos.z);
+      tile.receiveShadow = true;
+      tile.castShadow = true;
+
+      // Center decorative voxel stud
+      const studMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+      const stud = new THREE.Mesh(studGeo, studMat);
+      stud.position.set(0, 0.35, 0);
+      tile.add(stud);
+
+      boardGroup.add(tile);
+      tileMeshes.push(tile);
+    });
+
+    // Courtyard Floor & Cobblestone paths
+    const groundGeo = new THREE.BoxGeometry(16.5, 0.3, 16.5);
+    const groundMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.position.set(0, -0.15, 0);
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Cross Paths
+    const pathMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
+    const pathX = new THREE.Mesh(new THREE.BoxGeometry(16, 0.35, 2), pathMat);
+    pathX.position.set(0, -0.1, 0);
+    pathX.receiveShadow = true;
+    scene.add(pathX);
+    const pathZ = new THREE.Mesh(new THREE.BoxGeometry(2, 0.35, 16), pathMat);
+    pathZ.position.set(0, -0.1, 0);
+    pathZ.receiveShadow = true;
+    scene.add(pathZ);
+
+    // Decorative Voxel Trees at 4 corners of courtyard
+    const treeTrunkGeo = new THREE.BoxGeometry(0.5, 1.2, 0.5);
+    const treeLeafGeo = new THREE.BoxGeometry(1.4, 1.2, 1.4);
+    const trunkMat = new THREE.MeshLambertMaterial({ color: 0x78350f });
+    const leafMat = new THREE.MeshLambertMaterial({ color: 0x16a34a });
+
+    [[-5, -5], [5, -5], [-5, 5], [5, 5]].forEach(([tx, tz]) => {
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(treeTrunkGeo, trunkMat);
+      trunk.position.set(0, 0.6, 0);
+      trunk.castShadow = true;
+      tree.add(trunk);
+
+      const leaf = new THREE.Mesh(treeLeafGeo, leafMat);
+      leaf.position.set(0, 1.6, 0);
+      leaf.castShadow = true;
+      tree.add(leaf);
+
+      tree.position.set(tx, 0, tz);
+      scene.add(tree);
+    });
+
+    // 3D Voxel Town Buildings in the Courtyard (5 plots)
+    const PLOT_POSITIONS = [
+      { x: 0, z: 0 },       // Center: Town Hall
+      { x: -4, z: -2 },     // Bakery
+      { x: 4, z: -2 },      // Cottage
+      { x: -4, z: 2 },      // Windmill
+      { x: 4, z: 2 }        // Central Park
+    ];
+
+    const buildingGroups = [];
+    PLOT_POSITIONS.forEach((pos, idx) => {
+      const bGroup = new THREE.Group();
+      bGroup.position.set(pos.x, 0, pos.z);
+      scene.add(bGroup);
+      buildingGroups.push(bGroup);
+    });
+
+    function rebuildBuildingMesh(plotIdx, building) {
+      const group = buildingGroups[plotIdx];
+      while (group.children.length > 0) {
+        group.remove(group.children[0]);
+      }
+
+      const tier = building.tier;
+      if (building.damaged) {
+        // Ruined rubble
+        const rubbleMat = new THREE.MeshLambertMaterial({ color: 0x475569 });
+        const r1 = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 1.6), rubbleMat);
+        r1.position.set(0, 0.3, 0);
+        group.add(r1);
+        const fire = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+        fire.position.set(0.2, 0.8, 0);
+        group.add(fire);
+        return;
+      }
+
+      if (tier === 0) {
+        // Tier 0: Plot stakes & blueprint
+        const stakeGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
+        const stakeMat = new THREE.MeshLambertMaterial({ color: 0xb45309 });
+        [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]].forEach(([sx, sz]) => {
+          const s = new THREE.Mesh(stakeGeo, stakeMat);
+          s.position.set(sx, 0.3, sz);
+          group.add(s);
+        });
+        const bp = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.8), new THREE.MeshLambertMaterial({ color: 0x38bdf8 }));
+        bp.position.set(0, 0.05, 0);
+        group.add(bp);
+      } else if (tier === 1) {
+        // Small cottage
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 1.8), new THREE.MeshLambertMaterial({ color: 0xfbbf24 }));
+        wall.position.set(0, 0.6, 0);
+        wall.castShadow = true;
+        group.add(wall);
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.6, 2.0), new THREE.MeshLambertMaterial({ color: 0xdc2626 }));
+        roof.position.set(0, 1.5, 0);
+        roof.castShadow = true;
+        group.add(roof);
+      } else if (tier === 2) {
+        // 2-storey house + chimney
+        const floor1 = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 2.0), new THREE.MeshLambertMaterial({ color: 0xf59e0b }));
+        floor1.position.set(0, 0.6, 0);
+        floor1.castShadow = true;
+        group.add(floor1);
+        const floor2 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.2, 1.7), new THREE.MeshLambertMaterial({ color: 0xfef08a }));
+        floor2.position.set(0, 1.8, 0);
+        floor2.castShadow = true;
+        group.add(floor2);
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.6, 1.9), new THREE.MeshLambertMaterial({ color: 0x2563eb }));
+        roof.position.set(0, 2.7, 0);
+        roof.castShadow = true;
+        group.add(roof);
+        const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4), new THREE.MeshLambertMaterial({ color: 0x991b1b }));
+        chimney.position.set(0.6, 3.1, 0.6);
+        group.add(chimney);
+      } else if (tier === 3) {
+        // Mansion / boutique with awning and spire
+        const bBase = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.5, 2.2), new THREE.MeshLambertMaterial({ color: 0xe2e8f0 }));
+        bBase.position.set(0, 0.75, 0);
+        bBase.castShadow = true;
+        group.add(bBase);
+        const bTop = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.3, 1.8), new THREE.MeshLambertMaterial({ color: 0x8b5cf6 }));
+        bTop.position.set(0, 2.15, 0);
+        bTop.castShadow = true;
+        group.add(bTop);
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.6, 2.0), new THREE.MeshLambertMaterial({ color: 0x10b981 }));
+        roof.position.set(0, 3.1, 0);
+        roof.castShadow = true;
+        group.add(roof);
+        const spire = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.3), new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
+        spire.position.set(0, 3.8, 0);
+        group.add(spire);
+      } else if (tier >= 4) {
+        // Grand landmark clocktower / castle
+        const tower = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.8, 2.2), new THREE.MeshLambertMaterial({ color: 0xcbd5e1 }));
+        tower.position.set(0, 1.4, 0);
+        tower.castShadow = true;
+        group.add(tower);
+        const upper = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.6, 1.8), new THREE.MeshLambertMaterial({ color: 0xf59e0b }));
+        upper.position.set(0, 3.6, 0);
+        upper.castShadow = true;
+        group.add(upper);
+        const crown = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.4, 2.0), new THREE.MeshLambertMaterial({ color: 0xd97706 }));
+        crown.position.set(0, 4.6, 0);
+        crown.castShadow = true;
+        group.add(crown);
+        const gem = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.6), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        gem.position.set(0, 5.2, 0);
+        group.add(gem);
+        const flag = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.1), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+        flag.position.set(0.5, 5.7, 0);
+        group.add(flag);
+      }
+    }
+
+    function refreshAllBuildings() {
+      const dist = gameState.districts[gameState.currentDistrict];
+      dist.buildings.forEach((b, idx) => rebuildBuildingMesh(idx, b));
+    }
+    refreshAllBuildings();
+
+    // 3D Voxel Token Character ("Blocky")
+    const tokenGroup = new THREE.Group();
+    const tokenBody = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshLambertMaterial({ color: 0xf97316 }));
+    tokenBody.position.set(0, 0.7, 0);
+    tokenBody.castShadow = true;
+    tokenGroup.add(tokenBody);
+
+    const tokenHead = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), new THREE.MeshLambertMaterial({ color: 0xfed7aa }));
+    tokenHead.position.set(0, 1.45, 0);
+    tokenHead.castShadow = true;
+    tokenGroup.add(tokenHead);
+
+    const tokenCap = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.3, 0.8), new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
+    tokenCap.position.set(0, 1.9, 0);
+    tokenGroup.add(tokenCap);
+
+    scene.add(tokenGroup);
+    const startPos = TILE_POSITIONS[gameState.currentTile];
+    tokenGroup.position.set(startPos.x, 0.4, startPos.z);
+
+    // 3D Physical Animated Dice Models in the 3D scene
+    function create3DDie() {
+      const geo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+      // Canvas generated pip textures for 6 faces
+      const materials = [1, 6, 2, 5, 3, 4].map(num => {
+        const c = document.createElement("canvas");
+        c.width = 128;
+        c.height = 128;
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#fffbeb";
+        ctx.fillRect(0, 0, 128, 128);
+        ctx.fillStyle = "#b91c1c";
+        const dot = (x, y) => {
+          ctx.beginPath();
+          ctx.arc(x, y, 11, 0, Math.PI * 2);
+          ctx.fill();
+        };
+        if (num === 1) dot(64, 64);
+        else if (num === 2) { dot(36, 36); dot(92, 92); }
+        else if (num === 3) { dot(36, 36); dot(64, 64); dot(92, 92); }
+        else if (num === 4) { dot(36, 36); dot(92, 36); dot(36, 92); dot(92, 92); }
+        else if (num === 5) { dot(36, 36); dot(92, 36); dot(64, 64); dot(36, 92); dot(92, 92); }
+        else if (num === 6) { dot(36, 30); dot(92, 30); dot(36, 64); dot(92, 64); dot(36, 98); dot(92, 98); }
+        return new THREE.MeshLambertMaterial({ map: new THREE.CanvasTexture(c) });
+      });
+      const die = new THREE.Mesh(geo, materials);
+      die.castShadow = true;
+      return die;
+    }
+
+    const dice1 = create3DDie();
+    const dice2 = create3DDie();
+    dice1.position.set(-1.4, 2.5, 0);
+    dice2.position.set(1.4, 2.5, 0);
+    scene.add(dice1);
+    scene.add(dice2);
+
+    /* =========================================================================
+       CAMERA CONTROLS (Drag to Rotate & Pan, Pinch to Zoom)
+       ========================================================================= */
+    let isDragging = false;
+    let prevMouseX = 0;
+    let cameraAngle = Math.PI / 4;
+    let cameraRadius = 34;
+
+    window.addEventListener("pointerdown", e => {
+      if (e.target.closest("#hud-layer") || e.target.closest(".modal-overlay")) return;
+      isDragging = true;
+      prevMouseX = e.clientX;
+    });
+    window.addEventListener("pointermove", e => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevMouseX;
+      cameraAngle -= dx * 0.006;
+      prevMouseX = e.clientX;
+      updateCameraPos();
+    });
+    window.addEventListener("pointerup", () => isDragging = false);
+
+    function updateCameraPos() {
+      camera.position.x = Math.sin(cameraAngle) * cameraRadius;
+      camera.position.z = Math.cos(cameraAngle) * cameraRadius;
+      camera.position.y = 28;
+      camera.lookAt(0, 0, 0);
+    }
+    updateCameraPos();
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    /* =========================================================================
+       GAMEPLAY ACTIONS & HUD BINDINGS
+       ========================================================================= */
+    function showToast(msg) {
+      const toast = document.getElementById("banner-toast");
+      toast.innerText = msg;
+      toast.style.display = "block";
+      setTimeout(() => toast.style.display = "none", 3200);
+    }
+
+    function updateHUD() {
+      document.getElementById("hud-coins").innerText = Number(gameState.coins).toLocaleString();
+      document.getElementById("hud-materials").innerText = gameState.materials;
+      document.getElementById("hud-energy").innerText = `${gameState.energy}/${gameState.maxEnergy}`;
+      document.getElementById("hud-multiplier").innerText = `${gameState.multiplier}X`;
+      document.getElementById("hud-roll-cost").innerText = `⚡ -${gameState.multiplier}`;
+
+      // Shields
+      const shieldBox = document.getElementById("hud-shields");
+      shieldBox.innerHTML = "";
+      for (let s = 1; s <= gameState.maxShields; s++) {
+        const span = document.createElement("span");
+        span.className = `shield-icon ${s <= gameState.shields ? "active" : ""}`;
+        span.innerText = "🛡️";
+        shieldBox.appendChild(span);
+      }
+
+      // District progress
+      const dist = gameState.districts[gameState.currentDistrict];
+      document.getElementById("hud-district-name").innerText = dist.name;
+      const completedTiers = dist.buildings.reduce((sum, b) => sum + b.tier, 0);
+      const totalTiers = dist.buildings.length * 4;
+      document.getElementById("hud-district-stars").innerText = `⭐ ${completedTiers}/${totalTiers}`;
+      const pct = (completedTiers / totalTiers) * 100;
+      document.getElementById("hud-district-progress").style.width = `${pct}%`;
+
+      document.getElementById("roll-button").disabled = gameState.isRolling || gameState.energy < gameState.multiplier;
+      saveState();
+    }
+    updateHUD();
+
+    function cycleMultiplier() {
+      sound.playHop(0.9);
+      const m = gameState.multiplier;
+      gameState.multiplier = (m === 1 ? 2 : m === 2 ? 3 : m === 3 ? 5 : 1);
+      updateHUD();
+    }
+
+    function toggleTurbo() {
+      sound.playHop(1.1);
+      gameState.isTurbo = !gameState.isTurbo;
+      const btn = document.getElementById("turbo-toggle");
+      if (gameState.isTurbo) btn.classList.add("active");
+      else btn.classList.remove("active");
+    }
+
+    function toggleSound(on) { sound.enabled = on; }
+    function toggleHaptics(on) { sound.hapticsEnabled = on; }
+
+    /* =========================================================================
+       DICE ROLLING & STEP-BY-STEP HOPPING
+       ========================================================================= */
+    let isDiceRollingAnim = false;
+    let diceAnimStart = 0;
+    let diceTarget1 = 3;
+    let diceTarget2 = 4;
+
+    function onRollClicked() {
+      if (gameState.isRolling || gameState.energy < gameState.multiplier) return;
+      gameState.isRolling = true;
+      gameState.energy -= gameState.multiplier;
+      updateHUD();
+
+      sound.playRattle();
+      isDiceRollingAnim = true;
+      diceAnimStart = performance.now();
+
+      const d1 = Math.floor(Math.random() * 6) + 1;
+      const d2 = Math.floor(Math.random() * 6) + 1;
+      diceTarget1 = d1;
+      diceTarget2 = d2;
+      const totalSteps = d1 + d2;
+      const isDoubles = (d1 === d2);
+
+      const rollDuration = gameState.isTurbo ? 450 : 900;
+
+      setTimeout(() => {
+        isDiceRollingAnim = false;
+        // Align final faces
+        alignDiceFace(dice1, d1);
+        alignDiceFace(dice2, d2);
+        sound.playBlockSnap();
+
+        if (isDoubles) {
+          sound.playFanfare();
+          gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 10);
+          showToast("🎉 DOUBLE LUCK! +10 FREE ROLLS!");
+        }
+
+        // Animate Hop steps
+        startHopSequence(totalSteps);
+      }, rollDuration);
+    }
+
+    function alignDiceFace(mesh, val) {
+      // Rotate dice cube to exact face
+      mesh.position.y = 1.0;
+      mesh.rotation.set(0, 0, 0);
+      if (val === 1) mesh.rotation.set(0, 0, 0);
+      else if (val === 6) mesh.rotation.set(0, Math.PI, 0);
+      else if (val === 2) mesh.rotation.set(Math.PI / 2, 0, 0);
+      else if (val === 5) mesh.rotation.set(-Math.PI / 2, 0, 0);
+      else if (val === 3) mesh.rotation.set(0, 0, Math.PI / 2);
+      else if (val === 4) mesh.rotation.set(0, 0, -Math.PI / 2);
+    }
+
+    let hopQueue = [];
+    let isHopping = false;
+    let hopStepStartTime = 0;
+    let hopFrom = { x: 0, z: 0 };
+    let hopTo = { x: 0, z: 0 };
+
+    function startHopSequence(steps) {
+      const stepDuration = gameState.isTurbo ? 90 : 160;
+      let cur = gameState.currentTile;
+      hopQueue = [];
+      for (let i = 1; i <= steps; i++) {
+        const next = (cur + i) % 32;
+        hopQueue.push(next);
+      }
+      advanceNextHop(stepDuration);
+    }
+
+    function advanceNextHop(duration) {
+      if (hopQueue.length === 0) {
+        gameState.isRolling = false;
+        resolveTile(gameState.currentTile);
+        updateHUD();
+        return;
+      }
+      const nextTile = hopQueue.shift();
+      hopFrom = { x: tokenGroup.position.x, z: tokenGroup.position.z };
+      hopTo = TILE_POSITIONS[nextTile];
+      gameState.currentTile = nextTile;
+      isHopping = true;
+      hopStepStartTime = performance.now();
+      sound.playHop();
+
+      // Check passed GO
+      if (nextTile === 0 && hopQueue.length > 0) {
+        const bonus = 25000 * gameState.multiplier;
+        gameState.coins += bonus;
+        sound.playCoin();
+        showToast(`🏁 PASSED START! +${bonus.toLocaleString()} Coins!`);
+      }
+
+      setTimeout(() => {
+        isHopping = false;
+        tokenGroup.position.set(hopTo.x, 0.4, hopTo.z);
+        advanceNextHop(duration);
+      }, duration);
+    }
+
+    function resolveTile(idx) {
+      const tile = TILE_TYPES[idx];
+      const m = gameState.multiplier;
+
+      if (tile.type === "GO") {
+        sound.playFanfare();
+        const coins = 30000 * m;
+        gameState.coins += coins;
+        gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 10);
+        showToast(`🏁 LANDED ON START! +${coins.toLocaleString()} Coins & +10 Energy!`);
+      } else if (tile.type === "COIN") {
+        sound.playCoin();
+        const reward = (idx === 12 || idx === 23 || idx === 31 ? 20000 : idx % 3 === 0 ? 8000 : 3500) * m;
+        gameState.coins += reward;
+        showToast(`💰 +${reward.toLocaleString()} Coins!`);
+      } else if (tile.type === "MATS") {
+        sound.playHop(1.2);
+        const mats = 4 * m;
+        gameState.materials += mats;
+        showToast(`🧱 +${mats} Voxel Bricks!`);
+      } else if (tile.type === "SHIELD") {
+        sound.playShield();
+        if (gameState.shields < gameState.maxShields) {
+          gameState.shields++;
+          showToast(`🛡️ +1 AEGIS SHIELD EQUIPPED!`);
+        } else {
+          const c = 8000 * m;
+          gameState.coins += c;
+          showToast(`🛡️ Shields Maxed! +${c.toLocaleString()} Coins!`);
+        }
+      } else if (tile.type === "ENERGY") {
+        sound.playHop(1.3);
+        const e = 8 * m;
+        gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + e);
+        showToast(`⚡ +${e} DICE ENERGY RECHARGED!`);
+      } else if (tile.type === "JACKPOT") {
+        sound.playFanfare();
+        const j = 50000 * m;
+        gameState.coins += j;
+        showToast(`🎰 MEGA JACKPOT! +${j.toLocaleString()} Coins!`);
+      } else if (tile.type === "BONUS") {
+        sound.playCoin();
+        const b = 15000 * m;
+        gameState.coins += b;
+        gameState.materials += 4 * m;
+        showToast(`⭐ DISTRICT STAR PACK! +${b.toLocaleString()} Coins & Bricks!`);
+      } else if (tile.type === "RAID") {
+        triggerRaidModal();
+      } else if (tile.type === "HEIST") {
+        triggerHeistModal();
+      } else if (tile.type === "MYSTERY") {
+        sound.playFanfare();
+        const c = 25000 * m;
+        const b = 6 * m;
+        gameState.coins += c;
+        gameState.materials += b;
+        showToast(`🎁 MYSTERY VAULT! +${c.toLocaleString()} Coins & +${b} Bricks!`);
+      }
+      updateHUD();
+    }
+
+    /* =========================================================================
+       MODALS: TOWN UPGRADES, RAIDS, HEISTS, QUESTS
+       ========================================================================= */
+    function openModal(id) {
+      sound.playHop(0.85);
+      if (id === "upgrade-modal") renderUpgradeModal();
+      if (id === "quests-modal") renderQuestsModal();
+      document.getElementById(id).classList.add("active");
+    }
+    function closeModal(id) {
+      sound.playHop(0.85);
+      document.getElementById(id).classList.remove("active");
+    }
+
+    function renderUpgradeModal() {
+      const dist = gameState.districts[gameState.currentDistrict];
+      document.getElementById("upgrade-modal-title").innerText = dist.name;
+      const list = document.getElementById("buildings-list");
+      list.innerHTML = "";
+
+      dist.buildings.forEach((b, idx) => {
+        const cost = Math.floor(b.baseCost * (1 + b.tier * 1.5));
+        const mats = b.baseMats + b.tier * 2;
+        const canAfford = gameState.coins >= cost && gameState.materials >= mats && b.tier < 4 && !b.damaged;
+
+        const item = document.createElement("div");
+        item.className = `b-item ${b.damaged ? "damaged" : ""}`;
+        item.innerHTML = `
+          <div class="b-left">
+            <div class="b-icon">${b.icon}</div>
+            <div class="b-details">
+              <h5>${b.name} ${b.damaged ? '<span style="color:#ef4444;">(Damaged)</span>' : ''}</h5>
+              <p>${b.tier >= 4 ? "⭐ MAX TIER" : `Tier ${b.tier}/4 • 🪙 ${cost.toLocaleString()} • 🧱 ${mats}`}</p>
+            </div>
+          </div>
+          <div>
+            ${b.damaged ? `
+              <button class="repair-btn" onclick="repairBuilding(${idx})">REPAIR (🪙2.5k)</button>
+            ` : b.tier >= 4 ? `
+              <span style="color:#34d399; font-size:11px; font-weight:800;">MAXED</span>
+            ` : `
+              <button class="up-btn" ${canAfford ? '' : 'disabled'} onclick="upgradeBuilding(${idx})">
+                <span>UPGRADE</span>
+                <span style="font-size:9px;">🪙 ${cost.toLocaleString()}</span>
+              </button>
+            `}
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    window.upgradeBuilding = function(idx) {
+      const dist = gameState.districts[gameState.currentDistrict];
+      const b = dist.buildings[idx];
+      const cost = Math.floor(b.baseCost * (1 + b.tier * 1.5));
+      const mats = b.baseMats + b.tier * 2;
+      if (gameState.coins >= cost && gameState.materials >= mats && b.tier < 4) {
+        gameState.coins -= cost;
+        gameState.materials -= mats;
+        b.tier++;
+        sound.playBlockSnap();
+        sound.playFanfare();
+        rebuildBuildingMesh(idx, b);
+        renderUpgradeModal();
+        updateHUD();
+        showToast(`🔨 UPGRADED ${b.name.toUpperCase()} TO TIER ${b.tier}!`);
+      }
+    };
+
+    window.repairBuilding = function(idx) {
+      const dist = gameState.districts[gameState.currentDistrict];
+      const b = dist.buildings[idx];
+      if (gameState.coins >= 2500 && b.damaged) {
+        gameState.coins -= 2500;
+        b.damaged = false;
+        sound.playBlockSnap();
+        rebuildBuildingMesh(idx, b);
+        renderUpgradeModal();
+        updateHUD();
+        showToast(`✨ REPAIRED ${b.name.toUpperCase()}!`);
+      }
+    };
+
+    // RAID EVENT
+    function triggerRaidModal() {
+      const opponents = ["Captain Voxel", "Mayor Pixel", "Sir Cubicon"];
+      const op = opponents[Math.floor(Math.random() * opponents.length)];
+      document.getElementById("raid-opponent-title").innerText = `Infiltrating ${op}'s District!`;
+      const wrap = document.getElementById("raid-targets-wrap");
+      wrap.innerHTML = "";
+      document.getElementById("raid-outcome-box").style.display = "none";
+
+      const targets = [
+        { name: "Clocktower", icon: "🏰", tier: 3, shielded: Math.random() < 0.5 },
+        { name: "Bakery", icon: "🍞", tier: 2, shielded: Math.random() < 0.4 },
+        { name: "Plaza", icon: "🎡", tier: 4, shielded: Math.random() < 0.6 }
+      ];
+
+      targets.forEach((t, i) => {
+        const card = document.createElement("div");
+        card.className = "raid-target-card";
+        card.innerHTML = `
+          <div class="icon">${t.icon}</div>
+          <div style="font-size:12px; font-weight:800;">${t.name}</div>
+          <div style="font-size:10px; color:#94a3b8;">Tier ${t.tier}</div>
+        `;
+        card.onclick = () => {
+          sound.playRattle();
+          setTimeout(() => {
+            const outBox = document.getElementById("raid-outcome-box");
+            outBox.style.display = "block";
+            if (t.shielded) {
+              sound.playShield();
+              const stolen = 15000 * gameState.multiplier;
+              gameState.coins += stolen;
+              outBox.style.background = "#0f2b48";
+              outBox.innerHTML = `
+                <h4 style="color:#38bdf8;">🛡️ SHIELD DEFLECTED!</h4>
+                <p style="font-size:12px; margin-top:4px;">Opponent's Aegis Shield absorbed the blast. Stole +${stolen.toLocaleString()} Coins!</p>
+                <button class="build-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeModal('raid-modal')">CLAIM</button>
+              `;
+            } else {
+              sound.playBoom();
+              sound.playCoin();
+              const stolen = 45000 * gameState.multiplier;
+              gameState.coins += stolen;
+              outBox.style.background = "#064e3b";
+              outBox.innerHTML = `
+                <h4 style="color:#4ade80;">💥 DIRECT HIT!</h4>
+                <p style="font-size:12px; margin-top:4px;">Demolished building! Looted +${stolen.toLocaleString()} Coins!</p>
+                <button class="build-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="closeModal('raid-modal')">CLAIM LOOT</button>
+              `;
+            }
+            updateHUD();
+          }, 400);
+        };
+        wrap.appendChild(card);
+      });
+      openModal("raid-modal");
+    }
+
+    // VAULT HEIST EVENT
+    let heistPicks = 3;
+    let heistTotalLoot = 0;
+    function triggerHeistModal() {
+      heistPicks = 3;
+      heistTotalLoot = 0;
+      const wrap = document.getElementById("heist-safes-wrap");
+      wrap.innerHTML = "";
+      document.getElementById("heist-claim-btn").style.display = "none";
+      document.getElementById("heist-result-box").innerText = `🔑 Picks Remaining: ${heistPicks}/3`;
+
+      for (let i = 0; i < 9; i++) {
+        const isJackpot = (i === 4);
+        const coins = (isJackpot ? 80000 : Math.floor(Math.random() * 30000) + 15000) * gameState.multiplier;
+        const safe = document.createElement("div");
+        safe.className = "heist-safe";
+        safe.innerText = "🔒";
+        safe.onclick = () => {
+          if (heistPicks <= 0 || safe.classList.contains("opened")) return;
+          heistPicks--;
+          safe.classList.add("opened");
+          safe.innerHTML = `${isJackpot ? '💎' : '💰'}<br>+${(coins/1000).toFixed(0)}k`;
+          heistTotalLoot += coins;
+          if (isJackpot) sound.playFanfare();
+          else sound.playCoin();
+
+          document.getElementById("heist-result-box").innerText = `Total Booty: 🪙 ${heistTotalLoot.toLocaleString()} (${heistPicks} left)`;
+          if (heistPicks === 0) {
+            document.getElementById("heist-claim-btn").style.display = "flex";
+          }
+        };
+        wrap.appendChild(safe);
+      }
+      openModal("heist-modal");
+    }
+
+    window.claimHeist = function() {
+      gameState.coins += heistTotalLoot;
+      closeModal("heist-modal");
+      updateHUD();
+      showToast(`🗝️ VAULT LOOTED: +${heistTotalLoot.toLocaleString()} Coins!`);
+    };
+
+    // QUESTS MODAL
+    function renderQuestsModal() {
+      const list = document.getElementById("quests-list");
+      list.innerHTML = "";
+      gameState.quests.forEach(q => {
+        const item = document.createElement("div");
+        item.style.cssText = "background:#1e293b; padding:10px; border-radius:12px; display:flex; justify-content:space-between; align-items:center;";
+        item.innerHTML = `
+          <div>
+            <div style="font-size:13px; font-weight:800;">${q.title}</div>
+            <div style="font-size:11px; color:#94a3b8;">${q.current}/${q.target} Completed</div>
+          </div>
+          <button class="build-btn" style="padding:6px 10px; font-size:10px;" ${q.claimed || q.current < q.target ? 'disabled' : ''}>
+            ${q.claimed ? 'CLAIMED' : `CLAIM +${q.rewardEnergy}⚡`}
+          </button>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    /* =========================================================================
+       ANIMATION LOOP
+       ========================================================================= */
+    function animate(time) {
+      requestAnimationFrame(animate);
+
+      // Dice Tumbling Animation
+      if (isDiceRollingAnim) {
+        dice1.position.y = 2.5 + Math.sin(time * 0.02) * 1.0;
+        dice2.position.y = 2.5 + Math.cos(time * 0.02) * 1.0;
+        dice1.rotation.x += 0.25;
+        dice1.rotation.y += 0.35;
+        dice2.rotation.x -= 0.3;
+        dice2.rotation.z += 0.25;
+      }
+
+      // Token Parabolic Hopping
+      if (isHopping) {
+        const elapsed = time - hopStepStartTime;
+        const dur = gameState.isTurbo ? 90 : 160;
+        const p = Math.min(1.0, elapsed / dur);
+        tokenGroup.position.x = hopFrom.x + (hopTo.x - hopFrom.x) * p;
+        tokenGroup.position.z = hopFrom.z + (hopTo.z - hopFrom.z) * p;
+        tokenGroup.position.y = 0.4 + Math.sin(p * Math.PI) * 1.5;
+      }
+
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(animate);
+
+    /* =========================================================================
+       SPLASH SCREEN TRANSITION
+       ========================================================================= */
+    const splashScreen = document.getElementById("splash-screen");
+    const splashProgress = document.getElementById("splash-progress");
+    const splashTip = document.getElementById("splash-tip");
+    const tips = [
+      "Carving 3D voxel foundation blocks...",
+      "Polishing golden dice faces...",
+      "Laying district cobblestones...",
+      "Awakening living miniature diorama..."
+    ];
+
+    let pVal = 0;
+    const loadInterval = setInterval(() => {
+      pVal += 25;
+      splashProgress.style.width = `${pVal}%`;
+      const tipIdx = Math.min(tips.length - 1, Math.floor(pVal / 25));
+      splashTip.innerText = tips[tipIdx];
+
+      if (pVal >= 100) {
+        clearInterval(loadInterval);
+        setTimeout(() => {
+          splashScreen.classList.add("hidden");
+        }, 300);
+      }
+    }, 450);
+
+    splashScreen.addEventListener("click", () => {
+      splashScreen.classList.add("hidden");
+    });
+
+    // Auto energy regeneration (+1 every 45s)
+    setInterval(() => {
+      if (gameState.energy < gameState.maxEnergy) {
+        gameState.energy++;
+        updateHUD();
+      }
+    }, 45000);
+  </script>
+</body>
+</html>
