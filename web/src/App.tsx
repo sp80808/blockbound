@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { VoxelScene } from './components/VoxelScene';
 import { HUD } from './components/HUD';
 import { SplashScreen } from './components/SplashScreen';
