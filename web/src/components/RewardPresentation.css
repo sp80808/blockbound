@@ -1,5 +1,18 @@
 .bb-reward-layer { position:absolute; inset:0; z-index:90; display:grid; place-items:center; padding:20px; background:#06101d52; pointer-events:auto; }
-.bb-reward-card { width:min(430px,92vw); padding:22px 20px 19px; text-align:center; color:var(--bb-ink,#f8fbff); background:linear-gradient(155deg,var(--bb-panel,#1c3650),#101f36 72%); border:2px solid var(--bb-edge,#8dd8d2); border-radius:24px; box-shadow:0 24px 70px #020816cc,inset 0 1px #ffffff2b; pointer-events:auto; animation:bb-reward-enter .42s cubic-bezier(.2,.9,.25,1.18); }
+.bb-reward-card {
+  position:relative;
+  overflow:hidden;
+  width:min(430px,92vw);
+  padding:22px 20px 19px;
+  text-align:center;
+  color:var(--bb-ink,#f8fbff);
+  background:linear-gradient(155deg,var(--bb-panel,#1c3650),#101f36 72%);
+  border:2px solid var(--bb-edge,#8dd8d2);
+  border-radius:24px;
+  box-shadow:0 24px 70px #020816cc,inset 0 1px #ffffff2b;
+  pointer-events:auto;
+  animation:bb-reward-enter .42s cubic-bezier(.2,.9,.25,1.18);
+}
 .bb-reward-card.is-flying { pointer-events:none; }
 .bb-reward-kicker { color:var(--bb-accent,#ffd166); font-size:11px; font-weight:950; letter-spacing:.18em; }
 .bb-reward-card h2 { margin:5px 0 16px; font-size:clamp(23px,6vw,34px); line-height:1.05; }
@@ -8,8 +21,82 @@
 .bb-reward-item .bb-resource-icon { width:64px; height:64px; }
 .bb-reward-item strong { font-size:17px; font-variant-numeric:tabular-nums; }
 .is-flying .bb-reward-item { opacity:.15; transform:scale(.75); }
-.bb-reward-collect { min-width:150px; min-height:48px; margin-top:18px; border:1px solid #fff6a8; border-radius:15px; color:#33250b; background:linear-gradient(#ffe99a,#f4bf44); box-shadow:0 5px 0 #9d681f,0 10px 24px #0005; font-size:16px; font-weight:950; cursor:pointer; }
+.bb-reward-collect {
+  position:relative;
+  overflow:hidden;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:150px;
+  min-height:48px;
+  margin-top:18px;
+  border:1px solid #fff6a8;
+  border-radius:15px;
+  color:#33250b;
+  background:linear-gradient(#ffe99a,#f4bf44);
+  box-shadow:0 5px 0 #9d681f,0 10px 24px #0005;
+  font-size:16px;
+  font-weight:950;
+  cursor:pointer;
+  transition:transform .12s, box-shadow .12s;
+}
+.bb-reward-collect:active {
+  transform:translateY(2px);
+  box-shadow:0 3px 0 #9d681f,0 6px 16px #0005;
+}
 .bb-reward-collect:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+.bb-reward-collect-label { position:relative; z-index:2; }
 .bb-reward-flyer { position:absolute; z-index:91; width:38px!important; height:38px!important; pointer-events:none; will-change:transform; }
+
+/* Auto collection progress indicator lines */
+.bb-auto-card-line {
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:4px;
+  background:rgba(0,0,0,0.35);
+  overflow:hidden;
+  border-radius:24px 24px 0 0;
+  z-index:3;
+}
+
+.bb-auto-progress-line {
+  position:absolute;
+  left:0;
+  bottom:0;
+  right:0;
+  height:5px;
+  background:rgba(0,0,0,0.28);
+  overflow:hidden;
+  border-radius:0 0 14px 14px;
+  pointer-events:none;
+  z-index:1;
+}
+
+.bb-auto-progress-fill {
+  display:block;
+  height:100%;
+  width:100%;
+  background:linear-gradient(90deg, #10b981 0%, #34d399 50%, #6ee7b7 100%);
+  box-shadow:0 0 8px #34d399, 0 0 3px #10b981;
+  transform-origin:left center;
+  animation:bb-auto-line-fill linear forwards;
+}
+
+@keyframes bb-auto-line-fill {
+  from { transform:scaleX(0); }
+  to { transform:scaleX(1); }
+}
+
 @keyframes bb-reward-enter { from { opacity:0; transform:translateY(18px) scale(.82); } }
-@media (prefers-reduced-motion:reduce) { .bb-reward-card { animation:none; } .bb-reward-item { transition:none; } }
+
+@media (prefers-reduced-motion:reduce) {
+  .bb-reward-card { animation:none; }
+  .bb-reward-item { transition:none; }
+  .bb-auto-progress-fill {
+    animation:none !important;
+    transform:scaleX(1) !important;
+    opacity:0.6;
+  }
+}

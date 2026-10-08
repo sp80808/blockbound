@@ -12,11 +12,115 @@ button { font-family: inherit; }
   width: 100%; max-width: 720px;
   height: 100vh; height: 100dvh;
   margin: 0 auto; overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 43%, #316e73 0%, #1d444f 37%, transparent 70%),
-    linear-gradient(160deg, #172e3c 0%, #102c39 55%, #10202f 100%);
+  --district-accent: #10b981;
+  --district-accent-glow: rgba(16, 185, 129, 0.45);
+  --district-bg: radial-gradient(ellipse at 50% 43%, #1e5e48 0%, #113f30 37%, transparent 70%),
+                 linear-gradient(160deg, #102d24 0%, #0a1f18 55%, #051410 100%);
+  --district-card-bg: linear-gradient(120deg, rgba(13, 44, 33, 0.96), rgba(20, 64, 48, 0.92));
+  --district-card-border: rgba(52, 211, 153, 0.35);
+  --district-controls-bg: linear-gradient(180deg, rgba(16, 48, 36, 0.98), rgba(9, 28, 21, 0.99));
+  --district-controls-border: rgba(52, 211, 153, 0.3);
+  --district-caption-color: #a7f3d0;
+  --district-title-color: #f0fdf4;
+  --district-track-bg: #051a13;
+  --district-build-bg: linear-gradient(135deg, #10b981, #059669);
+  --district-build-edge: #6ee7b7;
+  --district-build-shadow: #047857;
+  --district-roll-btn-bg: linear-gradient(#ffe4a0, #f2bd5a);
+  --district-roll-btn-color: #213b36;
+  --district-roll-btn-micro: #4e492d;
+  --district-roll-btn-border: #ffe9b2;
+  --district-roll-btn-edge: #c78c3a;
+  --district-roll-btn-shadow: #865b2b;
+  --district-btn-subtle-bg: #143527;
+  --district-btn-subtle-border: rgba(52, 211, 153, 0.35);
+  --district-btn-subtle-color: #a7f3d0;
+  background: var(--district-bg);
   box-shadow: 0 12px 90px #000c, 0 0 0 1px #ffffff15;
+  transition: background 0.4s ease;
 }
+
+/* District 0: Sunny Suburb (Emerald, warm harvest gold & country charm) */
+.bb-shell[data-district="0"] {
+  --district-accent: #10b981;
+  --district-accent-glow: rgba(16, 185, 129, 0.45);
+  --district-bg: radial-gradient(ellipse at 50% 43%, #1e5e48 0%, #113f30 37%, transparent 70%),
+                 linear-gradient(160deg, #102d24 0%, #0a1f18 55%, #051410 100%);
+  --district-card-bg: linear-gradient(120deg, rgba(13, 44, 33, 0.96), rgba(20, 64, 48, 0.92));
+  --district-card-border: rgba(52, 211, 153, 0.35);
+  --district-controls-bg: linear-gradient(180deg, rgba(16, 48, 36, 0.98), rgba(9, 28, 21, 0.99));
+  --district-controls-border: rgba(52, 211, 153, 0.3);
+  --district-caption-color: #a7f3d0;
+  --district-title-color: #f0fdf4;
+  --district-track-bg: #051a13;
+  --district-build-bg: linear-gradient(135deg, #10b981, #059669);
+  --district-build-edge: #6ee7b7;
+  --district-build-shadow: #047857;
+  --district-roll-btn-bg: linear-gradient(#ffe4a0, #f2bd5a);
+  --district-roll-btn-color: #213b36;
+  --district-roll-btn-micro: #4e492d;
+  --district-roll-btn-border: #ffe9b2;
+  --district-roll-btn-edge: #c78c3a;
+  --district-roll-btn-shadow: #865b2b;
+  --district-btn-subtle-bg: #143527;
+  --district-btn-subtle-border: rgba(52, 211, 153, 0.35);
+  --district-btn-subtle-color: #a7f3d0;
+}
+
+/* District 1: Candy Harbour (Confectionery pink, cotton candy lilac & sugar glaze) */
+.bb-shell[data-district="1"] {
+  --district-accent: #f472b6;
+  --district-accent-glow: rgba(244, 114, 182, 0.55);
+  --district-bg: radial-gradient(ellipse at 50% 43%, #831843 0%, #701a75 37%, transparent 70%),
+                 linear-gradient(160deg, #500724 0%, #3b0764 55%, #18021a 100%);
+  --district-card-bg: linear-gradient(120deg, rgba(80, 7, 56, 0.96), rgba(112, 18, 88, 0.92));
+  --district-card-border: rgba(244, 114, 182, 0.45);
+  --district-controls-bg: linear-gradient(180deg, rgba(76, 5, 52, 0.98), rgba(42, 6, 68, 0.99));
+  --district-controls-border: rgba(244, 114, 182, 0.35);
+  --district-caption-color: #fbcfe8;
+  --district-title-color: #fff1f2;
+  --district-track-bg: #2d0420;
+  --district-build-bg: linear-gradient(135deg, #ec4899, #db2777);
+  --district-build-edge: #fbcfe8;
+  --district-build-shadow: #9d174d;
+  --district-roll-btn-bg: linear-gradient(#ff85b8, #e83a7c);
+  --district-roll-btn-color: #ffffff;
+  --district-roll-btn-micro: #ffe4e6;
+  --district-roll-btn-border: #fbcfe8;
+  --district-roll-btn-edge: #b81e5b;
+  --district-roll-btn-shadow: #800e3d;
+  --district-btn-subtle-bg: #4a0d35;
+  --district-btn-subtle-border: rgba(244, 114, 182, 0.4);
+  --district-btn-subtle-color: #fbcfe8;
+}
+
+/* District 2: Neon Metropolis (Cyberpunk synthwave midnight, neon cyan & electric violet) */
+.bb-shell[data-district="2"] {
+  --district-accent: #06b6d4;
+  --district-accent-glow: rgba(6, 182, 212, 0.6);
+  --district-bg: radial-gradient(ellipse at 50% 43%, #4c1d95 0%, #311042 37%, transparent 70%),
+                 linear-gradient(160deg, #1e1b4b 0%, #0f0728 55%, #02000d 100%);
+  --district-card-bg: linear-gradient(120deg, rgba(30, 27, 75, 0.96), rgba(49, 16, 66, 0.92));
+  --district-card-border: rgba(6, 182, 212, 0.5);
+  --district-controls-bg: linear-gradient(180deg, rgba(23, 14, 56, 0.98), rgba(9, 3, 24, 0.99));
+  --district-controls-border: rgba(6, 182, 212, 0.4);
+  --district-caption-color: #67e8f9;
+  --district-title-color: #e0f2fe;
+  --district-track-bg: #09061c;
+  --district-build-bg: linear-gradient(135deg, #06b6d4, #0891b2);
+  --district-build-edge: #67e8f9;
+  --district-build-shadow: #0e7490;
+  --district-roll-btn-bg: linear-gradient(#38bdf8, #0284c7);
+  --district-roll-btn-color: #ffffff;
+  --district-roll-btn-micro: #e0f2fe;
+  --district-roll-btn-border: #7dd3fc;
+  --district-roll-btn-edge: #0369a1;
+  --district-roll-btn-shadow: #075985;
+  --district-btn-subtle-bg: #1e1b4b;
+  --district-btn-subtle-border: rgba(6, 182, 212, 0.4);
+  --district-btn-subtle-color: #67e8f9;
+}
+
 .bb-shell::before {
   content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
   background-image: radial-gradient(#b9e0ff3c .7px, transparent .9px);
@@ -54,28 +158,28 @@ button { font-family: inherit; }
   font-size:14px; font-weight:850; font-variant-numeric:tabular-nums;
 }
 .bb-build {
-  white-space:nowrap; background:linear-gradient(135deg,#35ce91,#0d9577);
-  box-shadow: 0 4px 0 #086149, 0 9px 23px #0b85673b;
-  border-color:#7df7bd8a !important; color:#faffff;
+  white-space:nowrap; background:var(--district-build-bg);
+  box-shadow: 0 4px 0 var(--district-build-shadow), 0 9px 23px rgba(0,0,0,0.3);
+  border-color:var(--district-build-edge) !important; color:#faffff;
   min-width:93px;
 }
 .bb-district {
   border-radius:17px; padding:10px 12px 11px;
-  background:linear-gradient(120deg,rgba(14,27,54,.97),rgba(29,49,76,.91));
-  border:1px solid #9dbfe344;
+  background:var(--district-card-bg);
+  border:1px solid var(--district-card-border);
   box-shadow:0 8px 22px #040a1f4f, inset 0 1px #ffffff14;
 }
 .bb-district-row { display:flex; align-items:center; gap:8px; justify-content:space-between; }
 .bb-district-title { color:#fff; font-size:14px; font-weight:900; line-height:1.2; }
-.bb-district-caption { color:#a6c7de; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+.bb-district-caption { color:var(--district-caption-color); font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
 .bb-progress-track {
   height:7px; border-radius:20px; background:#0c1831;
   border:1px solid #ffffff14; overflow:hidden;
 }
 .bb-progress-fill {
   height:100%; border-radius:inherit;
-  background:linear-gradient(90deg,#20cb9e,#83eb99,#f2c96f);
-  box-shadow:0 0 12px #78eb9c65;
+  background:linear-gradient(90deg,var(--district-accent),#83eb99,#f2c96f);
+  box-shadow:0 0 12px var(--district-accent-glow);
   transition:width .3s ease;
 }
 .bb-toast {
@@ -89,8 +193,8 @@ button { font-family: inherit; }
 .bb-controls {
   pointer-events:auto; border-radius:22px;
   padding:12px 12px 11px; display:flex; flex-direction:column; gap:9px;
-  background:linear-gradient(180deg,rgba(30,48,81,.98),rgba(14,25,52,.99));
-  border:1px solid #95b9ec55;
+  background:var(--district-controls-bg);
+  border:1px solid var(--district-controls-border);
   box-shadow:0 10px 36px #0008, inset 0 1px #ffffff1c;
 }
 .bb-activity { display:flex; align-items:center; gap:8px; min-width:0; }
@@ -351,66 +455,542 @@ button { font-family: inherit; }
 }
 .bb-mini-collect:disabled { filter:saturate(.6); box-shadow:none; }
 
-/* Town Raid stage */
-.bb-raid-stage { display:flex; flex-direction:column; gap:8px; }
-.bb-raid-sky {
-  position:relative; height:34px; border-radius:12px; overflow:hidden;
-  background:linear-gradient(180deg,#1b2a4d,#0c1831);
-  border:1px solid #ffffff1d;
+/* Town Raid Stage — High Fidelity Tactical Combat Overhaul */
+.bb-raid-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
 }
-.bb-raid-projectile {
-  position:absolute; top:9px; left:6%; width:16px; height:16px; border-radius:50%;
-  background:radial-gradient(circle at 35% 35%,#fff7cc,#f97316 70%);
-  box-shadow:0 0 12px #fb923c; opacity:0;
+
+.bb-raid-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
-.bb-raid-stage[data-phase="flying"] .bb-raid-projectile { opacity:1; animation:bb-raid-fly .75s linear forwards; }
-@keyframes bb-raid-fly {
-  from { transform:translate(0,0) scale(1); }
-  60% { transform:translate(120px,-6px) scale(1.15); }
-  to { transform:translate(230px,8px) scale(.9); }
+
+.bb-raid-crest-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ef4444 0%, #991b1b 75%, #450a0a 100%);
+  border: 2px solid #fde047;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.5), 0 4px 10px rgba(0, 0, 0, 0.4);
+  display: grid;
+  place-items: center;
+  animation: bb-raid-crest-glow 2.5s ease-in-out infinite alternate;
 }
-.bb-raid-targets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+
+@keyframes bb-raid-crest-glow {
+  0% { transform: scale(1); box-shadow: 0 0 14px rgba(239, 68, 68, 0.4); }
+  100% { transform: scale(1.05); box-shadow: 0 0 24px rgba(253, 224, 71, 0.6), 0 0 12px rgba(239, 68, 68, 0.8); }
+}
+
+.bb-raid-swords-icon {
+  font-size: 26px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.bb-raid-title {
+  margin: 4px 0 0;
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6), 0 0 20px rgba(253, 224, 71, 0.4);
+}
+
+.bb-raid-intel-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #fca5a5;
+  text-transform: uppercase;
+}
+
+.bb-raid-intel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+  animation: bb-raid-pulse 1.2s infinite alternate;
+}
+
+.bb-raid-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+  max-width: 40ch;
+  line-height: 1.4;
+}
+
+/* Tactical Targets Arena */
+.bb-raid-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Artillery Missile Flight */
+.bb-raid-missile-flight {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.bb-raid-missile-flight[data-target-col="0"] { --target-x: 17%; }
+.bb-raid-missile-flight[data-target-col="1"] { --target-x: 50%; }
+.bb-raid-missile-flight[data-target-col="2"] { --target-x: 83%; }
+
+.bb-raid-shell-core {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff 0%, #fde047 40%, #ef4444 80%);
+  box-shadow: 0 0 16px #f59e0b, 0 0 30px #ef4444;
+  transform: translate(-50%, 0);
+  animation: bb-raid-mortar-arc 0.75s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@keyframes bb-raid-mortar-arc {
+  0% {
+    left: 50%;
+    top: -20px;
+    transform: translate(-50%, 0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.3);
+  }
+  60% {
+    top: 20px;
+  }
+  100% {
+    left: var(--target-x);
+    top: 75px;
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+.bb-raid-smoke-trail {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(254, 240, 138, 0.6);
+  box-shadow: 0 0 10px #f59e0b;
+}
+
+/* 3 Target Columns */
+.bb-raid-targets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .bb-raid-target {
-  display:flex; flex-direction:column; align-items:center; gap:6px;
-  padding:10px 6px 9px; border-radius:14px; cursor:pointer; font-family:inherit;
-  background:linear-gradient(180deg,#2b3a5e,#182645);
-  border:2px solid #5b6b8c; color:#fff; min-height:150px;
-  transition:transform .15s ease, border-color .15s ease;
-  touch-action:manipulation;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 6px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-family: inherit;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  min-height: 175px;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s ease, box-shadow 0.18s ease;
+  touch-action: manipulation;
+  overflow: visible;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
-.bb-raid-target[data-selected="true"] { border-color:#f87171; box-shadow:0 0 0 2px #f8717166, 0 8px 22px #0007; }
-.bb-raid-target:disabled { cursor:default; }
-.bb-raid-target:not([data-selected="true"]):disabled { opacity:.6; }
-.bb-raid-building {
-  position:relative; width:56px; height:62px; border-radius:6px;
-  background:linear-gradient(180deg,#e2e8f0,#94a3b8);
-  border:2px solid #475569; display:block;
+
+.bb-raid-target:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: #fde047;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(253, 224, 71, 0.35);
 }
-.bb-raid-roof {
-  position:absolute; top:-12px; left:-4px; width:64px; height:16px;
-  background:linear-gradient(180deg,#f87171,#b91c1c);
-  clip-path:polygon(50% 0, 100% 100%, 0 100%);
+
+.bb-raid-target--selected,
+.bb-raid-target[data-selected="true"] {
+  border-color: #fde047;
+  background: linear-gradient(180deg, #332042 0%, #170d2b 100%);
+  box-shadow: 0 0 0 2px #fde047, 0 12px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(250, 204, 21, 0.45);
+  transform: translateY(-2px);
 }
-.bb-raid-target[data-hit="true"] .bb-raid-building { animation:bb-shake .4s ease; filter:saturate(1.2); }
-.bb-raid-target[data-hit="true"] .bb-raid-roof { background:linear-gradient(180deg,#7f1d1d,#450a0a); }
-.bb-raid-cracks {
-  position:absolute; inset:8px 6px; display:block;
-  background:
-    linear-gradient(115deg,transparent 44%,#1f2937 46%,transparent 48%),
-    linear-gradient(65deg,transparent 55%,#1f2937 57%,transparent 59%),
-    linear-gradient(0deg,transparent 70%,#1f2937 72%,transparent 74%);
+
+.bb-raid-target:disabled {
+  cursor: default;
 }
-.bb-raid-target[data-blocked="true"] .bb-raid-building { border-color:#67e8f9; box-shadow:0 0 14px #22d3ee88; }
-.bb-raid-shieldpop {
-  position:absolute; inset:-6px; display:flex; align-items:center; justify-content:center;
-  font-size:30px; animation:bb-pop .45s ease;
+
+.bb-raid-target:not([data-selected="true"]):disabled {
+  opacity: 0.45;
+  filter: saturate(0.7);
 }
-.bb-raid-bar { position:absolute; bottom:-10px; right:-10px; font-size:18px; }
-@keyframes bb-shake {
-  0%, 100% { transform:translateX(0) rotate(0); }
-  25% { transform:translateX(-4px) rotate(-2deg); }
-  50% { transform:translateX(4px) rotate(2deg); }
-  75% { transform:translateX(-2px) rotate(-1deg); }
+
+/* Tactical Crosshair Reticle */
+.bb-raid-reticle {
+  position: absolute;
+  inset: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.bb-raid-target:hover .bb-raid-reticle,
+.bb-raid-reticle--locked {
+  opacity: 1;
+}
+
+.bb-raid-reticle-corner {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: #fde047;
+  border-style: solid;
+}
+
+.bb-raid-reticle-corner.tl { top: 0; left: 0; border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+.bb-raid-reticle-corner.tr { top: 0; right: 0; border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
+.bb-raid-reticle-corner.bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
+.bb-raid-reticle-corner.br { bottom: 0; right: 0; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+
+.bb-raid-reticle-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fde047;
+  box-shadow: 0 0 8px #fde047;
+  transform: translate(-50%, -50%);
+}
+
+/* Isometric 3D Podium & Building Visual */
+.bb-raid-isometric-podium {
+  position: relative;
+  width: 76px;
+  height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.bb-raid-ground-disc {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  width: 68px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0) 70%);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.bb-raid-building-mesh {
+  position: relative;
+  width: 74px;
+  height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bb-raid-iso-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45));
+  transition: transform 0.2s ease;
+}
+
+.bb-raid-target:hover .bb-raid-iso-svg {
+  transform: scale(1.04);
+}
+
+.bb-raid-target[data-hit="true"] .bb-raid-iso-svg {
+  animation: bb-raid-impact-shake 0.5s ease;
+  filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.8));
+}
+
+@keyframes bb-raid-impact-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-5px, 2px) rotate(-3deg); }
+  40% { transform: translate(5px, -3px) rotate(3deg); }
+  60% { transform: translate(-3px, 1px) rotate(-1.5deg); }
+  80% { transform: translate(3px, -1px) rotate(1.5deg); }
+}
+
+/* Smoke animation on chimney */
+.bb-raid-smoke-1 { animation: bb-raid-smoke-puff 1.8s infinite ease-out; }
+.bb-raid-smoke-2 { animation: bb-raid-smoke-puff 2.2s infinite 0.6s ease-out; }
+
+@keyframes bb-raid-smoke-puff {
+  0% { transform: translateY(0) scale(0.8); opacity: 0.6; }
+  100% { transform: translateY(-10px) scale(1.4); opacity: 0; }
+}
+
+/* Hexagonal Forcefield Dome */
+.bb-raid-hex-dome {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50% 50% 40% 40%;
+  border: 2px solid #38bdf8;
+  background: radial-gradient(circle at 50% 30%, rgba(56, 189, 248, 0.25) 0%, rgba(14, 165, 233, 0.08) 80%);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4), inset 0 0 12px rgba(56, 189, 248, 0.3);
+  pointer-events: none;
+  z-index: 5;
+  animation: bb-raid-hex-shimmer 2s infinite alternate;
+}
+
+@keyframes bb-raid-hex-shimmer {
+  0% { opacity: 0.75; transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1.02); }
+}
+
+.bb-raid-hex-dome--flare {
+  animation: bb-raid-deflect-flare 0.55s ease forwards;
+}
+
+@keyframes bb-raid-deflect-flare {
+  0% { transform: scale(1); box-shadow: 0 0 20px #38bdf8; }
+  40% { transform: scale(1.15); box-shadow: 0 0 45px #7dd3fc, 0 0 20px #fff; background: rgba(125, 211, 252, 0.5); }
+  100% { transform: scale(1); box-shadow: 0 0 16px #38bdf8; }
+}
+
+.bb-raid-shield-tag {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #0284c7, #0369a1);
+  border: 1px solid #7dd3fc;
+  color: #fff;
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Impact Explosive Blast FX */
+.bb-raid-blast-fx {
+  position: absolute;
+  inset: -12px;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bb-raid-blast-flash {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #fde047 30%, #ef4444 70%, transparent 100%);
+  animation: bb-raid-blast-pop 0.4s ease-out forwards;
+}
+
+@keyframes bb-raid-blast-pop {
+  0% { transform: scale(0.2); opacity: 1; }
+  70% { transform: scale(1.6); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.bb-raid-coins-geyser {
+  position: absolute;
+  top: -15px;
+  font-size: 14px;
+  animation: bb-raid-geyser 0.6s ease-out forwards;
+}
+
+@keyframes bb-raid-geyser {
+  0% { transform: translateY(10px) scale(0.5); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(-24px) scale(1.2); opacity: 0; }
+}
+
+/* Impact Shield Deflection Waves */
+.bb-raid-deflect-fx {
+  position: absolute;
+  inset: -10px;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bb-raid-deflect-wave {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 3px solid #38bdf8;
+  animation: bb-raid-wave-expand 0.5s ease-out forwards;
+}
+
+@keyframes bb-raid-wave-expand {
+  0% { transform: scale(0.3); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+.bb-raid-shield-pop-badge {
+  position: absolute;
+  top: -12px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #38bdf8;
+  text-shadow: 0 0 8px #0284c7;
+  animation: bb-raid-badge-up 0.6s ease-out forwards;
+}
+
+@keyframes bb-raid-badge-up {
+  0% { transform: translateY(0) scale(0.8); opacity: 0; }
+  30% { opacity: 1; transform: translateY(-8px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-16px) scale(1); }
+}
+
+/* Target Metadata Card Info */
+.bb-raid-card-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+}
+
+.bb-raid-landmark-name {
+  font-size: 11px;
+  font-weight: 900;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+}
+
+.bb-raid-loot-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #fde047;
+  flex-wrap: wrap;
+}
+
+.bb-raid-coin-val {
+  color: #fde047;
+  font-variant-numeric: tabular-nums;
+}
+
+.bb-raid-mat-val {
+  color: #f472b6;
+  font-size: 10px;
+}
+
+.bb-raid-energy-val {
+  color: #38bdf8;
+  font-size: 10px;
+}
+
+.bb-raid-shield-warning {
+  font-size: 9px;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+/* Tactical Status Readout */
+.bb-raid-tactical-status {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 21, 48, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 850;
+  color: #e2e8f0;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.bb-raid-status-hit {
+  color: #fde047;
+  animation: bb-pop 0.3s cubic-bezier(0.2, 0.9, 0.2, 1.2);
+}
+
+.bb-raid-status-blocked {
+  color: #7dd3fc;
+  animation: bb-pop 0.3s cubic-bezier(0.2, 0.9, 0.2, 1.2);
+}
+
+/* Juicy 3D Arcade Strike & Collect Button */
+.bb-raid-strike-btn {
+  width: 100%;
+  min-height: 52px;
+  font-size: 16px;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  color: #451a03;
+  background: linear-gradient(180deg, #fde047 0%, #f59e0b 60%, #d97706 100%);
+  border: 2px solid #fef08a !important;
+  border-radius: 16px;
+  box-shadow: 0 5px 0 #92400e, 0 10px 24px rgba(245, 158, 11, 0.45);
+  transition: all 0.12s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.bb-raid-strike-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 #92400e, 0 14px 28px rgba(245, 158, 11, 0.55);
+}
+
+.bb-raid-strike-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #92400e, 0 6px 14px rgba(245, 158, 11, 0.3);
+}
+
+.bb-raid-strike-btn:disabled {
+  background: linear-gradient(180deg, #334155, #1e293b);
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #94a3b8;
+  box-shadow: 0 4px 0 #0f172a;
+  filter: none;
 }
 
 /* Celebration overlay: jackpot / doubles streak / grand milestone */
@@ -419,12 +999,29 @@ button { font-family: inherit; }
   pointer-events:none; padding:18px;
 }
 .bb-celebration-card {
+  position:relative;
+  overflow:hidden;
   pointer-events:auto; text-align:center; color:#fff;
   background:linear-gradient(160deg,rgba(30,27,75,.97),rgba(12,20,45,.97));
   border:2px solid #fde047; border-radius:22px; padding:20px 26px;
   box-shadow:0 18px 55px #000a, 0 0 34px #fbbf2455;
   animation:bb-pop .4s cubic-bezier(.2,.9,.2,1.25);
   max-width:340px;
+}
+.bb-celebration-card .bb-auto-card-line {
+  position:absolute; top:0; left:0; right:0; height:4px;
+  background:rgba(0,0,0,0.4); overflow:hidden; border-radius:22px 22px 0 0; z-index:3;
+}
+.bb-celebration-card .bb-auto-progress-fill {
+  display:block; height:100%; width:100%;
+  background:linear-gradient(90deg, #f59e0b 0%, #fbbf24 50%, #fef08a 100%);
+  box-shadow:0 0 10px #fbbf24, 0 0 4px #f59e0b;
+  transform-origin:left center;
+  animation:bb-auto-line-fill linear forwards;
+}
+.bb-celebration-collect {
+  position:relative;
+  overflow:hidden;
 }
 .bb-celebration-card h2 { margin:6px 0; color:#fde047; font-size:24px; font-weight:950; }
 .bb-celebration-card p { margin:0 0 14px; color:#e2e8f0; font-size:13px; }
@@ -443,55 +1040,57 @@ button { font-family: inherit; }
   .bb-raid-stage[data-phase="flying"] .bb-raid-projectile,
   .bb-raid-target[data-hit="true"] .bb-raid-building,
   .bb-raid-shieldpop, .bb-safe-order, .bb-celebration-card { animation:none !important; }
+  .bb-celebration-card .bb-auto-progress-fill { animation:none !important; transform:scaleX(1) !important; opacity:0.6; }
   .bb-confetti { display:none; }
 }
 
 /* A legible workshop frame around the toy town. */
 .bb-world { top:calc(max(12px,env(safe-area-inset-top)) + 141px); bottom:calc(max(12px,env(safe-area-inset-bottom)) + 247px); }
 .bb-resource-row { gap:8px; }
-.bb-resource { gap:8px; flex:1; justify-content:flex-start; border-radius:15px; min-height:51px; padding:8px 10px; background:#102b38d9; border-color:#96c2c233; font-size:16px; box-shadow:inset 0 1px #ffffff0d; }
-.bb-resource small { display:block; color:#a4c5ca; font-size:8px; letter-spacing:.09em; line-height:1.25; }
-.bb-resource em { color:#a4c5ca; font-style:normal; font-size:11px; }
+.bb-resource { gap:8px; flex:1; justify-content:flex-start; border-radius:15px; min-height:51px; padding:8px 10px; background:var(--district-card-bg); border:1px solid var(--district-card-border); font-size:16px; box-shadow:inset 0 1px #ffffff0d; }
+.bb-resource small { display:block; color:var(--district-caption-color); font-size:8px; letter-spacing:.09em; line-height:1.25; }
+.bb-resource em { color:var(--district-caption-color); font-style:normal; font-size:11px; }
 .bb-resource svg { flex-shrink:0; }
-.bb-streak { min-width:45px; min-height:51px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:#b8864430; border-color:#e7b96666; color:#ffd994; box-shadow:none; }
+.bb-streak { min-width:45px; min-height:51px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:var(--district-btn-subtle-bg); border:1px solid var(--district-btn-subtle-border); color:#ffd994; box-shadow:none; }
 .bb-streak .bb-micro { color:#ffdda5; font-size:8px; }
-.bb-district { padding:12px 2px 9px; background:none; border:0; border-radius:0; box-shadow:none; }
-.bb-district-caption { color:#a7ccd0; font-size:9px; letter-spacing:.14em; margin-bottom:4px; }
-.bb-district-caption span { color:#f4c66e; padding:0 4px; }
-.bb-district-title { font-size:23px; letter-spacing:-.6px; color:#fff4dd; }
+.bb-district { padding:10px 4px 8px; background:none; border:0; border-radius:14px; box-shadow:none; cursor:pointer; }
+.bb-district:hover { background:rgba(255,255,255,0.04); }
+.bb-district-caption { color:var(--district-caption-color); font-size:9px; letter-spacing:.14em; margin-bottom:4px; }
+.bb-district-caption span { color:var(--district-accent); padding:0 4px; }
+.bb-district-title { font-size:23px; letter-spacing:-.6px; color:var(--district-title-color, #ffffff); }
 .bb-district-row { gap:7px; }
-.bb-pill { display:flex; align-items:center; gap:4px; padding:5px 7px; flex:none; font-size:10px; background:#efd38e15; border-color:#e8c87d44; }
-.bb-quest-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-width:46px; min-height:47px; padding:5px; font-size:8px; background:#21424e; color:#d4eef0; border-color:#83ada85e !important; }
-.bb-progress-track { background:#0d2735; border-color:#92c9c51d; height:6px; }
-.bb-progress-fill { background:linear-gradient(90deg,#50bda8,#b9e9b2); box-shadow:none; }
-.bb-controls { border-radius:23px; padding:12px; gap:10px; background:#122b3bed; border-color:#7eaeb54d; box-shadow:0 14px 30px #081d3270, inset 0 1px #ffffff10; }
-.bb-build-goal { display:flex; align-items:center; gap:10px; padding:10px; width:100%; min-height:72px; text-align:left; background:#1e4050; border-color:#63939b66; color:#e7f0e7; }
-.bb-build-goal[data-ready="true"] { background:#235446; border-color:#7ecda073; }
+.bb-pill { display:flex; align-items:center; gap:4px; padding:5px 7px; flex:none; font-size:10px; background:var(--district-btn-subtle-bg); border:1px solid var(--district-btn-subtle-border); color:var(--district-caption-color); }
+.bb-quest-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-width:46px; min-height:47px; padding:5px; font-size:8px; background:var(--district-btn-subtle-bg); color:var(--district-caption-color); border:1px solid var(--district-btn-subtle-border) !important; }
+.bb-progress-track { background:var(--district-track-bg, #0d2735); border-color:var(--district-card-border); height:6px; }
+.bb-progress-fill { background:linear-gradient(90deg, var(--district-accent), #f2c96f); box-shadow:0 0 10px var(--district-accent-glow); }
+.bb-controls { border-radius:23px; padding:12px; gap:10px; background:var(--district-controls-bg); border:1px solid var(--district-controls-border); box-shadow:0 14px 30px #0008, inset 0 1px #ffffff10; }
+.bb-build-goal { display:flex; align-items:center; gap:10px; padding:10px; width:100%; min-height:72px; text-align:left; background:var(--district-card-bg); border:1px solid var(--district-card-border); color:#fff; }
+.bb-build-goal[data-ready="true"] { background:var(--district-build-bg); border:1px solid var(--district-build-edge); box-shadow:0 0 16px var(--district-accent-glow); }
 .bb-goal-icon { display:grid; place-items:center; flex:none; width:39px; height:42px; border-radius:12px; background:#ffffff0e; color:#f4cc7d; }
 .bb-goal-copy { min-width:0; flex:1; display:flex; flex-direction:column; gap:3px; }
-.bb-goal-copy small { font-size:8px; letter-spacing:.13em; color:#b3d2ca; }
+.bb-goal-copy small { font-size:8px; letter-spacing:.13em; color:var(--district-caption-color); }
 .bb-goal-copy strong { font-size:13px; color:#fff4de; line-height:1.3; }
-.bb-goal-copy strong > span { font-weight:500; color:#adcece; font-size:10px; }
+.bb-goal-copy strong > span { font-weight:500; color:var(--district-caption-color); font-size:10px; }
 .bb-goal-cost { display:flex; align-items:center; gap:5px; font-size:10px; font-variant-numeric:tabular-nums; font-weight:500; color:#c8ddcf; }
 .bb-goal-cost svg:nth-of-type(2) { margin-left:7px; }
-.bb-goal-arrow { flex:none; color:#b8e0c9; }
+.bb-goal-arrow { flex:none; color:var(--district-accent); }
 .bb-energy-summary { min-width:106px; }
 .bb-energy-title { display:flex; align-items:center; gap:3px; font-size:10px; }
 .bb-energy-title svg { color:#f4c86c; }
-.bb-momentum-label { font-size:9px; color:#bdd8d7; }
+.bb-momentum-label { font-size:9px; color:var(--district-caption-color); }
 .bb-momentum-label > span:first-child { display:flex; align-items:center; gap:4px; }
-.bb-milestone-prize { font-size:9px; color:#aac8cd; }
-.bb-roll-button { min-height:66px; font-size:22px; color:#213b36; background:linear-gradient(#ffe4a0,#f2bd5a); border-color:#ffe9b2 !important; border-bottom-color:#c78c3a !important; box-shadow:0 4px 0 #865b2b,0 7px 14px #061d244d; text-shadow:none; }
+.bb-milestone-prize { font-size:9px; color:var(--district-caption-color); }
+.bb-roll-button { min-height:66px; font-size:22px; color:var(--district-roll-btn-color); background:var(--district-roll-btn-bg); border-color:var(--district-roll-btn-border) !important; border-bottom-color:var(--district-roll-btn-edge) !important; box-shadow:0 4px 0 var(--district-roll-btn-shadow),0 7px 14px rgba(0,0,0,0.3); text-shadow:none; }
 .bb-roll-title { display:flex; align-items:center; justify-content:center; gap:9px; }
-.bb-roll-button .bb-micro { color:#4e492d !important; font-size:9px; letter-spacing:.04em; }
+.bb-roll-button .bb-micro { color:var(--district-roll-btn-micro, inherit) !important; font-size:9px; letter-spacing:.04em; }
 .bb-roll-button[data-auto="true"] { color:#fff5e4; background:linear-gradient(#da806b,#b04e50); box-shadow:0 4px 0 #703e42; border-color:#f2b59d !important; }
 .bb-roll-button[data-auto="true"] .bb-micro { color:#fff1d9 !important; }
-.bb-multiplier { background:#243f4e; border-color:#799a9f6b !important; color:#f5d79c; width:56px; }
-.bb-multiplier > span:first-child { color:#b6cdd1 !important; }
-.bb-settings-button { background:#243f4e; border-color:#799a9f6b !important; color:#cbe0e0; min-height:60px; }
-.bb-auto-note { font-size:9px; color:#a4c5c9; }
-.bb-roll-chip { bottom:calc(max(12px,env(safe-area-inset-bottom)) + 258px); background:#183844ed; }
-.bb-toast { background:#183b46f5; font-size:11px; padding:8px 12px; border-color:#e5c08088; }
+.bb-multiplier { background:var(--district-btn-subtle-bg); border-color:var(--district-btn-subtle-border) !important; color:var(--district-btn-subtle-color); width:56px; }
+.bb-multiplier > span:first-child { color:var(--district-caption-color) !important; }
+.bb-settings-button { background:var(--district-btn-subtle-bg); border-color:var(--district-btn-subtle-border) !important; color:var(--district-caption-color); min-height:60px; }
+.bb-auto-note { font-size:9px; color:var(--district-caption-color); }
+.bb-roll-chip { bottom:calc(max(12px,env(safe-area-inset-bottom)) + 258px); background:var(--district-card-bg); border:1px solid var(--district-accent); }
+.bb-toast { background:var(--district-card-bg); font-size:11px; padding:8px 12px; border:1.5px solid var(--district-accent); color:var(--district-caption-color); }
 .bb-secondary-action { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
 .bb-streak-heading strong { display:flex; align-items:center; gap:7px; }
 .bb-streak-dialog { background:#142f3c; border:1px solid #a5c3bd66; }

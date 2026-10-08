@@ -1,0 +1,10 @@
+packages:
+  - '.'
+enableGlobalVirtualStore: true
+shamefullyHoist: true
+allowBuilds:
+  esbuild: true
+packageExtensions:
+  '@react-three/fiber':
+    dependencies:
+      '@types/three': '^0.164.0'

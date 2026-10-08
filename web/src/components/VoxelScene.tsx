@@ -62,6 +62,142 @@ const EVENT_HIGHLIGHTS: Partial<Record<TileKind, string>> = {
   district: '#dbe4ff'
 };
 
+export interface DistrictBoardTheme {
+  foundationColor: string;
+  groundColor: string;
+  pathColor: string;
+  tilePedestalColor: string;
+  tileCornerPillarColor: string;
+  treeTrunk: string;
+  treeFoliageLower: string;
+  treeFoliageUpper: string;
+  lampPost: string;
+  lampBulb: string;
+  lampEmissive: string;
+  lampIntensity: number;
+  cloudMain: string;
+  cloudFluff1: string;
+  cloudFluff2: string;
+  villagerColors: string[];
+  fogColor: string;
+  fogNear: number;
+  fogFar: number;
+  ambientColor: string;
+  ambientIntensity: number;
+  hemiSky: string;
+  hemiGround: string;
+  hemiIntensity: number;
+  sunColor: string;
+  sunIntensity: number;
+  fillColor: string;
+  fillIntensity: number;
+  beaconColor: string;
+}
+
+export const DISTRICT_BOARD_THEMES: readonly DistrictBoardTheme[] = [
+  // District 0: Sunny Suburb — lush verdant lawn, rustic stone paths, fresh foliage, warm daylight
+  {
+    foundationColor: '#345f66',
+    groundColor: '#7bb6a0',
+    pathColor: '#d4c8b3',
+    tilePedestalColor: '#263956',
+    tileCornerPillarColor: '#263956',
+    treeTrunk: '#9b6744',
+    treeFoliageLower: '#3aa885',
+    treeFoliageUpper: '#73ce93',
+    lampPost: '#334155',
+    lampBulb: '#fef9c3',
+    lampEmissive: '#ca8a04',
+    lampIntensity: 0.7,
+    cloudMain: '#f1f8ff',
+    cloudFluff1: '#ffffff',
+    cloudFluff2: '#e6f1fb',
+    villagerColors: ['#38bdf8', '#f472b6', '#a3e635'],
+    fogColor: '#101f3a',
+    fogNear: 55,
+    fogFar: 120,
+    ambientColor: '#ffffff',
+    ambientIntensity: 0.85,
+    hemiSky: '#ddf5ff',
+    hemiGround: '#496b5a',
+    hemiIntensity: 0.62,
+    sunColor: '#ffffff',
+    sunIntensity: 1.7,
+    fillColor: '#bcd7ff',
+    fillIntensity: 0.35,
+    beaconColor: '#fff1a8'
+  },
+  // District 1: Candy Harbour — pastel strawberry icing lawn, waffle foundation, powdered sugar paths, marshmallow trees, warm dusk/dawn pink
+  {
+    foundationColor: '#78354c',
+    groundColor: '#f48db6',
+    pathColor: '#fff1f6',
+    tilePedestalColor: '#651d45',
+    tileCornerPillarColor: '#db2777',
+    treeTrunk: '#fbcfe8',
+    treeFoliageLower: '#f472b6',
+    treeFoliageUpper: '#c084fc',
+    lampPost: '#e11d48',
+    lampBulb: '#fff1f2',
+    lampEmissive: '#fb7185',
+    lampIntensity: 0.95,
+    cloudMain: '#fce7f3',
+    cloudFluff1: '#fdf2f8',
+    cloudFluff2: '#fae8ff',
+    villagerColors: ['#ec4899', '#f43f5e', '#a855f7'],
+    fogColor: '#4a044e',
+    fogNear: 50,
+    fogFar: 115,
+    ambientColor: '#ffe4e6',
+    ambientIntensity: 0.95,
+    hemiSky: '#fdf2f8',
+    hemiGround: '#831843',
+    hemiIntensity: 0.72,
+    sunColor: '#fff1f2',
+    sunIntensity: 1.8,
+    fillColor: '#fbcfe8',
+    fillIntensity: 0.45,
+    beaconColor: '#fbcfe8'
+  },
+  // District 2: Neon Metropolis — dark cyber asphalt & obsidian alloy foundation, neon cyber-circuit paths, holographic laser foliage, midnight synthwave lighting
+  {
+    foundationColor: '#0f0d1e',
+    groundColor: '#1a1738',
+    pathColor: '#082f49',
+    tilePedestalColor: '#15112e',
+    tileCornerPillarColor: '#06b6d4',
+    treeTrunk: '#1e1b4b',
+    treeFoliageLower: '#06b6d4',
+    treeFoliageUpper: '#d946ef',
+    lampPost: '#0b0a14',
+    lampBulb: '#22d3ee',
+    lampEmissive: '#06b6d4',
+    lampIntensity: 1.8,
+    cloudMain: '#241242',
+    cloudFluff1: '#3b0764',
+    cloudFluff2: '#1e1b4b',
+    villagerColors: ['#06b6d4', '#ec4899', '#a855f7'],
+    fogColor: '#060412',
+    fogNear: 45,
+    fogFar: 105,
+    ambientColor: '#7c3aed',
+    ambientIntensity: 0.65,
+    hemiSky: '#06b6d4',
+    hemiGround: '#3b0764',
+    hemiIntensity: 0.7,
+    sunColor: '#818cf8',
+    sunIntensity: 1.35,
+    fillColor: '#f43f5e',
+    fillIntensity: 0.8,
+    beaconColor: '#67e8f9'
+  }
+];
+
+export function getDistrictBoardTheme(districtId: number): DistrictBoardTheme {
+  const idx = Math.abs(districtId) % DISTRICT_BOARD_THEMES.length;
+  return DISTRICT_BOARD_THEMES[idx] ?? DISTRICT_BOARD_THEMES[0];
+}
+
 function reducedMotion(): boolean {
   return typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
@@ -240,7 +376,7 @@ function TileGlyph({ kind }: { kind: TileKind }) {
   }
 }
 
-function ActiveTileBeacon() {
+function ActiveTileBeacon({ color = '#fff1a8' }: { color?: string }) {
   const ring = useRef<THREE.Mesh>(null);
   useFrame(({ clock }) => {
     if (!ring.current) return;
@@ -250,13 +386,13 @@ function ActiveTileBeacon() {
   return (
     <mesh ref={ring} position={[0, 0.43, 0]} rotation={[-Math.PI / 2, 0, 0]}>
       <ringGeometry args={[0.72, 0.91, 24]} />
-      <meshBasicMaterial color="#fff1a8" side={THREE.DoubleSide} transparent opacity={0.95} />
+      <meshBasicMaterial color={color} side={THREE.DoubleSide} transparent opacity={0.95} />
     </mesh>
   );
 }
 
 /** Expanding shockwave ring where the token lands. */
-function LandingPulse() {
+function LandingPulse({ color = '#fff7c2' }: { color?: string }) {
   const pulse = useGameStore(s => s.landingPulse);
   const ringRef = useRef<THREE.Mesh>(null);
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
@@ -290,7 +426,7 @@ function LandingPulse() {
   return (
     <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
       <ringGeometry args={[0.72, 0.9, 28]} />
-      <meshBasicMaterial ref={matRef} color="#fff7c2" side={THREE.DoubleSide} transparent opacity={0} depthWrite={false} />
+      <meshBasicMaterial ref={matRef} color={color} side={THREE.DoubleSide} transparent opacity={0} depthWrite={false} />
     </mesh>
   );
 }
@@ -300,35 +436,39 @@ const TREE_SPOTS: ReadonlyArray<[number, number, number]> = [
   [6.7, -5.4, 0.9], [-2.5, 5.1, 1], [2.2, 5.1, 0.75]
 ];
 
-function MiniTree({ x, z, scale }: { x: number; z: number; scale: number }) {
+function MiniTree({ x, z, scale, theme }: { x: number; z: number; scale: number; theme: DistrictBoardTheme }) {
   return (
     <group position={[x, 0.06, z]} scale={scale}>
       <mesh position={[0, 0.46, 0]} castShadow>
         <cylinderGeometry args={[0.16, 0.24, 0.9, 6]} />
-        <meshStandardMaterial color="#9b6744" />
+        <meshStandardMaterial color={theme.treeTrunk} />
       </mesh>
       <mesh position={[0, 1.28, 0]} castShadow>
         <coneGeometry args={[0.75, 1.7, 5]} />
-        <meshStandardMaterial color="#3aa885" roughness={0.9} flatShading />
+        <meshStandardMaterial color={theme.treeFoliageLower} roughness={0.9} flatShading />
       </mesh>
       <mesh position={[0, 1.95, 0]} castShadow>
         <coneGeometry args={[0.52, 1.1, 5]} />
-        <meshStandardMaterial color="#73ce93" roughness={0.85} flatShading />
+        <meshStandardMaterial color={theme.treeFoliageUpper} roughness={0.85} flatShading />
       </mesh>
     </group>
   );
 }
 
-function LampPost({ x, z }: { x: number; z: number }) {
+function LampPost({ x, z, theme }: { x: number; z: number; theme: DistrictBoardTheme }) {
   return (
     <group position={[x, 0, z]}>
       <mesh position={[0, 0.55, 0]} castShadow>
         <cylinderGeometry args={[0.09, 0.12, 1.1, 6]} />
-        <meshStandardMaterial color="#334155" roughness={0.6} />
+        <meshStandardMaterial color={theme.lampPost} roughness={0.6} />
       </mesh>
       <mesh position={[0, 1.2, 0]}>
         <sphereGeometry args={[0.18, 10, 8]} />
-        <meshStandardMaterial color="#fef9c3" emissive="#ca8a04" emissiveIntensity={0.7} />
+        <meshStandardMaterial
+          color={theme.lampBulb}
+          emissive={theme.lampEmissive}
+          emissiveIntensity={theme.lampIntensity}
+        />
       </mesh>
     </group>
   );
@@ -362,7 +502,8 @@ function BoardTile({
   kind,
   isCurrent,
   isCorner,
-  isRolling
+  isRolling,
+  theme
 }: {
   index: number;
   pos: [number, number, number];
@@ -370,6 +511,7 @@ function BoardTile({
   isCurrent: boolean;
   isCorner: boolean;
   isRolling: boolean;
+  theme: DistrictBoardTheme;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const impactRef = useRef<{ active: boolean; time: number }>({ active: false, time: 0 });
@@ -407,7 +549,7 @@ function BoardTile({
     <group ref={groupRef} position={pos}>
       <mesh position={[0, -0.13, 0]} receiveShadow>
         <boxGeometry args={[2.21, 0.42, 2.21]} />
-        <meshStandardMaterial color="#263956" roughness={0.65} />
+        <meshStandardMaterial color={theme.tilePedestalColor} roughness={0.65} />
       </mesh>
       <mesh position={[0, 0.02, 0]} receiveShadow castShadow>
         <boxGeometry args={[2.08, 0.37, 2.08]} />
@@ -430,7 +572,7 @@ function BoardTile({
         <group position={[0.78, 0.75, -0.78]}>
           <mesh castShadow>
             <cylinderGeometry args={[0.13, 0.18, 0.9, 8]} />
-            <meshStandardMaterial color="#263956" roughness={0.5} />
+            <meshStandardMaterial color={theme.tileCornerPillarColor} roughness={0.5} />
           </mesh>
           <mesh position={[0, 0.55, 0]} castShadow>
             <octahedronGeometry args={[0.25]} />
@@ -443,12 +585,12 @@ function BoardTile({
           </mesh>
         </group>
       )}
-      {isCurrent && !isRolling && <ActiveTileBeacon />}
+      {isCurrent && !isRolling && <ActiveTileBeacon color={theme.beaconColor} />}
     </group>
   );
 }
 
-function VoxelBoard() {
+function VoxelBoard({ theme }: { theme: DistrictBoardTheme }) {
   const currentTile = useGameStore(state => state.visualTile);
   const isRolling = useGameStore(state => state.isRolling);
   return (
@@ -456,20 +598,20 @@ function VoxelBoard() {
       {/* Floating, grassy toy-world foundation. */}
       <mesh position={[0, -0.65, 0]} receiveShadow>
         <boxGeometry args={[24, 1.05, 24]} />
-        <meshStandardMaterial color="#345f66" roughness={0.86} />
+        <meshStandardMaterial color={theme.foundationColor} roughness={0.86} />
       </mesh>
       <mesh position={[0, -0.085, 0]} receiveShadow>
         <boxGeometry args={[19.2, 0.13, 19.2]} />
-        <meshStandardMaterial color="#7bb6a0" roughness={0.91} />
+        <meshStandardMaterial color={theme.groundColor} roughness={0.91} />
       </mesh>
       {/* A subtle cross of cobblestones helps the centre read as a town. */}
       <mesh position={[0, -0.009, 0]} receiveShadow>
         <boxGeometry args={[2.15, 0.09, 16.4]} />
-        <meshStandardMaterial color="#d4c8b3" roughness={0.95} />
+        <meshStandardMaterial color={theme.pathColor} roughness={0.95} />
       </mesh>
       <mesh position={[0, 0.004, 0]} receiveShadow>
         <boxGeometry args={[16.4, 0.09, 1.9]} />
-        <meshStandardMaterial color="#d4c8b3" roughness={0.95} />
+        <meshStandardMaterial color={theme.pathColor} roughness={0.95} />
       </mesh>
 
       {TILE_POSITIONS.map((pos, idx) => (
@@ -481,14 +623,17 @@ function VoxelBoard() {
           isCurrent={idx === currentTile}
           isCorner={CORNERS.has(idx)}
           isRolling={isRolling}
+          theme={theme}
         />
       ))}
-      {TREE_SPOTS.map(([x, z, scale], i) => <MiniTree key={i} x={x} z={z} scale={scale} />)}
-      <LampPost x={-1.6} z={-1.6} />
-      <LampPost x={1.6} z={1.6} />
-      <LampPost x={-1.6} z={1.6} />
-      <LampPost x={1.6} z={-1.6} />
-      <LandingPulse />
+      {TREE_SPOTS.map(([x, z, scale], i) => (
+        <MiniTree key={i} x={x} z={z} scale={scale} theme={theme} />
+      ))}
+      <LampPost x={-1.6} z={-1.6} theme={theme} />
+      <LampPost x={1.6} z={1.6} theme={theme} />
+      <LampPost x={-1.6} z={1.6} theme={theme} />
+      <LampPost x={1.6} z={-1.6} theme={theme} />
+      <LandingPulse color={theme.beaconColor} />
     </group>
   );
 }
@@ -1226,11 +1371,12 @@ function TierStuds({ tier, damaged }: { tier: number; damaged: boolean }) {
   );
 }
 
-function BuildingPlot({ plot, tier, damaged, palette }: {
+function BuildingPlot({ plot, tier, damaged, palette, theme }: {
   plot: number;
   tier: number;
   damaged: boolean;
   palette: { wall: string; roof: string; trim: string };
+  theme: DistrictBoardTheme;
 }) {
   const [x, , z] = PLOT_COORDS[plot] ?? [0, 0, 0];
   const group = useRef<THREE.Group>(null);
@@ -1296,7 +1442,7 @@ function BuildingPlot({ plot, tier, damaged, palette }: {
         <group>
           <mesh position={[0, 0.29, 0]}>
             <cylinderGeometry args={[1.05, 1.05, 0.23, 12]} />
-            <meshStandardMaterial color="#a0d3b5" />
+            <meshStandardMaterial color={theme.groundColor} />
           </mesh>
           <mesh position={[0, 0.57, 0]}>
             <cylinderGeometry args={[0.61, 0.66, 0.38, 12]} />
@@ -1306,9 +1452,9 @@ function BuildingPlot({ plot, tier, damaged, palette }: {
             <sphereGeometry args={[0.2, 12, 9]} />
             <meshStandardMaterial color="#8ae5ef" emissive="#217d95" emissiveIntensity={0.3} />
           </mesh>
-          {tier >= 2 && <MiniTree x={-1.08} z={0.9} scale={0.55} />}
-          {tier >= 3 && <MiniTree x={1.08} z={-0.9} scale={0.65} />}
-          {tier >= 4 && <LampPost x={0} z={-1.15} />}
+          {tier >= 2 && <MiniTree x={-1.08} z={0.9} scale={0.55} theme={theme} />}
+          {tier >= 3 && <MiniTree x={1.08} z={-0.9} scale={0.65} theme={theme} />}
+          {tier >= 4 && <LampPost x={0} z={-1.15} theme={theme} />}
         </group>
       )}
       {tier > 0 && plot !== 4 && (
@@ -1387,6 +1533,7 @@ function BuildingPlot({ plot, tier, damaged, palette }: {
 
 function Buildings() {
   const districtId = useGameStore(state => state.currentDistrict);
+  const theme = getDistrictBoardTheme(districtId);
   const dist = useGameStore(state => state.districts[districtId]);
   const paletteSet = DISTRICT_PALETTES[districtId % DISTRICT_PALETTES.length] ?? BUILDING_COLOURS;
 
@@ -1401,6 +1548,7 @@ function Buildings() {
           tier={building.tier}
           damaged={building.damaged}
           palette={paletteSet[idx % paletteSet.length] ?? paletteSet[0]}
+          theme={theme}
         />
       ))}
     </group>
@@ -1408,7 +1556,7 @@ function Buildings() {
 }
 
 /** Slow-drifting toy clouds. Static when reduced motion is on. */
-function Clouds() {
+function Clouds({ theme }: { theme: DistrictBoardTheme }) {
   const group = useRef<THREE.Group>(null);
   const clouds = useMemo(
     () => [
@@ -1436,15 +1584,15 @@ function Clouds() {
         <group key={i} position={[c.x, c.y, c.z]} scale={c.s}>
           <mesh>
             <boxGeometry args={[2.4, 0.8, 1.4]} />
-            <meshStandardMaterial color="#f1f8ff" roughness={1} transparent opacity={0.92} />
+            <meshStandardMaterial color={theme.cloudMain} roughness={1} transparent opacity={0.92} />
           </mesh>
           <mesh position={[0.9, 0.35, 0]}>
             <boxGeometry args={[1.4, 0.7, 1.1]} />
-            <meshStandardMaterial color="#ffffff" roughness={1} transparent opacity={0.92} />
+            <meshStandardMaterial color={theme.cloudFluff1} roughness={1} transparent opacity={0.92} />
           </mesh>
           <mesh position={[-1, 0.3, 0.1]}>
             <boxGeometry args={[1.2, 0.6, 1]} />
-            <meshStandardMaterial color="#e6f1fb" roughness={1} transparent opacity={0.92} />
+            <meshStandardMaterial color={theme.cloudFluff2} roughness={1} transparent opacity={0.92} />
           </mesh>
         </group>
       ))}
@@ -1453,15 +1601,15 @@ function Clouds() {
 }
 
 /** Tiny villagers wandering the plaza cross. */
-function Villagers() {
+function Villagers({ theme }: { theme: DistrictBoardTheme }) {
   const group = useRef<THREE.Group>(null);
   const walkers = useMemo(
     () => [
-      { cx: 0, cz: -3.4, rx: 4.5, rz: 0.5, speed: 0.35, phase: 0, color: '#38bdf8' },
-      { cx: 0, cz: 3.4, rx: 4.5, rz: 0.5, speed: 0.28, phase: 2.1, color: '#f472b6' },
-      { cx: -3.4, cz: 0, rx: 0.5, rz: 4.5, speed: 0.32, phase: 4.2, color: '#a3e635' }
+      { cx: 0, cz: -3.4, rx: 4.5, rz: 0.5, speed: 0.35, phase: 0, color: theme.villagerColors[0] ?? '#38bdf8' },
+      { cx: 0, cz: 3.4, rx: 4.5, rz: 0.5, speed: 0.28, phase: 2.1, color: theme.villagerColors[1] ?? '#f472b6' },
+      { cx: -3.4, cz: 0, rx: 0.5, rz: 4.5, speed: 0.32, phase: 4.2, color: theme.villagerColors[2] ?? '#a3e635' }
     ],
-    []
+    [theme.villagerColors]
   );
   useFrame(({ clock }) => {
     const g = group.current;
@@ -1717,6 +1865,8 @@ function CameraFit() {
 
 export function VoxelScene() {
   const mode = useGameStore(s => s.cameraMode);
+  const districtId = useGameStore(s => s.currentDistrict);
+  const theme = getDistrictBoardTheme(districtId);
   const controlsRef = useRef<any>(null);
   return (
     <Canvas
@@ -1728,23 +1878,30 @@ export function VoxelScene() {
     >
       <CameraFit />
       <CinematicCamera controlsRef={controlsRef} />
-      <fog attach="fog" args={['#101f3a', 55, 120]} />
-      <ambientLight intensity={0.85} />
-      <hemisphereLight args={['#ddf5ff', '#496b5a', 0.62]} />
+      <fog key={`fog-${districtId}`} attach="fog" args={[theme.fogColor, theme.fogNear, theme.fogFar]} />
+      <ambientLight key={`amb-${districtId}`} color={theme.ambientColor} intensity={theme.ambientIntensity} />
+      <hemisphereLight key={`hemi-${districtId}`} args={[theme.hemiSky, theme.hemiGround, theme.hemiIntensity]} />
       <directionalLight
+        key={`sun-${districtId}`}
         position={[-18, 34, 23]}
-        intensity={1.7}
+        color={theme.sunColor}
+        intensity={theme.sunIntensity}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
-      <directionalLight position={[20, 14, -18]} intensity={0.35} color="#bcd7ff" />
-      <VoxelBoard />
+      <directionalLight
+        key={`fill-${districtId}`}
+        position={[20, 14, -18]}
+        intensity={theme.fillIntensity}
+        color={theme.fillColor}
+      />
+      <VoxelBoard theme={theme} />
       <TokenCharacter />
       <HopLandingParticles />
       <Buildings />
-      <Villagers />
-      <Clouds />
+      <Villagers theme={theme} />
+      <Clouds theme={theme} />
       <PhysicalDice />
       <OrbitControls
         ref={controlsRef}

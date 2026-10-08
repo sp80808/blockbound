@@ -15,6 +15,7 @@ const CONFETTI_COLORS = ['#fde047', '#f472b6', '#67e8f9', '#a3e635', '#fb923c', 
 function Celebration() {
   const celebration = useGameStore(s => s.celebration);
   const dismiss = useGameStore(s => s.dismissCelebration);
+  const autoRolling = useGameStore(s => s.autoRolling);
   const pieces = useMemo(() => {
     if (!celebration) return [];
     let seed = celebration.key * 2654435761;
@@ -30,9 +31,11 @@ function Celebration() {
     }));
   }, [celebration]);
 
+  const CELEBRATION_DURATION = 3200;
+
   useEffect(() => {
     if (!celebration) return;
-    const timer = window.setTimeout(dismiss, 3200);
+    const timer = window.setTimeout(dismiss, CELEBRATION_DURATION);
     return () => window.clearTimeout(timer);
   }, [celebration, dismiss]);
 
@@ -56,11 +59,27 @@ function Celebration() {
         ))}
       </div>
       <div className="bb-celebration-card" role="status">
+        {autoRolling && (
+          <div className="bb-auto-card-line" aria-hidden="true">
+            <span className="bb-auto-progress-fill" style={{ animationDuration: `${CELEBRATION_DURATION}ms` }} />
+          </div>
+        )}
         <div style={{ fontSize: 46 }}>{copy.icon}</div>
         <h2>{copy.title}</h2>
         <p>{copy.sub}</p>
-        <button className="bb-control bb-mini-collect" onClick={dismiss} style={{ width: '100%' }}>
-          KEEP ROLLING 🎲
+        <button
+          className="bb-control bb-mini-collect bb-celebration-collect"
+          onClick={dismiss}
+          style={{ width: '100%' }}
+          data-auto-collecting={autoRolling ? 'true' : undefined}
+          aria-label={autoRolling ? 'Keep rolling (auto-dismissing)' : 'Keep rolling'}
+        >
+          <span>{autoRolling ? 'ROLLING NEXT… 🎲' : 'KEEP ROLLING 🎲'}</span>
+          {autoRolling && (
+            <span className="bb-auto-progress-line" aria-hidden="true">
+              <span className="bb-auto-progress-fill" style={{ animationDuration: `${CELEBRATION_DURATION}ms` }} />
+            </span>
+          )}
         </button>
       </div>
     </div>
@@ -189,7 +208,7 @@ export default function App() {
   }, [activeModal, rewardPresentation?.id, showSplash, closeModal]);
 
   return (
-    <div className="bb-shell" data-district={currentDistrict}>
+    <div className="bb-shell" data-district={currentDistrict % 3} data-district-id={currentDistrict}>
       {showSplash ? (
         <SplashScreen onFinish={() => setShowSplash(false)} />
       ) : (
@@ -243,10 +262,25 @@ export default function App() {
               style={{ position: 'absolute', inset: 0, zIndex: 80,
                 background: 'rgba(2,6,23,.82)', display: 'flex',
                 justifyContent: 'center', alignItems: 'center', padding: 14 }}>
-              <div style={{ width: '100%', maxWidth: 400, maxHeight: 'min(88dvh, 700px)',
-                overflowY: 'auto', overscrollBehavior: 'contain', borderRadius: 24,
-                background: '#0f172a', border: '2px solid #a78bfa', color: '#fff',
-                padding: 18, boxShadow: '0 16px 45px rgba(0,0,0,.35)' }}>
+              <div style={{
+                width: '100%',
+                maxWidth: 420,
+                maxHeight: 'min(90dvh, 740px)',
+                overflowY: 'auto',
+                overscrollBehavior: 'contain',
+                borderRadius: 24,
+                background: pendingEncounter.kind === 'raid'
+                  ? 'linear-gradient(180deg, #18122B 0%, #0c1022 100%)'
+                  : '#0f172a',
+                border: pendingEncounter.kind === 'raid'
+                  ? '2px solid #fde047'
+                  : '2px solid #a78bfa',
+                color: '#fff',
+                padding: '20px 18px',
+                boxShadow: pendingEncounter.kind === 'raid'
+                  ? '0 20px 60px rgba(0,0,0,.65), 0 0 35px rgba(253, 224, 71, 0.25)'
+                  : '0 16px 45px rgba(0,0,0,.35)'
+              }}>
                 {pendingEncounter.kind === 'raid' ? (
                   <TownRaid
                     encounter={pendingEncounter}

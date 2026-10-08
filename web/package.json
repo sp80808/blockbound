@@ -12,7 +12,7 @@
     "test:pwa": "node --test tests/pwa.test.mjs",
     "icons": "node scripts/generate-icons.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --disable-warning=DEP0205 --test tests/rollRules.test.mjs tests/gameSave.test.mjs tests/rewards.test.mjs tests/quests.test.mjs tests/rotationEngine.test.mjs tests/questDispatcher.test.mjs tests/pwa.test.mjs tests/hotkeys.test.mjs tests/islandView.test.mjs tests/characterHop.test.mjs tests/store.test.mjs",
+    "test": "node --disable-warning=DEP0205 --test tests/rollRules.test.mjs tests/gameSave.test.mjs tests/rewards.test.mjs tests/quests.test.mjs tests/rotationEngine.test.mjs tests/questDispatcher.test.mjs tests/pwa.test.mjs tests/hotkeys.test.mjs tests/islandView.test.mjs tests/autoCollectionProgress.test.mjs tests/store.test.mjs tests/boardTheming.test.mjs",
     "test:store": "node --disable-warning=DEP0205 --test tests/store.test.mjs",
     "test:saves": "node --test tests/gameSave.test.mjs",
     "clean:appledouble": "bash ../scripts/clean-appledouble.sh"

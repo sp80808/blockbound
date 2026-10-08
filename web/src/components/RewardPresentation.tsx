@@ -30,6 +30,7 @@ function flightPath(dx: number, dy: number, bend: number): Keyframe[] {
 export function RewardPresentation() {
   const reward = useGameStore(state => state.rewardPresentation);
   const autoOkay = useGameStore(state => state.autoOkay);
+  const autoRolling = useGameStore(state => state.autoRolling);
   const finish = useGameStore(state => state.finishRewardPresentation);
   const [flying, setFlying] = useState(false);
   const iconRefs = useRef<Partial<Record<ResourceKind, HTMLDivElement>>>({});
@@ -37,6 +38,9 @@ export function RewardPresentation() {
   const animations = useRef<Animation[]>([]);
   const timers = useRef<number[]>([]);
   const runId = useRef<string | null>(null);
+
+  const AUTO_COLLECT_DELAY = 850;
+  const isAuto = Boolean(reward && (autoRolling || autoOkay));
 
   const clearWork = useCallback(() => {
     timers.current.forEach(window.clearTimeout);
@@ -109,11 +113,11 @@ export function RewardPresentation() {
   }, [finish, reward]);
 
   useEffect(() => {
-    if (!reward || !autoOkay) return;
-    const timer = window.setTimeout(collect, 850);
+    if (!reward || (!autoOkay && !autoRolling)) return;
+    const timer = window.setTimeout(collect, AUTO_COLLECT_DELAY);
     timers.current.push(timer);
     return () => window.clearTimeout(timer);
-  }, [autoOkay, collect, reward]);
+  }, [autoOkay, autoRolling, collect, reward]);
 
   useEffect(() => {
     if (!reward || !flying) return;
@@ -147,7 +151,14 @@ export function RewardPresentation() {
       }}
     >
       <div className={`bb-reward-card${flying ? ' is-flying' : ''}`}>
-        <div className="bb-reward-kicker">REWARD SECURED</div>
+        {isAuto && !flying && (
+          <div className="bb-auto-card-line" aria-hidden="true">
+            <span className="bb-auto-progress-fill" style={{ animationDuration: `${AUTO_COLLECT_DELAY}ms` }} />
+          </div>
+        )}
+        <div className="bb-reward-kicker">
+          {autoRolling ? 'AUTO ROLL · COLLECTING…' : 'REWARD SECURED'}
+        </div>
         <h2 id="bb-reward-title">{reward.title}</h2>
         <div className="bb-reward-haul" aria-live="polite">
           {earned.map(resource => (
@@ -157,8 +168,21 @@ export function RewardPresentation() {
             </div>
           ))}
         </div>
-        <button ref={collectRef} className="bb-reward-collect" onClick={collect} disabled={flying} autoFocus>
-          {autoOkay ? 'Collect now' : 'Collect'}
+        <button
+          ref={collectRef}
+          className={`bb-reward-collect${isAuto ? ' is-auto-collecting' : ''}`}
+          onClick={collect}
+          disabled={flying}
+          autoFocus
+          aria-label={isAuto ? `Collect ${reward.title} now (auto-collecting)` : 'Collect'}
+          data-auto-collecting={isAuto ? 'true' : undefined}
+        >
+          <span className="bb-reward-collect-label">{isAuto ? 'Collect now' : 'Collect'}</span>
+          {isAuto && !flying && (
+            <span className="bb-auto-progress-line" aria-hidden="true">
+              <span className="bb-auto-progress-fill" style={{ animationDuration: `${AUTO_COLLECT_DELAY}ms` }} />
+            </span>
+          )}
         </button>
       </div>
     </div>

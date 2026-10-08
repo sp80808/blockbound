@@ -149,7 +149,19 @@ export function HUD() {
           </button>
         </div>
 
-        <div className="bb-district">
+        <div
+          className="bb-district"
+          onClick={() => openModal('upgrade')}
+          role="button"
+          tabIndex={0}
+          aria-label={`Current district: ${district?.name ?? 'My District'}. Click to view islands and landmarks.`}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              openModal('upgrade');
+            }
+          }}
+        >
           <div className="bb-district-row">
             <div style={{ minWidth: 0 }}>
               <div className="bb-district-caption">BLOCKBOUND <span> / </span> DISTRICT {String(currentDistrict + 1).padStart(2, '0')}</div>
