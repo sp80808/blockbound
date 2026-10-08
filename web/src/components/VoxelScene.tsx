@@ -418,6 +418,14 @@ function CinematicCamera() {
   const tile = useGameStore(s => s.currentTile);
   const { camera, size } = useThree();
   const destination = useRef(new THREE.Vector3(0, 0, 0));
+  useEffect(() => {
+    if (mode !== 'OVERVIEW' || !(camera instanceof THREE.OrthographicCamera)) return;
+    camera.position.set(26, 34, 26);
+    camera.lookAt(0, 0, 0);
+    camera.zoom = Math.max(5.5, Math.min(size.width / 33.5, size.height / 24));
+    camera.updateProjectionMatrix();
+    destination.current.set(0, 0, 0);
+  }, [camera, mode, size.width, size.height]);
 
   useFrame((_, delta) => {
     if (!(camera instanceof THREE.OrthographicCamera)) return;
