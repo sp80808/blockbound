@@ -54,3 +54,18 @@ test('tile rewards scale standard coin/material rewards, not shields/energy', ()
   assert.equal(rules.tileReward(10, 2, 2, 2).materials, 12);
   assert.throws(() => rules.tileReward(32, 1, 1, 2));
 });
+
+test('dice rolls can be deterministically replayed', () => {
+  const draws = [0, 0.999999, 0.5, 0.5];
+  const rng = () => draws.shift();
+  const first = rules.rollPair(rng);
+  assert.equal(first.die1, 1);
+  assert.equal(first.die2, 6);
+  assert.equal(first.total, 7);
+  assert.equal(first.doubles, false);
+  const second = rules.rollPair(rng);
+  assert.equal(second.die1, 4);
+  assert.equal(second.die2, 4);
+  assert.equal(second.doubles, true);
+  assert.throws(() => rules.rollPair(() => 1));
+});
