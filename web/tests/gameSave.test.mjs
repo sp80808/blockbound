@@ -120,3 +120,47 @@ test('an invalid pending encounter is not restored as a claimable prize', () => 
   const hydrated = saves.restoreProgress(state, defaults(), startTime);
   assert.equal(hydrated.pendingEncounter, null);
 });
+
+
+test('future/corrupt save is backed up once before using defaults', () => {
+  const values = new Map([[saves.SAVE_KEY, '{"version":999,"progress":{"coins":100}}']]);
+  const storage = {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value)
+  };
+  const module = {};
+  runInNewContext(compiled.outputText, {
+    exports: module, Date, JSON, Number, Math, localStorage: storage
+  }, { timeout: 1000 });
+  assert.equal(module.loadFromStorage(defaults(), startTime), null);
+  assert.equal(values.get(module.SAVE_BACKUP_KEY), '{"version":999,"progress":{"coins":100}}');
+  assert.equal(module.saveToStorage(defaults(), startTime), true);
+  assert.equal(values.get(module.SAVE_BACKUP_KEY), '{"version":999,"progress":{"coins":100}}');
+  assert.ok(module.decodeSave(values.get(module.SAVE_KEY), defaults(), startTime));
+});
+
+test('blocked corrupt-save backup refuses unsafe overwrite', () => {
+  const values = new Map([[saves.SAVE_KEY, '{broken']]);
+  const storage = {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => {
+      if (key === saves.SAVE_BACKUP_KEY) throw new Error('Storage quota exceeded');
+      values.set(key, value);
+    }
+  };
+  const module = {};
+  runInNewContext(compiled.outputText, {
+    exports: module, Date, JSON, Number, Math, localStorage: storage
+  }, { timeout: 1000 });
+  assert.equal(module.saveToStorage(defaults(), startTime), false);
+  assert.equal(values.get(saves.SAVE_KEY), '{broken');
+});
+
+test('day-seven reward cycle restarts at day one', () => {
+  const state = defaults();
+  state.lastLoginDate = '2026-10-07';
+  state.dailyStreak = 7;
+  state.streakClaimedToday = true;
+  const restored = saves.restoreProgress(state, defaults(), startTime);
+  assert.equal(restored.dailyStreak, 1);
+});
