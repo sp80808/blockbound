@@ -11,7 +11,7 @@
  *
  * Exit code 0 = all files pass, 1 = at least one rejection.
  */
-import { readFileSync, statSync, existsSync, renameSync, rmSync } from 'node:fs';
+import { readFileSync, statSync, existsSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,13 +36,13 @@ function decodeRgb(file) {
     const data = readFileSync(scratch);
     if (data.length < 60 || data.readUInt16LE(0) !== 0x4d42) return null;
     const width = data.readInt32LE(18);
-    const height = data.readInt32LE(22);
+    const height = Math.abs(data.readInt32LE(22)); // sips writes top-down DIBs (negative height)
     const bpp = data.readUInt16LE(28);
     if (bpp !== 24 || width < 8 || height < 8) return null;
     const stride = width * 3;
     const rows = [];
     for (let y = 0; y < height; y++) {
-      const start = 54 + (height - 1 - y) * stride;
+      const start = 54 + y * stride;
       rows.push(data.subarray(start, start + stride));
     }
     return { width, height, rows };
@@ -68,7 +68,7 @@ function channelStats(rows, x0, y0, x1, y1) {
   }
   const mean = n ? (rSum + gSum + bSum) / (3 * n) : 0;
   return {
-    spread: Math.max(rMax - rMin, gMax - gMin, bMax - bMax === 0 ? bMax - bMin : bMax - bMin),
+    spread: Math.max(rMax - rMin, gMax - gMin, bMax - bMin),
     mean,
     rMean: rSum / Math.max(1, n), gMean: gSum / Math.max(1, n), bMean: bSum / Math.max(1, n)
   };
@@ -166,13 +166,7 @@ function readManifest() {
 function writeManifest(entry, cardId, file, model) {
   const manifest = readManifest();
   manifest[cardId] = { file: basename(file), model, checkedAt: new Date().toISOString(), ...entry };
-  const { writeFileSync } = require$nodeFs();
   writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n');
-}
-// Node has no require in ESM; lazily import instead.
-let fsCache;
-function require$nodeFs() {
-  return fsCache ??= { writeFileSync: (...args) => import('node:fs').then(m => m.writeFileSync(...args)) };
 }
 
 // ---- CLI ----
