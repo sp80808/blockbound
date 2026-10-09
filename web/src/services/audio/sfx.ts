@@ -151,3 +151,39 @@ export function playTileLand(): void {
   blip('tile-land', 130, 0.05, 'sine', 0.07, 0, 70);
 }
 
+/** Rapid ratchet/tumbler clicks while combination dial spins. */
+export function playVaultDial(): void {
+  blip('vault-dial-1', 940, 0.03, 'square', 0.06);
+  blip('vault-dial-2', 1180, 0.03, 'square', 0.05, 0.07);
+  blip('vault-dial-3', 1420, 0.03, 'square', 0.05, 0.15);
+  buzz([15, 20, 15]);
+}
+
+/** Heavy mechanical clunk when safe bolt throws and latch opens. */
+export function playVaultUnlock(): void {
+  // Low metallic bolt thud
+  blip('vault-thud', 90, 0.14, 'triangle', 0.18, 0, 42);
+  // Metallic latch snap / release
+  blip('vault-latch', 640, 0.08, 'square', 0.1, 0.03, 310);
+  buzz(35);
+}
+
+/** Dopamine reward pop when loot erupts from an opened vault. */
+export function playVaultReward(variant?: 'brass' | 'steel' | 'crystal'): void {
+  if (variant === 'crystal') {
+    blip('vault-loot-c1', 880, 0.1, 'sine', 0.12);
+    blip('vault-loot-c2', 1174, 0.12, 'triangle', 0.12, 0.06);
+    blip('vault-loot-c3', 1568, 0.18, 'sine', 0.14, 0.12);
+    blip('vault-loot-c4', 2093, 0.22, 'sine', 0.15, 0.18);
+    buzz([20, 30, 40]);
+  } else if (variant === 'steel') {
+    blip('vault-loot-s1', 784, 0.1, 'sine', 0.11);
+    blip('vault-loot-s2', 1046, 0.14, 'triangle', 0.12, 0.07);
+    blip('vault-loot-s3', 1318, 0.18, 'sine', 0.12, 0.14);
+    buzz([20, 30]);
+  } else {
+    playCoins();
+    buzz(25);
+  }
+}
+

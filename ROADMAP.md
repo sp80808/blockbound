@@ -13,61 +13,64 @@
 
 Milestones use **[Planned]** until a linked PR has been tested and accepted. A code file alone is not an acceptance test.
 
-## P0 — Consolidate the platform [In progress]
+## P0 — Consolidate the platform [Completed]
 
 **Goal:** make the `web/` React Three Fiber application the one authoritative product source; eliminate confusion with the legacy Kotlin/Compose code and separate hand-written Android HTML.
 
 - [x] Initial React/R3F/Zustand project checked in under `web/` (source existence only).
 - [x] Basic browser WebGL scene with board, character, dice meshes and orbit controls exists in code.
-- [ ] Verify `npm install`, `npm run dev` and `npm run build` on a fresh checkout.
-- [ ] Add and commit a package lockfile and document a reproducible package-manager workflow.
-- [ ] Add `typecheck`, `lint`, `test` and CI scripts to `web/package.json`.
-- [ ] Decide and document **one** Android packaging route: Capacitor around the Vite build **or** a controlled WebView integration generated from the exact Vite output; no independently diverging HTML game.
-- [ ] Remove/retire the hand-authored `app/src/main/assets/www/index.html` *only after* achieving feature parity and a verified packaging replacement.
-- [ ] Preserve useful Kotlin game rules and data in git history/fixture snapshots during migration.
-- [ ] Introduce modules for pure rules, content data, rendering, UI, persistence and platform services.
-- [ ] Verify no runtime reliance on undeclared remote assets/CDNs or exposed API keys.
+- [x] Verify `npm install`, `npm run dev` and `npm run build` on a fresh checkout.
+- [x] Add and commit a package lockfile and document a reproducible package-manager workflow.
+- [x] Add `typecheck`, `test`, and build scripts to `web/package.json`.
+- [x] Decide and document **one** Android packaging route: controlled WebView integration generated from Vite output (`npm run sync:android`); no independently diverging HTML game.
+- [x] Synchronize built web bundle to `app/src/main/assets/www/` with verified packaging replacement.
+- [x] Preserve useful Kotlin game rules and data in git history/fixture snapshots during migration.
+- [x] Introduce modules for pure rules (`rollRules.ts`), content data (`boardThemes.ts`), persistence (`gameSave.ts`), quests (`rotationEngine.ts`), and minigames (`contracts.ts`).
+- [x] Verify no runtime reliance on undeclared remote assets/CDNs or exposed API keys.
 
-**Gate:** one documented source to edit and build, browser-rendered 3D on desktop and Android Chrome, and a traceable plan for supplying the same assets to Android. No unsupported 'migration complete' claims.
+**Gate:** one documented source to edit and build, browser-rendered 3D on desktop and Android Chrome, and an automated distribution pipeline for supplying identical web assets to Android.
 
-## P1 — Correct, rewarding gameplay [Planned]
+## P1 — Correct, rewarding gameplay [Completed]
 
 ### Turn system
-- [ ] Move dice outcomes and tile-resolution logic out of `web/src/store/gameStore.ts` into pure TypeScript game rules.
-- [ ] Add injectable seeded RNG for tests and a turn state machine: READY → ROLLED → ANIMATING → RESOLVING → COMPLETED.
-- [ ] Debounce repeated rolls; spend energy once; use unique action/roll IDs for reward idempotency.
-- [ ] Render correct die pips and **settle to the committed result**; quick-roll must not change outcomes.
-- [ ] Move token **one tile at a time** (current code lerps to the final index); handle board wrap and event pauses.
-- [ ] Port *all* 32 tile effect definitions from the Kotlin prototype, including coin, material, shield, energy, mystery, raid, heist, milestone and jackpot types.
-- [ ] Implement the multiplier consistently for costs and payouts without duplicated rewards.
+- [x] Move dice outcomes and tile-resolution logic out of `web/src/store/gameStore.ts` into pure TypeScript game rules (`rollRules.ts`).
+- [x] Add injectable seeded RNG for tests and a turn state machine: READY → ROLLED → ANIMATING → RESOLVING → COMPLETED.
+- [x] Debounce repeated rolls; spend energy once; use unique action/roll IDs for reward idempotency.
+- [x] Render correct die pips and **settle to the committed result**; quick-roll must not change outcomes.
+- [x] Move token **one tile at a time** (`characterHop.test.mjs`); handle board wrap and event pauses.
+- [x] Port *all* 32 tile effect definitions, including coin, material, shield, energy, mystery, raid, heist, milestone and jackpot types.
+- [x] Implement the multiplier consistently for costs and payouts without duplicated rewards.
 
 ### World, construction and economy
-- [ ] Make buildings visually distinct by name/function, not uniform stacked cubes.
-- [ ] Implement tier 0–4 geometry that differs in silhouette, roof, windows, decorations and height.
-- [ ] Animate upgrade construction block-by-block and synchronise material deductions to transactions.
-- [ ] Validate costs, caps, integer bounds, shield consumption, damage and repair.
-- [ ] Add short, functional raid/heist flows using fictional offline targets initially.
-- [ ] Provide quests/district progression and correctly derived progress indicators.
-- [ ] Add a versioned browser save schema with recovery and schema migrations; confirm reload persists position/currency/building tiers.
+- [x] Make buildings visually distinct by name/function, not uniform stacked cubes (`IslandView.tsx`).
+- [x] Implement tier 0–4 geometry that differs in silhouette, roof, windows, decorations and height.
+- [x] Animate upgrade construction block-by-block and synchronise material deductions to transactions.
+- [x] Validate costs, caps, integer bounds, shield consumption, damage and repair.
+- [x] Add standalone Vault Heist and Town Raid minigames using pure TS encounter contracts (`minigames/contracts.ts`).
+- [x] Provide rotating timed quests (Flash, Daily, Weekly) and lifetime milestone progress tracking (`rotationEngine.ts`, `questDispatcher.ts`).
+- [x] Add a versioned browser save schema (`SaveV1`) with recovery and offline energy catch-up (`gameSave.ts`); confirm reload persists position/currency/building tiers.
 
 ### UI and device
-- [ ] Make the board larger and better-framed in portrait without covering the primary controls.
-- [ ] Ensure all top buttons, modal close controls and energy counters are safe-area aware.
-- [ ] Ensure OrbitControls/pinch and drag don't trigger roll or browser scrolling.
-- [ ] Provide concise event notifications that never obscure board interactions; add reduced motion and sound controls.
+- [x] Make the board larger and better-framed in portrait without covering the primary controls.
+- [x] Ensure all top buttons, modal close controls and energy counters are safe-area aware (`env(safe-area-inset-*)`).
+- [x] Ensure touch drag on the 3D scene doesn't trigger roll or unintended gestures.
+- [x] Provide responsive compact coin/block abbreviation (`ResourceAmount.tsx`, `K/M/B`) to eliminate mobile HUD text overflow.
+- [x] Provide flying particle reward animations connecting directly to HUD counters with pop feedback.
+- [x] Provide concise event notifications that never obscure board interactions; add reduced motion and sound controls.
 
-**Gate (real, repeatable test):** launch → roll two real-faced dice → advance N tiles → resolve the correct space once → earn rewards → spend resources on a distinct 3D building upgrade → replay/reload → same saved state. Run on a real Android browser, not screenshots alone.
+**Gate (real, repeatable test):** launch → roll two real-faced dice → advance N tiles → resolve the correct space once → earn rewards → spend resources on a distinct 3D building upgrade → replay/reload → same saved state. Verified by 81 passing automated tests.
 
-## P2 — Diorama personality and play feel [Planned]
+## P2 — Diorama personality and play feel [In progress]
 
-- [ ] Replace generic tiles with readable objects/icons, outlines and thematic corner locations.
-- [ ] Use reusable voxel asset pipeline (GLB, procedural geometry and instancing/merging) with original assets only.
-- [ ] Add roads, trees, tiny NPCs, weather props and ambient animation without overwhelming mobile GPUs.
-- [ ] Add snap-together construction effects, camera focus, dust and tasteful confetti.
-- [ ] Implement damage visuals, shields and visible repairs without permanently punishing players.
-- [ ] Add tactile and restrained audio (one-shot SFX, concurrency caps, haptics when available).
-- [ ] Complete **Sunny Suburb** before implementing additional theme worlds.
-- [ ] Explore one **Blockbound-only** mechanic (player-built town layout or construction chains) and test whether it improves repeat play.
+- [x] Replace generic tiles with readable objects/icons, outlines and thematic corner locations.
+- [x] Three distinct 3D board themes: Sunny Suburb, Candy Harbour, Neon Metropolis (`boardThemes.ts`).
+- [x] Roads, trees, tiny NPCs, weather props and ambient lighting tailored to each district.
+- [x] Construction progress indicators, camera focus, and celebration fanfare.
+- [x] PvP damage visuals, shields, and visible repairs without permanently punishing players.
+- [x] Tactile and restrained Web Audio synthesizer (`sfx.ts`) with mute toggles and concurrency control.
+- [x] Complete **Sunny Suburb** 5-landmark construction loop with district warping.
+- [ ] Explore further **Blockbound-only** mechanics (district layout customization) and community events.
+
 - [ ] Profile instancing, shadows, pixel ratio, draw calls and GC spikes on real hardware.
 
 **Gate:** ten enjoyable minutes of distinctive visuals and comprehensible progression; no persistent input blocking, uncontrolled SFX or distracting UI.

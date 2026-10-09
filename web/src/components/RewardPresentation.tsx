@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { ResourceIcon, type ResourceKind } from './ResourceIcon';
+import { fireConfettiBurst } from '../services/fx/confetti';
 import './RewardPresentation.css';
 
 const RESOURCES: ResourceKind[] = ['coins', 'materials', 'energy', 'shields'];
@@ -30,7 +31,6 @@ function flightPath(dx: number, dy: number, bend: number): Keyframe[] {
 export function RewardPresentation() {
   const reward = useGameStore(state => state.rewardPresentation);
   const autoOkay = useGameStore(state => state.autoOkay);
-  const autoRolling = useGameStore(state => state.autoRolling);
   const finish = useGameStore(state => state.finishRewardPresentation);
   const [flying, setFlying] = useState(false);
   const iconRefs = useRef<Partial<Record<ResourceKind, HTMLDivElement>>>({});
@@ -40,7 +40,7 @@ export function RewardPresentation() {
   const runId = useRef<string | null>(null);
 
   const AUTO_COLLECT_DELAY = 850;
-  const isAuto = Boolean(reward && (autoRolling || autoOkay));
+  const isAuto = Boolean(reward && autoOkay);
 
   const clearWork = useCallback(() => {
     timers.current.forEach(window.clearTimeout);
@@ -64,6 +64,9 @@ export function RewardPresentation() {
     const shell = document.querySelector<HTMLElement>('.bb-shell');
     const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const active = RESOURCES.filter(resource => reward[resource] > 0);
+    if (!calm && active.some(r => reward[r] >= 20000 || (r === 'energy' && reward[r] >= 5) || (r === 'materials' && reward[r] >= 5))) {
+      fireConfettiBurst({ x: 0.5, y: 0.45, particleCount: 30 });
+    }
     let lastFinish = 0;
 
     active.forEach((resource, resourceIndex) => {
@@ -113,11 +116,11 @@ export function RewardPresentation() {
   }, [finish, reward]);
 
   useEffect(() => {
-    if (!reward || (!autoOkay && !autoRolling)) return;
+    if (!reward || !autoOkay) return;
     const timer = window.setTimeout(collect, AUTO_COLLECT_DELAY);
     timers.current.push(timer);
     return () => window.clearTimeout(timer);
-  }, [autoOkay, autoRolling, collect, reward]);
+  }, [autoOkay, collect, reward]);
 
   useEffect(() => {
     if (!reward || !flying) return;
@@ -157,7 +160,7 @@ export function RewardPresentation() {
           </div>
         )}
         <div className="bb-reward-kicker">
-          {autoRolling ? 'AUTO ROLL · COLLECTING…' : 'REWARD SECURED'}
+          {isAuto ? 'AUTO COLLECT · SECURING…' : 'REWARD SECURED'}
         </div>
         <h2 id="bb-reward-title">{reward.title}</h2>
         <div className="bb-reward-haul" aria-live="polite">

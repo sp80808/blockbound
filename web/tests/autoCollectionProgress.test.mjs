@@ -69,7 +69,7 @@ beforeEach(() => {
   resetStore();
 });
 
-test('auto rolling state enables auto-collection and finishes presentations into next roll', async () => {
+test('finishing a presentation resumes an active auto-roll batch', () => {
   const reward = {
     id: 'roll-auto-1',
     title: '🪙 Coins galore',
@@ -95,6 +95,15 @@ test('auto rolling state enables auto-collection and finishes presentations into
   state().finishRewardPresentation('roll-auto-1');
   assert.equal(state().rewardPresentation, null);
   assert.equal(state().autoRolling, true);
+});
+
+test('manual acknowledgement remains manual during an auto-roll batch', () => {
+  const componentPath = fileURLToPath(new URL('../src/components/RewardPresentation.tsx', import.meta.url));
+  const component = readFileSync(componentPath, 'utf8');
+
+  assert.match(component, /const isAuto = Boolean\(reward && autoOkay\)/);
+  assert.match(component, /if \(!reward \|\| !autoOkay\) return;/);
+  assert.doesNotMatch(component, /autoOkay && !autoRolling|autoRolling \|\| autoOkay/);
 });
 
 test('CSS files contain auto collection progress bar styles and keyframes', () => {

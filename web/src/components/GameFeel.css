@@ -151,7 +151,7 @@ button { font-family: inherit; }
 }
 .bb-resource {
   display:flex; align-items:center; justify-content:center;
-  min-height:39px; flex: 0 1 auto; white-space:nowrap;
+  min-height:39px; flex: 1 1 0; min-width:0; overflow:hidden; white-space:nowrap;
   border-radius:14px; padding:7px 10px;
   background:linear-gradient(180deg,rgba(35,53,83,.96),rgba(17,31,58,.95));
   border:1px solid #a4c8ee35; box-shadow:0 4px 12px #0002, inset 0 1px #ffffff1c;
@@ -271,7 +271,9 @@ button { font-family: inherit; }
   55% { transform:scale(1.1); filter:brightness(1.32); }
   100% { transform:scale(1); filter:brightness(1); }
 }
-.bb-resource[data-flash="true"] { animation:bb-pop .32s ease-out; }
+.bb-resource[data-flash="true"],
+.bb-resource[data-bump="true"],
+.bb-energy-summary[data-bump="true"] { animation:bb-pop .32s ease-out; }
 @media (min-width:780px) {
   .bb-shell { border-radius:22px; height:calc(100dvh - 28px); margin:14px auto; }
   .bb-resource { font-size:15px; }
@@ -396,55 +398,321 @@ button { font-family: inherit; }
  .bb-hold-progress { animation-duration:540ms; }
 }
 
-/* Portable minigames: Vault Heist 3x3 + Town Raid. Scoped bb- prefix. */
+/* Portable minigames: Vault Heist 3x3 Voxel Overhaul. Scoped bb- prefix. */
 .bb-mini { display:flex; flex-direction:column; gap:12px; text-align:center; }
+.bb-heist-modal { perspective: 900px; }
 .bb-mini-head { display:flex; flex-direction:column; align-items:center; gap:2px; }
-.bb-mini-title { margin:4px 0 2px; color:#fef08a; font-size:22px; font-weight:950; letter-spacing:.02em; }
+.bb-heist-badge-icon {
+  font-size: 42px; line-height: 1; filter: drop-shadow(0 4px 10px rgba(250,204,21,0.45));
+  animation: bb-badge-float 2.8s ease-in-out infinite alternate;
+}
+.bb-mini-title { margin:4px 0 2px; color:#fef08a; font-size:22px; font-weight:950; letter-spacing:.02em; text-shadow:0 2px 8px rgba(0,0,0,0.6); }
 .bb-mini-sub { margin:0; color:#cbd5e1; font-size:12.5px; line-height:1.45; max-width:44ch; }
 .bb-safe-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+
+/* Voxel Safe Card Shell */
 .bb-safe {
   display:flex; flex-direction:column; align-items:center; gap:6px;
-  padding:10px 6px 9px; border-radius:14px; cursor:pointer;
-  background:linear-gradient(180deg,#2b3a5e,#182645);
-  border:2px solid #5b6b8c; color:#fff; font-family:inherit;
-  min-height:118px; transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
-  touch-action:manipulation;
+  padding:10px 5px 9px; border-radius:14px; cursor:pointer;
+  background:linear-gradient(180deg,#1e293b,#0f172a);
+  border:2px solid #475569; color:#fff; font-family:inherit;
+  min-height:124px; transition:transform .16s cubic-bezier(.34,1.56,.64,1), border-color .18s ease, box-shadow .18s ease;
+  touch-action:manipulation; user-select:none; position:relative;
+  box-shadow:0 4px 0 #070d18, 0 8px 18px rgba(0,0,0,0.45);
 }
-.bb-safe[data-variant="brass"] { border-color:#d29a5b; }
-.bb-safe[data-variant="steel"] { border-color:#9fb3c8; }
-.bb-safe[data-variant="crystal"] { border-color:#67e8f9; }
-.bb-safe[data-picked="true"] { border-color:#fde047; box-shadow:0 0 0 2px #fde04766, 0 8px 22px #0007; }
-.bb-safe[data-revealed="true"] { background:linear-gradient(180deg,#3d4f7e,#1d2c52); }
+.bb-safe:hover:not(:disabled) {
+  transform:translateY(-2px);
+  box-shadow:0 6px 0 #070d18, 0 12px 22px rgba(0,0,0,0.55);
+}
+.bb-safe:active:not(:disabled) {
+  transform:translateY(2px);
+  box-shadow:0 2px 0 #070d18, 0 4px 10px rgba(0,0,0,0.35);
+}
 .bb-safe:disabled { cursor:default; }
-.bb-safe:not([data-picked="true"]):disabled { opacity:.55; }
-.bb-safe-door {
-  position:relative; width:52px; height:46px; border-radius:9px;
-  background:linear-gradient(180deg,#475569,#1e293b);
-  border:2px solid currentColor; display:flex; align-items:center; justify-content:center;
+.bb-safe:not([data-picked="true"]):disabled { opacity:.45; filter:grayscale(0.3); }
+
+/* Tier Variants: Brass, Steel, Crystal */
+.bb-safe[data-variant="brass"] {
+  border-color:#b45309;
 }
-.bb-safe[data-variant="brass"] .bb-safe-door { color:#e8a94e; }
-.bb-safe[data-variant="steel"] .bb-safe-door { color:#b9c9dc; }
-.bb-safe[data-variant="crystal"] .bb-safe-door { color:#7deefb; }
-.bb-safe-handle {
-  width:16px; height:16px; border-radius:50%;
-  background:radial-gradient(circle at 35% 35%,#fff7cc,#d9a521);
-  box-shadow:0 0 8px #fbbf2466;
+.bb-safe[data-variant="brass"] .bb-voxel-safe {
+  background:linear-gradient(145deg,#5c3814,#291807);
+  border-color:#b45309;
 }
-.bb-safe-order {
-  position:absolute; top:-9px; right:-9px; width:22px; height:22px; border-radius:50%;
-  background:#fde047; color:#422006; font-size:12px; font-weight:950;
+.bb-safe[data-variant="brass"] .bb-safe-bolt {
+  background:linear-gradient(180deg,#fef08a,#d97706);
+  border:1px solid #78350f;
+}
+.bb-safe[data-variant="brass"] .bb-door-plate {
+  background:linear-gradient(135deg,#78350f 10%,#451a03 90%);
+  border-color:#f59e0b; color:#fbbf24;
+}
+.bb-safe[data-variant="brass"] .bb-chamber-glow {
+  background:radial-gradient(circle,#fde047dd 0%,#d9770655 55%,transparent 75%);
+}
+
+.bb-safe[data-variant="steel"] {
+  border-color:#64748b;
+}
+.bb-safe[data-variant="steel"] .bb-voxel-safe {
+  background:linear-gradient(145deg,#334155,#111827);
+  border-color:#64748b;
+}
+.bb-safe[data-variant="steel"] .bb-safe-bolt {
+  background:linear-gradient(180deg,#f1f5f9,#94a3b8);
+  border:1px solid #334155;
+}
+.bb-safe[data-variant="steel"] .bb-door-plate {
+  background:linear-gradient(135deg,#475569 10%,#1e293b 90%);
+  border-color:#94a3b8; color:#cbd5e1;
+}
+.bb-safe[data-variant="steel"] .bb-chamber-glow {
+  background:radial-gradient(circle,#38bdf8dd 0%,#0284c755 55%,transparent 75%);
+}
+
+.bb-safe[data-variant="crystal"] {
+  border-color:#a855f7;
+}
+.bb-safe[data-variant="crystal"] .bb-voxel-safe {
+  background:linear-gradient(145deg,#4c1d95,#140926);
+  border-color:#c084fc;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.3), 0 0 10px rgba(168,85,247,0.3);
+}
+.bb-safe[data-variant="crystal"] .bb-safe-bolt {
+  background:linear-gradient(180deg,#67e8f9,#06b6d4);
+  border:1px solid #164e63;
+  box-shadow:0 0 6px rgba(6,182,212,0.8);
+}
+.bb-safe[data-variant="crystal"] .bb-door-plate {
+  background:linear-gradient(135deg,#581c87 10%,#2e1065 90%);
+  border-color:#e879f9; color:#f0abfc;
+}
+.bb-safe[data-variant="crystal"] .bb-chamber-glow {
+  background:radial-gradient(circle,#e879f9ee 0%,#38bdf866 55%,transparent 75%);
+}
+
+/* Picked & Cracking States */
+.bb-safe[data-picked="true"] {
+  border-color:#fde047 !important;
+  box-shadow:0 0 0 2px #fde04777, 0 4px 0 #78350f, 0 10px 24px rgba(250,204,21,0.3);
+}
+.bb-safe[data-cracking="true"] .bb-voxel-safe {
+  animation:bb-vault-tension .1s linear infinite;
+}
+.bb-safe[data-revealed="true"] {
+  background:linear-gradient(180deg,#22334e,#111c2c);
+}
+
+/* 3D Voxel Stage & Chassis */
+.bb-safe-stage {
+  position:relative; width:100%; height:72px;
   display:flex; align-items:center; justify-content:center;
-  animation:bb-enter .25s cubic-bezier(.2,.9,.2,1.2);
+  perspective:560px;
 }
-.bb-safe[data-picked="true"]:not([data-revealed="true"]) .bb-safe-door { animation:bb-shake .38s ease; }
-.bb-safe-label { font-size:10.5px; font-weight:850; color:#e6efff; }
-.bb-safe-loot { font-size:10.5px; font-weight:800; color:#fde68a; min-height:15px; }
+.bb-voxel-safe {
+  position:relative; width:68px; height:58px; border-radius:7px;
+  border:2px solid rgba(255,255,255,0.22);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,0.25), 0 4px 0 rgba(0,0,0,0.65);
+  transform-style:preserve-3d;
+}
+
+/* Voxel Corner Bolts */
+.bb-safe-bolt {
+  position:absolute; width:5px; height:5px; border-radius:1px; z-index:4;
+}
+.bb-safe-bolt.tl { top:2px; left:2px; }
+.bb-safe-bolt.tr { top:2px; right:2px; }
+.bb-safe-bolt.bl { bottom:2px; left:2px; }
+.bb-safe-bolt.br { bottom:2px; right:2px; }
+
+/* Recessed Interior Vault Chamber */
+.bb-safe-chamber {
+  position:absolute; inset:3px; border-radius:4px;
+  background:#060a12; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:inset 0 3px 8px rgba(0,0,0,0.92); z-index:1;
+}
+.bb-chamber-glow {
+  position:absolute; inset:-8px; opacity:0;
+  pointer-events:none; transition:opacity .35s ease;
+}
+.bb-safe[data-revealed="true"] .bb-chamber-glow {
+  opacity:1; animation:bb-glow-pulse 1.8s ease-in-out infinite alternate;
+}
+.bb-chamber-loot {
+  position:relative; z-index:2; display:flex; align-items:center; justify-content:center;
+  gap:3px; opacity:0; transform:scale(.4) translateY(12px);
+  transition:opacity .3s ease, transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+.bb-safe[data-revealed="true"] .bb-chamber-loot {
+  opacity:1; transform:scale(1) translateY(0);
+  animation:bb-loot-pop .45s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Voxel Loot Tokens Inside Chamber */
+.bb-voxel-coins {
+  position:relative; width:24px; height:22px; display:flex; align-items:center; justify-content:center;
+}
+.bb-coin-disc {
+  position:absolute; width:22px; height:8px; border-radius:50%;
+  background:linear-gradient(180deg,#fef08a,#ca8a04);
+  border:1px solid #facc15; box-shadow:0 2px 0 #78350f, inset 0 1px 0 #fff;
+}
+.bb-coin-disc.c1 { transform:translateY(5px); }
+.bb-coin-disc.c2 { transform:translateY(0px); }
+.bb-coin-disc.c3 { transform:translateY(-5px); }
+
+.bb-voxel-bricks {
+  position:relative; width:20px; height:20px; display:flex; align-items:center; justify-content:center;
+}
+.bb-brick-block {
+  position:absolute; width:16px; height:9px; border-radius:2px;
+  background:linear-gradient(180deg,#fb923c,#c2410c);
+  border:1px solid #fed7aa; box-shadow:0 2px 0 #7c2d12;
+}
+.bb-brick-block.b1 { transform:translateY(3px) rotate(-4deg); }
+.bb-brick-block.b2 { transform:translateY(-4px) rotate(6deg); }
+
+.bb-voxel-battery {
+  position:relative; width:14px; height:20px; border-radius:3px;
+  background:linear-gradient(180deg,#38bdf8,#0284c7);
+  border:1px solid #7dd3fc; box-shadow:0 0 10px #38bdf8;
+  display:flex; align-items:center; justify-content:center;
+}
+.bb-energy-spark {
+  width:6px; height:12px; background:#fff;
+  clip-path:polygon(50% 0%, 100% 48%, 40% 48%, 60% 100%, 0% 52%, 40% 52%);
+}
+
+/* Particle Sparkle Burst */
+.bb-sparkle-burst {
+  position:absolute; inset:0; pointer-events:none; z-index:3;
+}
+.bb-sparkle {
+  position:absolute; top:50%; left:50%; width:5px; height:5px; border-radius:50%;
+  background:#fff; box-shadow:0 0 6px #fff;
+}
+.bb-sparkle.sp1 { animation:bb-sparkle-1 .55s ease-out forwards; }
+.bb-sparkle.sp2 { animation:bb-sparkle-2 .55s ease-out .04s forwards; }
+.bb-sparkle.sp3 { animation:bb-sparkle-3 .55s ease-out .08s forwards; }
+.bb-sparkle.sp4 { animation:bb-sparkle-4 .55s ease-out .12s forwards; }
+
+/* 3D Voxel Vault Door with Hinge */
+.bb-safe-door {
+  position:absolute; inset:2px; border-radius:5px;
+  transform-origin:left center; z-index:3; transform-style:preserve-3d;
+  transition:transform .48s cubic-bezier(.34,1.3,.64,1), box-shadow .4s ease;
+}
+.bb-safe[data-revealed="true"] .bb-safe-door {
+  transform:rotateY(-84deg) translateZ(1px);
+  box-shadow:6px 0 16px rgba(0,0,0,0.85);
+  pointer-events:none;
+}
+
+/* Door Hinges on the Left */
+.bb-safe-hinges {
+  position:absolute; left:-4px; top:0; bottom:0; width:5px; z-index:5;
+}
+.bb-hinge {
+  position:absolute; width:5px; height:9px; border-radius:2px;
+  background:linear-gradient(180deg,#94a3b8,#475569);
+  border:1px solid rgba(255,255,255,0.35); box-shadow:0 1px 0 #0f172a;
+}
+.bb-hinge.top { top:6px; }
+.bb-hinge.bottom { bottom:6px; }
+
+/* Door Plate Face */
+.bb-door-plate {
+  position:absolute; inset:0; border-radius:4px;
+  border:2px solid currentColor; display:flex; align-items:center; justify-content:center;
+  overflow:hidden; box-shadow:inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.5);
+}
+.bb-door-inner-rim {
+  position:relative; width:44px; height:42px; border-radius:3px;
+  border:1px dashed rgba(255,255,255,0.22);
+  background:rgba(0,0,0,0.22); display:flex; align-items:center; justify-content:center;
+}
+
+/* Rotary Combination Dial */
+.bb-vault-dial {
+  position:relative; width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center;
+}
+.bb-dial-ring {
+  position:absolute; inset:0; border-radius:50%;
+  border:2px solid rgba(255,255,255,0.35);
+  background:radial-gradient(circle,#1e293b 40%,#090d16 100%);
+  box-shadow:0 1px 4px rgba(0,0,0,0.7);
+}
+.bb-dial-tick {
+  position:absolute; background:rgba(255,255,255,0.7); border-radius:1px;
+}
+.bb-dial-tick.t-0 { top:1px; left:50%; transform:translateX(-50%); width:2px; height:3px; }
+.bb-dial-tick.t-90 { right:1px; top:50%; transform:translateY(-50%); width:3px; height:2px; }
+.bb-dial-tick.t-180 { bottom:1px; left:50%; transform:translateX(-50%); width:2px; height:3px; }
+.bb-dial-tick.t-270 { left:1px; top:50%; transform:translateY(-50%); width:3px; height:2px; }
+
+.bb-dial-wheel {
+  position:relative; width:18px; height:18px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+}
+.bb-safe[data-cracking="true"] .bb-dial-wheel {
+  animation:bb-wheel-spin .36s linear infinite;
+}
+.bb-wheel-spoke {
+  position:absolute; background:currentColor; box-shadow:0 0 2px rgba(0,0,0,0.6);
+}
+.bb-wheel-spoke.spk-h { width:16px; height:3px; border-radius:1px; }
+.bb-wheel-spoke.spk-v { width:3px; height:16px; border-radius:1px; }
+.bb-wheel-hub {
+  position:relative; z-index:2; width:7px; height:7px; border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#fff,currentColor);
+  box-shadow:0 0 5px rgba(255,255,255,0.7);
+}
+
+.bb-door-bolt-bar {
+  position:absolute; right:1px; top:50%; transform:translateY(-50%);
+  width:4px; height:14px; border-radius:1px;
+  background:linear-gradient(180deg,#cbd5e1,#64748b);
+  box-shadow:0 1px 2px rgba(0,0,0,0.7);
+}
+
+/* Selection Order Medallion Stamp */
+.bb-safe-order {
+  position:absolute; top:-8px; right:-8px; width:24px; height:24px; border-radius:50%;
+  background:linear-gradient(180deg,#fef08a,#eab308); color:#422006;
+  font-size:13px; font-weight:950;
+  display:flex; align-items:center; justify-content:center;
+  border:2px solid #fff; box-shadow:0 3px 0 #92400e, 0 4px 10px rgba(0,0,0,0.45);
+  animation:bb-stamp-land .3s cubic-bezier(.2,.9,.2,1.3); z-index:6;
+}
+
+/* Safe Labels & Loot Status */
+.bb-safe-label { font-size:11px; font-weight:900; color:#e2e8f0; letter-spacing:.01em; }
+.bb-safe-loot { font-size:11px; font-weight:800; min-height:16px; }
+.bb-loot-revealed {
+  color:#fde047; font-weight:850; text-shadow:0 1px 4px rgba(0,0,0,0.7);
+  animation:bb-loot-text-in .3s ease-out;
+}
+.bb-loot-cracking {
+  color:#f59e0b; font-weight:950; letter-spacing:.04em;
+  animation:bb-pulse-text .35s ease-in-out infinite alternate;
+}
+.bb-loot-unopened { color:#64748b; font-weight:800; }
+
+/* Tally & Action Bar */
 .bb-mini-tally {
   display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap;
   background:#0a1530; border:1px solid #ffffff25; border-radius:12px;
-  padding:8px 10px; font-size:12.5px; font-weight:850; color:#fff;
-  font-variant-numeric:tabular-nums;
+  padding:9px 12px; font-size:13px; font-weight:850; color:#fff;
+  font-variant-numeric:tabular-nums; transition:all .25s ease;
 }
+.bb-mini-tally.bb-tally-complete {
+  border-color:#fde047; box-shadow:0 0 16px rgba(250,204,21,0.35);
+  animation:bb-tally-pulse 1.4s infinite alternate;
+}
+.bb-tally-count { opacity:.8; font-weight:750; }
+
 .bb-mini-actions { display:flex; gap:8px; }
 .bb-mini-actions .bb-secondary-action { flex:0 1 auto; }
 .bb-mini-collect {
@@ -452,8 +720,83 @@ button { font-family: inherit; }
   background:linear-gradient(180deg,#fde047,#f59e0b);
   border:2px solid #fef3c7 !important;
   box-shadow:0 4px 0 #92400e, 0 10px 26px #f59e0b44;
+  transition:all .2s ease;
+}
+.bb-mini-collect.bb-collect-ready {
+  animation:bb-collect-glow 1.5s ease-in-out infinite alternate;
 }
 .bb-mini-collect:disabled { filter:saturate(.6); box-shadow:none; }
+
+/* Dopamine Keyframe Animations */
+@keyframes bb-wheel-spin {
+  from { transform:rotate(0deg); }
+  to { transform:rotate(360deg); }
+}
+@keyframes bb-vault-tension {
+  0% { transform:translate(1px,-1px); }
+  50% { transform:translate(-1px,1px); }
+  100% { transform:translate(1px,0); }
+}
+@keyframes bb-badge-float {
+  from { transform:translateY(0); }
+  to { transform:translateY(-4px) scale(1.04); }
+}
+@keyframes bb-stamp-land {
+  0% { transform:scale(2.2); opacity:0; }
+  70% { transform:scale(.88); }
+  100% { transform:scale(1); opacity:1; }
+}
+@keyframes bb-loot-pop {
+  0% { transform:scale(.4) translateY(12px); opacity:0; }
+  60% { transform:scale(1.15) translateY(-3px); opacity:1; }
+  100% { transform:scale(1) translateY(0); }
+}
+@keyframes bb-sparkle-1 {
+  0% { transform:translate(0,0) scale(0); opacity:1; }
+  100% { transform:translate(-18px,-14px) scale(1.3); opacity:0; }
+}
+@keyframes bb-sparkle-2 {
+  0% { transform:translate(0,0) scale(0); opacity:1; }
+  100% { transform:translate(18px,-12px) scale(1.4); opacity:0; }
+}
+@keyframes bb-sparkle-3 {
+  0% { transform:translate(0,0) scale(0); opacity:1; }
+  100% { transform:translate(-14px,14px) scale(1.1); opacity:0; }
+}
+@keyframes bb-sparkle-4 {
+  0% { transform:translate(0,0) scale(0); opacity:1; }
+  100% { transform:translate(16px,13px) scale(1.2); opacity:0; }
+}
+@keyframes bb-glow-pulse {
+  0% { transform:scale(.95); opacity:.7; }
+  100% { transform:scale(1.05); opacity:1; }
+}
+@keyframes bb-loot-text-in {
+  from { transform:scale(.85); opacity:.5; }
+  to { transform:scale(1); opacity:1; }
+}
+@keyframes bb-pulse-text {
+  0% { opacity:.55; }
+  100% { opacity:1; }
+}
+@keyframes bb-tally-pulse {
+  0% { transform:scale(1); }
+  100% { transform:scale(1.02); }
+}
+@keyframes bb-collect-glow {
+  0% { box-shadow:0 4px 0 #92400e, 0 8px 20px rgba(245,158,11,0.4); }
+  100% { box-shadow:0 4px 0 #92400e, 0 14px 34px rgba(250,204,21,0.8), 0 0 14px #fde047; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .bb-heist-badge-icon,
+  .bb-safe[data-cracking="true"] .bb-voxel-safe,
+  .bb-safe[data-cracking="true"] .bb-dial-wheel,
+  .bb-mini-tally.bb-tally-complete,
+  .bb-mini-collect.bb-collect-ready { animation:none !important; }
+  .bb-safe-door { transition:none !important; }
+  .bb-chamber-loot { transition:none !important; animation:none !important; }
+}
 
 /* Town Raid Stage — High Fidelity Tactical Combat Overhaul */
 .bb-raid-modal {

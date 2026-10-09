@@ -4,7 +4,8 @@ import { allowedMultipliers, buildingUpgradeCost } from '../game/rollRules';
 import { claimableQuests } from '../game/quests';
 import { countClaimableQuests } from '../game/questDispatcher';
 import { ENERGY_REFILL_MS } from '../game/gameSave';
-import { STREAK_REWARDS, useGameStore } from '../store/gameStore';
+import { useGameStore, STREAK_REWARDS } from '../store/gameStore';
+import { ResourceAmount } from './ResourceAmount';
 import './GameFeel.css';
 
 /** One physical affordance for tap-roll, hold-to-auto, and tap-to-stop.
@@ -34,6 +35,19 @@ export function HUD() {
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleArrive = (event: Event) => {
+      const custom = event as CustomEvent<{ resource: string }>;
+      const target = document.querySelector<HTMLElement>(`[data-resource="${custom.detail?.resource}"]`);
+      if (target) {
+        target.setAttribute('data-bump', 'true');
+        window.setTimeout(() => target.removeAttribute('data-bump'), 350);
+      }
+    };
+    window.addEventListener('bb-resource-arrive', handleArrive);
+    return () => window.removeEventListener('bb-resource-arrive', handleArrive);
   }, []);
   const [isHolding, setIsHolding] = useState(false);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,16 +144,16 @@ export function HUD() {
     <div className="bb-hud" onPointerDownCapture={interruptAutoForOtherTouch} onClickCapture={stopAutoForOtherAction}>
       <header className="bb-top" aria-label="Player resources and district progress">
         <div className="bb-resource-row">
-          <div className="bb-resource" key={'coins-' + coins} data-flash="true"
-            style={{ color: '#ffe07f' }} aria-label={coins.toLocaleString() + ' coins'}>
-            <Coins size={21} aria-hidden="true" /><span><small>COINS</small>{coins.toLocaleString()}</span>
+          <div className="bb-resource" key={'coins-' + coins} data-resource="coins" data-flash="true"
+            style={{ color: '#ffe07f' }} aria-label={coins.toLocaleString() + ' coins'} title={coins.toLocaleString() + ' coins'}>
+            <Coins size={21} aria-hidden="true" /><span style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}><small>COINS</small><ResourceAmount value={coins} /></span>
           </div>
-          <div className="bb-resource" key={'materials-' + materials} data-flash="true"
-            style={{ color: '#ffc0d9' }} aria-label={materials + ' building blocks'}>
-            <Blocks size={21} aria-hidden="true" /><span><small>BLOCKS</small>{materials.toLocaleString()}</span>
+          <div className="bb-resource" key={'materials-' + materials} data-resource="materials" data-flash="true"
+            style={{ color: '#ffc0d9' }} aria-label={materials.toLocaleString() + ' building blocks'} title={materials.toLocaleString() + ' building blocks'}>
+            <Blocks size={21} aria-hidden="true" /><span style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}><small>BLOCKS</small><ResourceAmount value={materials} /></span>
           </div>
-          <div className="bb-resource" style={{ color: '#c8efff' }}
-            aria-label={shields + ' of ' + maxShields + ' shields'}>
+          <div className="bb-resource" data-resource="shields" style={{ color: '#c8efff' }}
+            aria-label={shields + ' of ' + maxShields + ' shields'} title={shields + ' of ' + maxShields + ' shields'}>
             <Shield size={20} aria-hidden="true" /><span><small>SHIELDS</small>{shields}<em>/{maxShields}</em></span>
           </div>
           <button className="bb-control bb-streak" onClick={() => openModal('streak')}
@@ -292,7 +306,7 @@ export function HUD() {
           <span className="bb-goal-arrow">{buildReady ? <Check size={21} aria-hidden="true" /> : <ArrowRight size={21} aria-hidden="true" />}</span>
         </button>
         <div className="bb-activity">
-          <div className="bb-energy-summary">
+          <div className="bb-energy-summary" data-resource="energy">
             <div className="bb-energy-title"><Zap size={14} aria-hidden="true" /> {energy}<span style={{ color: '#a4c5d7' }}>/{maxEnergy}</span> ENERGY</div>
             <div className="bb-energy-track" role="progressbar" aria-label="Dice energy"
               aria-valuemin={0} aria-valuemax={maxEnergy} aria-valuenow={energy}>

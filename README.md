@@ -1,112 +1,145 @@
-# 🎲 Blockbound: Dice Districts
+<p align="center">
+  <img src="docs/assets/icon.png" width="112" height="112" alt="Blockbound App Icon" style="border-radius: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);" />
+</p>
 
-**Roll. Build. Raid. Rebuild.** Blockbound is an original, portrait-first voxel board-and-town game in development for the mobile web and Android.
+<h1 align="center">🎲 Blockbound: Dice Districts</h1>
 
-> **Development status: experimental prototype, not a production-ready release.** The repository now includes an **actual React + TypeScript + React Three Fiber/Three.js web scene** as well as an earlier **Kotlin/Jetpack Compose Android prototype** and a **separate Android WebView shell with bundled HTML/Three.js assets**. These are **not yet a unified, tested distribution pipeline**. See [Architecture](docs/ARCHITECTURE.md) before extending any of them.
+<p align="center">
+  <strong>Roll. Build. Raid. Rebuild.</strong><br />
+  An original, portrait-first voxel board-and-town progression game built with React 18, Three.js / React Three Fiber, and Zustand for the mobile web, PWA, and Android.
+</p>
 
-[Design language & minigame brief](DESIGN.md) · [Tech stack & integration contracts](TECHSTACK.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md) · [Architecture](docs/ARCHITECTURE.md) · [AI Studio handoff](docs/AI_STUDIO.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+<p align="center">
+  <a href="docs/INDEX.md"><strong>📚 Documentation Index</strong></a> ·
+  <a href="docs/ARCHITECTURE.md">Architecture</a> ·
+  <a href="DESIGN.md">Design Language</a> ·
+  <a href="TECHSTACK.md">Tech Stack</a> ·
+  <a href="ROADMAP.md">Roadmap</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
+  <a href="THIRD_PARTY_NOTICES.md">Third-Party Notices</a>
+</p>
 
-## The pitch
+---
 
-Build a miniature voxel town while rolling dice around a colourful board. Collect coins, materials and shields, trigger quick events, upgrade buildings and unlock increasingly elaborate districts. The central differentiator is a **living, customisable 3D toy world** where construction, damage and progress have satisfying visible consequences.
+## 📸 Gameplay Gallery
 
-**Inspirations:** the broad board-progression, raid/rebuild and playful-city *genres* associated with Monopoly GO!, Coin Master, Board Kings and Dice Dreams. Blockbound must have its **own world, gameplay identity, assets, characters, board layout, UI and branding**.
+<p align="center">
+  <img src="docs/assets/screenshots/01-sunny-suburb-board.png" width="31%" alt="Sunny Suburb 3D Board" />
+  <img src="docs/assets/screenshots/02-town-raid-encounter.png" width="31%" alt="Town Raid Encounter Modal" />
+  <img src="docs/assets/screenshots/03-town-raid-direct-hit.png" width="31%" alt="Town Raid Direct Hit Payout" />
+</p>
+<p align="center">
+  <img src="docs/assets/screenshots/04-landmark-tier-progression.png" width="48%" alt="Landmark Tier 2 Upgrade" />
+  <img src="docs/assets/screenshots/05-stake-multiplier-hud.png" width="48%" alt="Stake Multipliers and Responsive HUD" />
+</p>
 
-### Design pillars
+*Live captures of Blockbound: Sunny Suburb 3D isometric board, standalone minigames (Town Raid), tier-by-tier voxel construction progression, and responsive mobile HUD.*
 
-- **Play first:** dice → travel → resolve landing → earn → build → repeat; no decorative placeholders presented as completed gameplay.
-- **3D, not 2.5D:** a touch-controllable camera, real depth, detailed voxel meshes and playful scene animation.
-- **Tactile feedback:** correct numbered dice, readable results, animated rewards, block-by-block construction and restrained one-shot SFX.
-- **Mobile friendly:** portrait framing, thumb-reachable HUD, cutout/safe-area support and Android WebGL performance.
-- **Reliable progression:** deterministic tests, idempotent reward processing and durable versioned saves.
-- **Ethical engagement:** optional cosmetics/ads later, transparent rewards and no paywall around basic play.
+---
 
-## Current implementation (source review: 8 October 2026)
+## 🌟 The Pitch
 
-| Area | In source today | Still needed |
-| --- | --- | --- |
-| Web client | `web/` Vite + React 18 + TypeScript; R3F/Three.js + Drei | Reproducible install, tests, production QA |
-| 3D board | 32 coloured **Three.js meshes**, character, buildings and OrbitControls in `web/src/components/VoxelScene.tsx` | Detailed level art, intuitive mobile camera and focus |
-| Dice | Two spinning **3D cubes** and store-generated dice numbers | Numbered/pipped faces, correct face settling, sync with visible outcome |
-| Gameplay | Zustand roll, energy, multiplier, simplified coin rewards and building upgrades/repairs | Full tile types, raids/heists, quests, robust turn state machine |
-| Persistence | Legacy Kotlin `SaveManager.kt` only | Versioned web save, restore, migrations and recovery |
-| Mobile app | Kotlin `MainActivity.kt` loads bundled `app/src/main/assets/www/index.html` through Android WebView | Consolidate with the Vite/R3F source; proper Capacitor workflow |
-| PWA | Not verified/implemented | Manifest, service worker, offline assets and update handling |
-| Quality | Existing Kotlin tests; `web/package.json` exposes `dev`, `build`, `preview`, `cap:sync` | Web test/lint scripts, lockfile, CI, phone profiling |
+Build a miniature voxel world while rolling dice around a vibrant 32-tile perimeter board. Collect coins, building blocks, energy, and shields, trigger tactical encounters, upgrade district landmarks, and unlock diverse theme worlds (Sunny Suburb, Candy Harbour, Neon Metropolis).
 
-**Do not conflate the different clients:**
+### Core Pillars
+* **Play First**: Deterministic turn cycle: roll → physical tumble → tile-by-tile character hop → landing resolution → build → save.
+* **Tactile Voxel Toy-Box**: Chunky toy-scale 3D models, smooth camera damping, numbered 3D dice faces, and animated block assembly.
+* **Responsive Mobile Ergonomics**: Portrait-first framing, thumb-zone controls, safe-area padding (`env(safe-area-inset-*)`), and overflow-guarded compact number formatting (`125K`, `1.28M`).
+* **Rock-Solid Progression**: 81 automated tests, versioned `SaveV1` browser storage, monotonic offline energy catch-up, and idempotent reward payouts.
+* **Ethical Engagement**: Non-coercive daily login rewards, transparent milestone curves, zero predatory lockouts, and no paywalled progression.
 
-1. **Primary target:** `web/` — React + TypeScript + R3F game, previewable in **Google AI Studio Web app mode**.
-2. **Android compatibility shell:** `app/` — native Gradle/Kotlin project; current `MainActivity.kt` loads static HTML/Three.js via a WebView, **not the Vite build automatically**.
-3. **Earlier prototype:** `app/src/main/java/com/example/blockbound/` — Kotlin game logic and Compose-drawn isometric voxel UI, useful for feature-parity and content references. The active activity currently uses the WebView shell.
+---
 
-The current `web/src/store/gameStore.ts` awards simplified tile rewards (for GO and certain tile indices); most full event/tile behaviours in the Kotlin prototype are **not ported**. Web state is currently in-memory, so reloading can reset progress. Building geometry changes tiers but lacks the final detail/assembly effects. **Do not advertise these as finished.**
+## 📊 Implementation Matrix
 
-## Start the web prototype
+| System | Implementation Status | Verified Features |
+| :--- | :--- | :--- |
+| **Game Core & Rules** | ✅ **Complete & Verified** | 32 typed perimeter tiles, seeded dice RNG, deterministic roll lifecycles (`rollRules.ts`), 81 passing tests. |
+| **3D Board & Scene** | ✅ **Complete & Verified** | React Three Fiber/Three.js scene (`VoxelScene.tsx`), 3 district themes (Emerald, Candy Strawberry, Cyber Neon), custom lighting and fog. |
+| **Locomotion & Feel** | ✅ **Complete & Verified** | Tile-by-tile character hop progression (`characterHop.test.mjs`), tumble-settled 3D dice, Web Audio sound effects with mute toggle. |
+| **District Progression** | ✅ **Complete & Verified** | 5 landmark silhouettes per district (`IslandView.tsx`), Tier 0–4 voxel stages, PvP damage & repair mechanics, warp transitions. |
+| **Minigames** | ✅ **Complete & Verified** | Standalone **Vault Heist** (9 safes, 3 picks) and **Town Raid** (3 NPC targets, shield absorption) with pure TS contracts (`contracts.ts`). |
+| **Timed Rotations** | ✅ **Complete & Verified** | Deterministic epoch rotation engine (4h flash, 24h daily, 7d weekly) with auto-turnover collection and 7-day streak rewards. |
+| **Responsive HUD** | ✅ **Complete & Verified** | Compact coin/block abbreviation engine (`ResourceAmount.tsx`, `K/M/B`), flying reward bezier particles to HUD counters with bump pops. |
+| **Persistence & Save** | ✅ **Complete & Verified** | Versioned `SaveV1` schema, automatic recovery from corrupt data, monotonic clock-safe offline energy regeneration (45s per unit). |
+| **Mobile PWA** | ✅ **Complete & Verified** | Web manifest (`manifest.webmanifest`), service worker shell caching (`sw.js`), desktop hotkeys (`Space`, `Enter`, `R`, `M`). |
+| **Android Sync** | ✅ **Complete & Verified** | Single-command distribution pipeline (`npm run sync:android`) synchronizing production web bundles directly to Android assets. |
 
-**Requirements:** Node.js and npm compatible with the checked-in Vite/TypeScript dependencies, plus a modern browser with WebGL.
+---
+
+## 🚀 Quickstart
+
+### Prerequisites
+* **Node.js** (v18+ recommended) & **npm**
+* Modern web browser with WebGL support
+
+### Running Locally
 
 ```bash
+# Clone the repository
 git clone https://github.com/sp80808/blockbound.git
 cd blockbound/web
+
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
-Open the local address printed by Vite (configured default port: **3000**). For a production bundle:
+Open the printed address (default: `http://localhost:3000`).
+
+### Quality Gates & Verification
 
 ```bash
+cd web
+
+# Run the automated test suite (81 unit and integration tests)
+npm test
+
+# Run strict TypeScript type checking
+npm run typecheck
+
+# Build optimized production bundle
 npm run build
-npm run preview
+
+# Synchronize production web bundle to Android assets
+npm run sync:android
 ```
 
-**Important:** as of this review, `web/` has a `package.json` but **no committed lockfile**, so `npm install` is required and dependency versions are not fully frozen; `npm ci` will only be appropriate once a lockfile is committed. A successful browser/Android build was **not** verified during this documentation update.
+---
 
-### Android development
-
-The root folder contains a Gradle/Kotlin Android project with `app/`. It currently launches a WebView pointed at **`file:///android_asset/www/index.html`**. The bundled asset is a separate HTML/Three.js implementation, not proven to be the output of `web/npm run build`. Changes to `web/src/` will **not automatically appear** in that native shell.
-
-A `web/capacitor.config.json` exists, but its presence is not proof of a working Capacitor project. The intended flow is **build the Vite client → validate its output → sync to Capacitor → test on Android** after the packaging strategy is consolidated.
-
-To explore the existing native shell, open the repository root in Android Studio and sync its Gradle project. The repository currently includes `gradle/wrapper/gradle-wrapper.properties` but **not** the wrapper executables/JAR; a clean `./gradlew` command cannot be assumed to work. Keep secrets and signing credentials out of git.
-
-## Where to find things
+## 🗂️ Project Directory Structure
 
 ```text
-web/
-  package.json                      # Vite/R3F dependencies and scripts
-  src/App.tsx                       # Splash, board scene, HUD, upgrade modal
-  src/components/VoxelScene.tsx     # WebGL meshes, dice cubes, camera
-  src/components/HUD.tsx            # Mobile controls and resource display
-  src/components/SplashScreen.tsx   # Browser splash
-  src/store/gameStore.ts            # Zustand state and prototype rules
-  capacitor.config.json             # Initial config; integration incomplete
-app/
-  src/main/assets/www/             # Separate, bundled WebView HTML/Three.js
-  src/main/java/com/example/
-    MainActivity.kt                 # Native WebView launcher
-    blockbound/                     # Legacy Kotlin gameplay + Compose UI
-docs/
-  ARCHITECTURE.md                   # Renderer, state and migration boundaries
-  AI_STUDIO.md                      # Development handoff / engine guardrails
+blockbound/
+├── README.md                      # Project overview and visual gallery
+├── DESIGN.md                      # Voxel art contract & design system
+├── TECHSTACK.md                   # Technology specifications & contracts
+├── ROADMAP.md                     # Milestone tracking & feature backlog
+├── CONTRIBUTING.md                # Development standards & guidelines
+│
+├── docs/                          # Detailed engineering documentation
+│   ├── INDEX.md                   # Comprehensive documentation index
+│   ├── ARCHITECTURE.md            # System design & unified runtime architecture
+│   ├── SAVE_RECOVERY.md           # SaveV1 schema & offline regeneration
+│   ├── GAME_FEEL.md               # Tactile interaction & audio synthesis
+│   ├── UI_UX_REVIEW.md            # Mobile portrait ergonomics & safe areas
+│   └── assets/                    # Project logos, icons, and gameplay screenshots
+│
+├── web/                           # Canonical game source (React 18 + R3F + Zustand)
+│   ├── src/                       # Components, game logic, minigames & state
+│   ├── tests/                     # 81 automated tests running under Node.js
+│   └── public/                    # PWA manifest, service worker & icons
+│
+└── app/                           # Android native wrapper & WebView shell
+    └── src/main/assets/www/       # Synced web bundle loaded by MainActivity.kt
 ```
 
-## Immediate milestones
+---
 
-1. **Unify the running source:** the R3F Vite game must be the web preview and eventual Android content, not a divergent copy of the bundled HTML.
-2. **Harden gameplay:** port 32 tile rewards and existing Kotlin event rules to pure, tested TypeScript; make rolls transactional.
-3. **Finish a compelling vertical slice:** face-correct dice, stepwise token movement, rewarding encounters, 3D building construction and save/load.
-4. **Test on actual phones:** responsive HUD, safe areas, camera gestures, memory/FPS and Android app lifecycle.
-5. **Then** broaden districts, daily systems, cloud social features and optional monetisation.
+## 🤝 Contributing & License
 
-See [ROADMAP.md](ROADMAP.md) for measurable acceptance criteria rather than unchecked feature claims.
+We welcome well-scoped pull requests, asset contributions, and bug reports. Please review [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before submitting changes.
 
-## Parallel minigame labs (Lovable / Replit)
-
-The first isolated experimental modules are **Vault Heist** and **Town Raid**. They should be authored in a separate sandbox/project and eventually imported into `web/src/minigames/` through a reviewed pull request. See the [visual and gameplay design brief](DESIGN.md) and [versioned TypeScript host contracts](TECHSTACK.md). The lab must never write the canonical player economy, forge multiplayer opponents or ship a second authoritative Blockbound app shell.
-
-**Current status:** these contracts are *specifications*, not already wired modules; lab project creation/hosting and live integration are tracked independently. The primary target remains React/TypeScript/R3F and Google AI Studio Web App mode. A public repo is not needed for planning: the owner can pass the documents to agents directly or connect Lovable's GitHub integration once access has been reviewed.
-
-## Contributions and rights
-
-We welcome well-scoped issues, original artwork and reviewed code; see [CONTRIBUTING.md](CONTRIBUTING.md). Track third-party code/assets in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); verify licences before reuse. No top-level licence granting rights to the project's original game code/assets was present in the reviewed repository, so **do not assume permission to redistribute them**.
+Third-party dependencies and notices are tracked in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

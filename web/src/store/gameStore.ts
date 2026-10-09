@@ -358,6 +358,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   energyUpdatedAt: Date.now(),
   hydrated: false,
   saveError: false,
+  ownedCards: [],
+  claimedCardSets: [],
+  rollsSinceCardDrop: 0,
+  cardReveal: null,
   rotationState: createInitialRotationState(Date.now(), 0),
 
   hydrateGame: () => {

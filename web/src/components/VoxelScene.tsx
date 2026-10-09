@@ -6,28 +6,19 @@ import { useGameStore } from '../store/gameStore';
 import { BOARD_TILES, type TileKind } from '../game/rollRules';
 import { playHop, playTileLand, buzz } from '../services/audio/sfx';
 
-// Compute 32 perimeter coordinates
-const boardStep = 2.4;
-const halfBoard = 4 * boardStep;
-export const TILE_POSITIONS: [number, number, number][] = [];
+import {
+  type DistrictBoardTheme,
+  DISTRICT_BOARD_THEMES,
+  getDistrictBoardTheme,
+  TILE_POSITIONS
+} from '../game/boardThemes';
 
-for (let i = 0; i < 32; i++) {
-  let x = 0, z = 0;
-  if (i >= 0 && i <= 8) {
-    x = -halfBoard + i * boardStep;
-    z = -halfBoard;
-  } else if (i > 8 && i <= 16) {
-    x = halfBoard;
-    z = -halfBoard + (i - 8) * boardStep;
-  } else if (i > 16 && i <= 24) {
-    x = halfBoard - (i - 16) * boardStep;
-    z = halfBoard;
-  } else {
-    x = -halfBoard;
-    z = halfBoard - (i - 24) * boardStep;
-  }
-  TILE_POSITIONS.push([x, 0, z]);
-}
+export {
+  type DistrictBoardTheme,
+  DISTRICT_BOARD_THEMES,
+  getDistrictBoardTheme,
+  TILE_POSITIONS
+};
 
 export const liveTokenPosition = new THREE.Vector3(
   TILE_POSITIONS[0]?.[0] ?? -9.6,
@@ -62,141 +53,8 @@ const EVENT_HIGHLIGHTS: Partial<Record<TileKind, string>> = {
   district: '#dbe4ff'
 };
 
-export interface DistrictBoardTheme {
-  foundationColor: string;
-  groundColor: string;
-  pathColor: string;
-  tilePedestalColor: string;
-  tileCornerPillarColor: string;
-  treeTrunk: string;
-  treeFoliageLower: string;
-  treeFoliageUpper: string;
-  lampPost: string;
-  lampBulb: string;
-  lampEmissive: string;
-  lampIntensity: number;
-  cloudMain: string;
-  cloudFluff1: string;
-  cloudFluff2: string;
-  villagerColors: string[];
-  fogColor: string;
-  fogNear: number;
-  fogFar: number;
-  ambientColor: string;
-  ambientIntensity: number;
-  hemiSky: string;
-  hemiGround: string;
-  hemiIntensity: number;
-  sunColor: string;
-  sunIntensity: number;
-  fillColor: string;
-  fillIntensity: number;
-  beaconColor: string;
-}
+import { DistrictGroundMaterial, ShockwaveMaterial } from '../game/shaders';
 
-export const DISTRICT_BOARD_THEMES: readonly DistrictBoardTheme[] = [
-  // District 0: Sunny Suburb — lush verdant lawn, rustic stone paths, fresh foliage, warm daylight
-  {
-    foundationColor: '#345f66',
-    groundColor: '#7bb6a0',
-    pathColor: '#d4c8b3',
-    tilePedestalColor: '#263956',
-    tileCornerPillarColor: '#263956',
-    treeTrunk: '#9b6744',
-    treeFoliageLower: '#3aa885',
-    treeFoliageUpper: '#73ce93',
-    lampPost: '#334155',
-    lampBulb: '#fef9c3',
-    lampEmissive: '#ca8a04',
-    lampIntensity: 0.7,
-    cloudMain: '#f1f8ff',
-    cloudFluff1: '#ffffff',
-    cloudFluff2: '#e6f1fb',
-    villagerColors: ['#38bdf8', '#f472b6', '#a3e635'],
-    fogColor: '#101f3a',
-    fogNear: 55,
-    fogFar: 120,
-    ambientColor: '#ffffff',
-    ambientIntensity: 0.85,
-    hemiSky: '#ddf5ff',
-    hemiGround: '#496b5a',
-    hemiIntensity: 0.62,
-    sunColor: '#ffffff',
-    sunIntensity: 1.7,
-    fillColor: '#bcd7ff',
-    fillIntensity: 0.35,
-    beaconColor: '#fff1a8'
-  },
-  // District 1: Candy Harbour — pastel strawberry icing lawn, waffle foundation, powdered sugar paths, marshmallow trees, warm dusk/dawn pink
-  {
-    foundationColor: '#78354c',
-    groundColor: '#f48db6',
-    pathColor: '#fff1f6',
-    tilePedestalColor: '#651d45',
-    tileCornerPillarColor: '#db2777',
-    treeTrunk: '#fbcfe8',
-    treeFoliageLower: '#f472b6',
-    treeFoliageUpper: '#c084fc',
-    lampPost: '#e11d48',
-    lampBulb: '#fff1f2',
-    lampEmissive: '#fb7185',
-    lampIntensity: 0.95,
-    cloudMain: '#fce7f3',
-    cloudFluff1: '#fdf2f8',
-    cloudFluff2: '#fae8ff',
-    villagerColors: ['#ec4899', '#f43f5e', '#a855f7'],
-    fogColor: '#4a044e',
-    fogNear: 50,
-    fogFar: 115,
-    ambientColor: '#ffe4e6',
-    ambientIntensity: 0.95,
-    hemiSky: '#fdf2f8',
-    hemiGround: '#831843',
-    hemiIntensity: 0.72,
-    sunColor: '#fff1f2',
-    sunIntensity: 1.8,
-    fillColor: '#fbcfe8',
-    fillIntensity: 0.45,
-    beaconColor: '#fbcfe8'
-  },
-  // District 2: Neon Metropolis — dark cyber asphalt & obsidian alloy foundation, neon cyber-circuit paths, holographic laser foliage, midnight synthwave lighting
-  {
-    foundationColor: '#0f0d1e',
-    groundColor: '#1a1738',
-    pathColor: '#082f49',
-    tilePedestalColor: '#15112e',
-    tileCornerPillarColor: '#06b6d4',
-    treeTrunk: '#1e1b4b',
-    treeFoliageLower: '#06b6d4',
-    treeFoliageUpper: '#d946ef',
-    lampPost: '#0b0a14',
-    lampBulb: '#22d3ee',
-    lampEmissive: '#06b6d4',
-    lampIntensity: 1.8,
-    cloudMain: '#241242',
-    cloudFluff1: '#3b0764',
-    cloudFluff2: '#1e1b4b',
-    villagerColors: ['#06b6d4', '#ec4899', '#a855f7'],
-    fogColor: '#060412',
-    fogNear: 45,
-    fogFar: 105,
-    ambientColor: '#7c3aed',
-    ambientIntensity: 0.65,
-    hemiSky: '#06b6d4',
-    hemiGround: '#3b0764',
-    hemiIntensity: 0.7,
-    sunColor: '#818cf8',
-    sunIntensity: 1.35,
-    fillColor: '#f43f5e',
-    fillIntensity: 0.8,
-    beaconColor: '#67e8f9'
-  }
-];
-
-export function getDistrictBoardTheme(districtId: number): DistrictBoardTheme {
-  const idx = Math.abs(districtId) % DISTRICT_BOARD_THEMES.length;
-  return DISTRICT_BOARD_THEMES[idx] ?? DISTRICT_BOARD_THEMES[0];
-}
 
 function reducedMotion(): boolean {
   return typeof window !== 'undefined' &&
@@ -391,12 +249,21 @@ function ActiveTileBeacon({ color = '#fff1a8' }: { color?: string }) {
   );
 }
 
-/** Expanding shockwave ring where the token lands. */
+/** Expanding procedural shockwave ring where the token lands. */
 function LandingPulse({ color = '#fff7c2' }: { color?: string }) {
   const pulse = useGameStore(s => s.landingPulse);
   const ringRef = useRef<THREE.Mesh>(null);
-  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  const matRef = useRef<any>(null);
   const anim = useRef({ t: 1, key: -1 });
+
+  const shockwaveMat = useMemo(() => {
+    return new ShockwaveMaterial({
+      uProgress: 0,
+      uColor: new THREE.Color(color),
+      uGlowColor: new THREE.Color('#fbbf24')
+    });
+  }, [color]);
+
   useFrame((_, delta) => {
     const ring = ringRef.current;
     const mat = matRef.current;
@@ -404,7 +271,6 @@ function LandingPulse({ color = '#fff7c2' }: { color?: string }) {
     if (reducedMotion()) {
       anim.current = { t: 1, key: pulse?.key ?? anim.current.key };
       ring.visible = false;
-      mat.opacity = 0;
       return;
     }
     if (pulse && pulse.key !== anim.current.key) {
@@ -414,19 +280,21 @@ function LandingPulse({ color = '#fff7c2' }: { color?: string }) {
       ring.visible = false;
       return;
     }
-    anim.current.t = Math.min(1, anim.current.t + delta * 1.4);
+    anim.current.t = Math.min(1, anim.current.t + delta * 1.55);
     const t = anim.current.t;
     const pos = TILE_POSITIONS[pulse?.tile ?? 0] ?? [0, 0, 0];
     ring.visible = true;
     ring.position.set(pos[0], 0.45, pos[2]);
-    const s = 0.8 + t * 2.6;
+    const s = 1.0 + t * 3.4;
     ring.scale.set(s, s, s);
-    mat.opacity = 0.85 * (1 - t);
+    mat.uProgress = t;
+    mat.uColor.set(color);
   });
+
   return (
     <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
-      <ringGeometry args={[0.72, 0.9, 28]} />
-      <meshBasicMaterial ref={matRef} color={color} side={THREE.DoubleSide} transparent opacity={0} depthWrite={false} />
+      <planeGeometry args={[2.2, 2.2]} />
+      <primitive ref={matRef} object={shockwaveMat} attach="material" transparent depthWrite={false} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -590,6 +458,36 @@ function BoardTile({
   );
 }
 
+function ProceduralGround({ theme }: { theme: DistrictBoardTheme }) {
+  const districtId = useGameStore(state => state.currentDistrict);
+  const matRef = useRef<any>(null);
+  const calm = reducedMotion();
+
+  const groundMat = useMemo(() => {
+    return new DistrictGroundMaterial({
+      uTime: 0,
+      uBaseColor: new THREE.Color(theme.groundColor),
+      uAccentColor: new THREE.Color(theme.pathColor),
+      uDistrict: districtId,
+      uReducedMotion: calm ? 1 : 0
+    });
+  }, [theme.groundColor, theme.pathColor, districtId, calm]);
+
+  useFrame(({ clock }) => {
+    if (matRef.current) {
+      matRef.current.uTime = clock.getElapsedTime();
+      matRef.current.uReducedMotion = calm ? 1 : 0;
+    }
+  });
+
+  return (
+    <mesh position={[0, -0.085, 0]} receiveShadow>
+      <boxGeometry args={[19.2, 0.13, 19.2]} />
+      <primitive ref={matRef} object={groundMat} attach="material" />
+    </mesh>
+  );
+}
+
 function VoxelBoard({ theme }: { theme: DistrictBoardTheme }) {
   const currentTile = useGameStore(state => state.visualTile);
   const isRolling = useGameStore(state => state.isRolling);
@@ -600,10 +498,7 @@ function VoxelBoard({ theme }: { theme: DistrictBoardTheme }) {
         <boxGeometry args={[24, 1.05, 24]} />
         <meshStandardMaterial color={theme.foundationColor} roughness={0.86} />
       </mesh>
-      <mesh position={[0, -0.085, 0]} receiveShadow>
-        <boxGeometry args={[19.2, 0.13, 19.2]} />
-        <meshStandardMaterial color={theme.groundColor} roughness={0.91} />
-      </mesh>
+      <ProceduralGround theme={theme} />
       {/* A subtle cross of cobblestones helps the centre read as a town. */}
       <mesh position={[0, -0.009, 0]} receiveShadow>
         <boxGeometry args={[2.15, 0.09, 16.4]} />
@@ -672,8 +567,9 @@ export function HopLandingParticles() {
       isPuff: true
     }))
   );
-  const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
-  const matRefs = useRef<(THREE.MeshBasicMaterial | null)[]>([]);
+  const instancedRef = useRef<THREE.InstancedMesh>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const tempColor = useMemo(() => new THREE.Color(), []);
 
   useEffect(() => {
     return subscribeTileImpact(event => {
@@ -736,19 +632,25 @@ export function HopLandingParticles() {
   }, []);
 
   useFrame((_, delta) => {
+    const mesh = instancedRef.current;
+    if (!mesh) return;
     const list = particlesRef.current;
+
     list.forEach((p, i) => {
-      const mesh = meshRefs.current[i];
-      const mat = matRefs.current[i];
-      if (!mesh || !mat) return;
       if (!p.active) {
-        mesh.visible = false;
+        dummy.position.set(0, -999, 0);
+        dummy.scale.set(0, 0, 0);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
         return;
       }
       p.life += delta;
       if (p.life >= p.maxLife) {
         p.active = false;
-        mesh.visible = false;
+        dummy.position.set(0, -999, 0);
+        dummy.scale.set(0, 0, 0);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
         return;
       }
       p.x += p.vx * delta;
@@ -761,41 +663,37 @@ export function HopLandingParticles() {
       p.vz *= Math.pow(0.8, delta * 60);
 
       const progress = p.life / p.maxLife;
-      mesh.visible = true;
-      mesh.position.set(p.x, p.y, p.z);
+      dummy.position.set(p.x, p.y, p.z);
       if (p.isPuff) {
-        const s = p.baseScale * (0.8 + progress * 2.2);
-        mesh.scale.set(s, s, s);
-        mat.opacity = 0.65 * (1 - progress);
+        const s = p.baseScale * (0.8 + progress * 2.2) * (1 - progress * 0.35);
+        dummy.scale.set(s, s, s);
+        dummy.rotation.set(0, 0, 0);
       } else {
         const s = p.baseScale * (1 - progress * 0.9);
-        mesh.scale.set(s, s, s);
-        mesh.rotation.x += 4 * delta;
-        mesh.rotation.y += 6 * delta;
-        mat.opacity = 0.95 * (1 - progress);
+        dummy.scale.set(s, s, s);
+        dummy.rotation.x += 4 * delta;
+        dummy.rotation.y += 6 * delta;
       }
-      mat.color.set(p.color);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+
+      tempColor.set(p.color);
+      mesh.setColorAt(i, tempColor);
     });
+
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   });
 
   return (
-    <group>
-      {particlesRef.current.map((_, i) => (
-        <mesh
-          key={i}
-          ref={el => { meshRefs.current[i] = el; }}
-          visible={false}
-        >
-          <sphereGeometry args={[1, 6, 5]} />
-          <meshBasicMaterial
-            ref={el => { matRefs.current[i] = el; }}
-            transparent
-            opacity={0}
-            depthWrite={false}
-          />
-        </mesh>
-      ))}
-    </group>
+    <instancedMesh
+      ref={instancedRef}
+      args={[undefined, undefined, count]}
+      frustumCulled={false}
+    >
+      <sphereGeometry args={[1, 6, 5]} />
+      <meshBasicMaterial transparent opacity={0.88} depthWrite={false} />
+    </instancedMesh>
   );
 }
 

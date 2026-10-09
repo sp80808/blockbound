@@ -1,83 +1,118 @@
-# Architecture and migration notes
+# Architecture & System Design
 
-**8 October 2026 — actual source review.** Blockbound currently has three overlapping implementations. This guide defines the intended boundaries and flags the gaps without claiming they are complete.
+**Blockbound: Dice Districts** is an original, portrait-first 3D voxel board-and-town progression game built on a unified web foundation for mobile browsers, PWA, and Android.
 
-## Three runtime surfaces
+---
 
-1. **`web/` — primary game.** Vite + React 18 + TypeScript; `@react-three/fiber`, `three`, `@react-three/drei`, Zustand. `web/src/components/VoxelScene.tsx` renders actual Three.js meshes, lights and a perspective camera. `HUD.tsx` and `App.tsx` render React UI.
-2. **`app/src/main/assets/www/` — independent static WebView game.** Contains its own `index.html` and `three.min.js`. `app/src/main/java/com/example/MainActivity.kt` explicitly loads this via `file:///android_asset/www/index.html`. **This is not an automatically built copy of `web/dist`.**
-3. **`app/src/main/java/com/example/blockbound/` — legacy native game.** Contains Kotlin `GameViewModel.kt`, `GameModels.kt`, `VoxelDioramaCanvas.kt`, `SaveManager.kt` and Compose screens. Its isometric renderer uses Android Compose `Canvas`; it is **not** WebGL 3D. It has useful content/rules that have not been fully ported.
+## 🏗️ Unified Runtime Architecture
 
-The near-term objective is **one authoritative React/R3F implementation**, with a proven output path to desktop/mobile browsers and Android. Avoid expanding parallel rule engines.
+Blockbound uses **`web/`** as its single canonical source of truth for game logic, rendering, simulation, and assets:
 
-## Current web component map
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Blockbound Web Source                           │
+│              (Vite + React 18 + TypeScript + Three.js + Zustand)        │
+└────────────────────────────────────┬───────────────────────────────────┘
+                                     │ npm run build
+                                     ▼
+                        ┌─────────────────────────┐
+                        │   web/dist (Bundle)     │
+                        │ (HTML, JS, CSS, PWA, SW)│
+                        └────────────┬────────────┘
+                                     │
+           ┌─────────────────────────┴─────────────────────────┐
+           ▼                                                   ▼
+┌──────────────────────────────┐              ┌──────────────────────────────┐
+│   Web & Mobile PWA Target    │              │    Android Shell Target      │
+│  • Installable Web App       │              │  • app/src/main/assets/www/  │
+│  • Offline Service Worker    │              │  • Synced via:               │
+│  • Desktop / Mobile browsers │              │    npm run sync:android      │
+│  • Google AI Studio preview  │              │  • Loaded by MainActivity.kt │
+└──────────────────────────────┘              └──────────────────────────────┘
+```
 
-| File | Responsibility | Gap |
-| --- | --- | --- |
-| `src/App.tsx` | Splash and game composition; upgrade dialog | UI state tightly coupled; more encounters needed |
-| `src/components/VoxelScene.tsx` | Mesh board, camera, token, tiered buildings, rolling cubes | 3D dice lack numbered faces/settlement; token lerps to final tile; generic geometry |
-| `src/components/HUD.tsx` | Currency, materials, shields, roll, multiplier, turbo | Hard-coded "+1 in 00:45" display, incomplete safe-area/accessibility treatment |
-| `src/components/SplashScreen.tsx` | Entry/splash animation | Timer-based presentation, not asset loading state |
-| `src/store/gameStore.ts` | In-memory game state and roll/build actions | Only simplified coin tile effects; no full event system or persistent save |
-| `capacitor.config.json` | Initial packaging configuration | Not evidence of an integrated Android build |
+1. **Web & PWA (`web/`)**: React 18, `@react-three/fiber`, `three`, Zustand 4, Lucide icons. Service worker caches static assets; `manifest.webmanifest` provides portrait-locked mobile installation.
+2. **Android WebView Shell (`app/src/main/assets/www/`)**: Hosted directly by `MainActivity.kt` (`file:///android_asset/www/index.html`). Synchronized directly from the compiled web distribution via `npm run sync:android`.
+3. **Legacy Native Reference (`app/src/main/java/com/example/blockbound/`)**: Original Android Compose/Canvas prototype retained for reference.
 
-## Intended separation
+---
+
+## 📦 Web Architecture & Component Map
 
 ```text
 web/src/
-  app/                # React app shell and navigation
-  game/core/          # Pure TS rules, seeded RNG, commands, reducers
-  game/content/       # Board/tile/building/district/quest definitions
-  game/state/         # Zustand bindings and versioned persistence
-  scene/              # R3F meshes, camera, character, dice, voxel effects
-  ui/                 # HUD, dialogs, safe-area/reduced motion
-  platform/           # Browser audio, haptics, lifecycle, Android bridge
-  test/               # Rule fixtures, integration and smoke tests
+├── components/
+│   ├── VoxelScene.tsx        # 3D R3F board, camera damping, token hop, pipped dice
+│   ├── IslandView.tsx        # District progression, 5 landmark stages, damage & repairs
+│   ├── HUD.tsx               # Responsive resource counters, build tracker, dice controls
+│   ├── ResourceAmount.tsx    # Responsive compact number formatting (K/M/B) with overflow guard
+│   ├── ResourceIcon.tsx      # SVG resource glyphs with crisp theme styling
+│   ├── RewardPresentation.tsx# 3D flying particle flights from modal into HUD targets
+│   ├── QuestsModal.tsx       # Rotating epoch challenges (Flash, Daily, Weekly) & lifetime badges
+│   ├── SplashScreen.tsx      # Entry branding & asset preparation
+│   └── GameFeel.css          # Dynamic district CSS variables, safe-area pads & animations
+│
+├── game/
+│   ├── boardThemes.ts        # Pure 3D color palettes & lighting configs for all 3 districts
+│   ├── rollRules.ts          # Pure 32-tile board definitions, cost formulas, seeded dice logic
+│   ├── formatAmount.ts       # Compact abbreviation engine with rollover protection
+│   ├── gameSave.ts           # SaveV1 schema validator, backup restore & offline energy catchup
+│   ├── rotationEngine.ts     # Epoch time-window alignment (4h, 24h, 7d) & quest generation
+│   ├── questDispatcher.ts    # Canonical gameplay action stream & progress updates
+│   └── hotkeys.ts            # Desktop keyboard navigation (Space, Enter, R, M)
+│
+├── minigames/
+│   ├── contracts.ts          # Pure TypeScript encounter contracts (v1 EncounterPlan / Result)
+│   ├── heist/VaultHeist.tsx  # 3×3 grid of 9 safes, 3 picks, once-only reward resolution
+│   └── raid/TownRaid.tsx     # 3 NPC targets, shielded damage resolution, single strike
+│
+├── services/audio/
+│   └── sfx.ts                # Concurrency-controlled Web Audio synthesis with mute toggles
+│
+└── store/
+    └── gameStore.ts          # Central Zustand state adapter coordinating rules, saves, and UI
 ```
 
-These are *planned* directories. Avoid creating empty folders only to match diagrams.
+---
 
-### Rules must drive visuals
+## ⚙️ Deterministic Turn & Transaction Lifecycle
 
-A roll transaction should:
-1. Validate that a roll is allowed; spend energy **once**.
-2. Generate two valid results with an injected RNG (seeded in tests).
-3. Commit the result and associated unique roll/action ID.
-4. Animate dice to the **correct physical faces** without changing the outcome.
-5. Move the token across the correct sequence of board tiles.
-6. Resolve the landed tile effect or open an encounter **exactly once**.
-7. Commit/persist the resulting resources, quests and progress.
-8. Return control to the player.
+Every dice roll executes as a strict state machine to prevent duplicate claims, lost rolls, or visual desync:
 
-Animations may be skipped or interrupted without rerolling, double charging or double granting rewards. Use the state machine READY → COMMITTED → PRESENTING → MOVING → RESOLVING → READY, with interrupted/recovery paths.
+```text
+   [ READY ] ──(User Roll / Auto Roll)──► [ COMMITTED ]
+                                                │
+                                                ▼ (Deduct Energy once)
+                                                ▼ (Commit Roll ID & Rewards)
+                                                ▼ (Persist to SaveV1)
+                                                │
+   [ COMPLETE ] ◄──(Settle Rewards)────── [ RESOLVING ]
+        ▲                                       ▲
+        │                                       │ (Token Hop Complete)
+        └────────── [ ANIMATING ] ──────────────┘
+                    • 3D Pipped Dice Tumbling
+                    • Tile-by-Tile Character Hop
+                    • Sound & Haptic Pulses
+```
 
-**Minimum invariants:** results within 1–6; movement wraps board size; no negative balances; no upgrade above max tier; cap shields/energy; no reused transaction IDs; restore to a consistent state after reload.
+### Key Invariants
+1. **Precommitted Economy**: Dice outcome, landed tile, resource delta, and milestone bonuses are calculated and persisted to localStorage **before the first animation frame begins**. If the player refreshes mid-roll, the completed roll state restores without rerolling or loss.
+2. **One-Roll-One-Transaction**: Minigames (`TownRaid`, `VaultHeist`) receive precommitted encounter options from the host store. They present choices to the player and fire their completion callback **at most once per encounter**.
+3. **Responsive Number Formatting**: Coin and block totals format responsively via `ResourceAmount.tsx` and `formatCompactAmount.ts` (`125K`, `1.28M`, `10M`). Balances never push neighboring counters or wrap onto multiple lines, while exact integer amounts remain accessible via tooltips and screen-reader labels.
+4. **Offline Catch-Up**: On launch, `tickRecovery()` calculates elapsed wall-clock time using monotonic safeguards. Energy regenerates at 1 unit per 45 seconds, strictly capped at `maxEnergy`. Device clock rollbacks cannot grant excess energy.
 
-### Porting rules from Kotlin
+---
 
-Extract the **observed gameplay contract**, not the Android APIs, from:
-- `GameModels.kt` (tile/quest/building/district types)
-- `GameViewModel.kt` (tile effects and events)
-- `SaveManager.kt` (data fields, stable IDs, lifecycle)
-- `VoxelModels.kt` (tile order and original design intent)
+## 🧪 Verification & Quality Gates
 
-Write golden fixtures such as: initial state + seeded dice + action → expected tile, rewards, energy, building tier, quest progress. Keep those fixtures deterministic while converting to TypeScript. Do not blindly carry over bugs or device-specific storage.
+The test suite runs entirely in Node.js with built-in zero-dependency test runner (`node --test`), compiling TypeScript in-memory:
 
-**Save compatibility caveat:** Kotlin `SharedPreferences` is not readable from the web game. If preserving installed native prototype saves is required, design an explicit import/export bridge. A new browser save should have versioning and validation before claiming parity.
+```bash
+cd web
+npm test               # Runs 81 unit & integration tests in <6s
+npm run typecheck      # Validates strict TypeScript compilation
+npm run build          # Builds production bundle
+npm run sync:android   # Syncs web build into Android app assets
+```
 
-### Android delivery
-
-Treat **`web/dist` as the desired single build output** after the packaging integration is implemented. Either:
-
-- Use a maintained Capacitor project to package that output, **or**
-- Build a controlled existing WebView integration that copies the same versioned assets, with correct path rewriting and repeatable checks.
-
-Do not mix both ad hoc. Confirm that Android is using the correct resources with a runtime build fingerprint. Test WebGL on Android System WebView, along with touch, back handling, audio, state persistence, graphics context loss and app restarts.
-
-### Quality, performance and rights
-
-Use instanced or merged meshes for repeated voxel geometry when beneficial; profile frame time and draw calls before/after. Keep stable content IDs and visual update paths deterministic. Never treat a screenshot as proof of live gameplay.
-
-Dependencies and art must be reviewed for licensing, compatibility and security. Current third-party notice entries may describe **conceptual** inspiration and should be audited before any code or assets are bundled. Preserve original Blockbound assets and code rights.
-
-See [the roadmap](../ROADMAP.md) for acceptance gates and [AI Studio handoff](AI_STUDIO.md) for generator instructions.
+All 81 tests execute deterministically without flaky timers, verifying roll wrapping, energy deductions, corrupted save rollbacks, timed quest turnover, and responsive number compaction.

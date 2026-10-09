@@ -6,7 +6,7 @@ await import('./setup-ts.mjs');
 
 const { useGameStore, initialDistricts } = await import('../src/store/gameStore.ts');
 const { playHop, playTileLand } = await import('../src/services/audio/sfx.ts');
-const { TILE_POSITIONS } = await import('../src/components/VoxelScene.tsx');
+const { TILE_POSITIONS } = await import('../src/game/boardThemes.ts');
 
 const state = () => useGameStore.getState();
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));

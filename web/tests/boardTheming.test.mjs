@@ -9,7 +9,7 @@ const { useGameStore, initialDistricts } = await import('../src/store/gameStore.
 const {
   DISTRICT_BOARD_THEMES,
   getDistrictBoardTheme
-} = await import('../src/components/VoxelScene.tsx');
+} = await import('../src/game/boardThemes.ts');
 
 test('defines 3 visually distinct 3D board themes for all districts', () => {
   assert.equal(DISTRICT_BOARD_THEMES.length, 3);

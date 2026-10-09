@@ -19,6 +19,7 @@ import { buildingUpgradeCost } from '../game/rollRules';
 import { districtComplete } from '../game/quests';
 import { ResourceIcon } from './ResourceIcon';
 import { playClick, playFanfare, playBuild, buzz } from '../services/audio/sfx';
+import { fireDistrictCompleteCelebration } from '../services/fx/confetti';
 import './IslandView.css';
 
 interface IslandViewProps {
@@ -372,6 +373,7 @@ export function IslandView({ onClose }: IslandViewProps) {
 
   const handleWarp = () => {
     playFanfare();
+    fireDistrictCompleteCelebration();
     unlockDistrict();
   };
 

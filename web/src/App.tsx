@@ -9,6 +9,7 @@ import { useGameStore } from './store/gameStore';
 import { RewardPresentation } from './components/RewardPresentation';
 import { QuestsModal } from './components/QuestsModal';
 import { IslandView } from './components/IslandView';
+import { fireConfettiBurst, fireJackpotCelebration } from './services/fx/confetti';
 
 const CONFETTI_COLORS = ['#fde047', '#f472b6', '#67e8f9', '#a3e635', '#fb923c', '#c4b5fd'];
 
@@ -35,6 +36,11 @@ function Celebration() {
 
   useEffect(() => {
     if (!celebration) return;
+    if (celebration.kind === 'jackpot') {
+      fireJackpotCelebration();
+    } else {
+      fireConfettiBurst({ y: 0.45, particleCount: 50 });
+    }
     const timer = window.setTimeout(dismiss, CELEBRATION_DURATION);
     return () => window.clearTimeout(timer);
   }, [celebration, dismiss]);
